@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "npm run dev --workspace=apps/admin",
     "dev:widget": "npm run dev --workspace=packages/widget",
-    "build": "npm run build --workspaces",
+    "build": "npm run build --workspace=packages/config && npm run build --workspace=packages/widget && npm run build --workspace=apps/admin",
     "lint": "eslint ."
   },
   "devDependencies": {
