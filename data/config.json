@@ -1,0 +1,71 @@
+{
+  "appearance": {
+    "primaryColor": "#004a99",
+    "accentColor": "#0056b3",
+    "backgroundColor": "#ffffff",
+    "textColor": "#212529",
+    "fontFamily": "'Inter', system-ui, sans-serif",
+    "position": "bottom-right",
+    "borderRadius": 12,
+    "companyName": "Duran & Duran-Schulze Law",
+    "welcomeMessage": "Thank you for reaching out to Duran & Duran-Schulze Law.\n\nResponses in this chat box are AI-generated and for informational purposes only. They do not constitute legal advice. We strongly recommend consulting and verifying the information with one of our qualified lawyers for formal legal guidance.\n\nTo begin, please provide your name and email below.",
+    "avatarUrl": ""
+  },
+  "ai": {
+    "systemPrompt": "You are a legal AI assistant for Duran & Duran-Schulze Law, a highly respected Philippine law firm. Your purpose is to provide general information about legal processes in a formal and professional tone. Structure your responses into clear paragraphs for readability.\n\nYour specializations are:\n- Family Law (annulment, custody, support, marital issues)\n- Immigration Law (visas, deportation, dual citizenship, permanent residency)\n- Property and Estate Law (land ownership, inheritance, title transfer, estate settlement)\n- Tax Law (estate tax amnesty, BIR registration, income and estate tax compliance)\n- Corporate Law (business registration, SEC compliance, shareholder rights, corporate governance)\n- Intellectual Property Law (trademark, copyright, patent, IP registration through IPO Philippines)\n- Labor Law (employment, wages, unfair labor practice, etc.)\n\nYour role is to provide a general process related to a legal inquiry, but making sure that it is accurate and align with the Philippine laws and rules. Explain the steps involved and what can generally be expected. \n\nCrucially, you MUST NOT provide specific legal advice. Even if you are an AI, your knowledge should be completely accurate or up-to-date, and align with the Supreme Court of the Philippines rules and decisions. If asked for detailed guidance tailored to a particular case, a legal opinion, or any form of specific advice, you MUST politely decline and strongly recommend scheduling a consultation with the human attorneys at Duran & Duran-Schulze Law.\n\nIf a user asks about our office location, address, or how to find us, you must respond by stating that our office details can be found on our official website.\n\nThis is an example of how to respond when asked for specific advice: 'For a more comprehensive understanding and personalized advice tailored to your situation, we strongly recommend scheduling a consultation with one of our experienced attorneys at Duran & Duran-Schulze Law. As an AI assistant, I cannot provide formal legal advice.'\n\nIMPORTANT: Always conclude every response with the firm's official website: https://duranschulze.com/",
+    "model": "gemini-2.5-flash",
+    "temperature": 0.7,
+    "maxTokens": 2048,
+    "apiKey": ""
+  },
+  "quickLinks": [
+    {
+      "id": "1",
+      "label": "Schedule with Atty. Marie Christine",
+      "url": "https://tidycal.com/mariechristine",
+      "icon": "calendar"
+    },
+    {
+      "id": "2",
+      "label": "Schedule with Atty. Mary Wendy",
+      "url": "https://tidycal.com/attymarywendy",
+      "icon": "calendar"
+    },
+    {
+      "id": "3",
+      "label": "Visit Our Website",
+      "url": "https://duranschulze.com",
+      "icon": "globe"
+    }
+  ],
+  "dataset": [
+    {
+      "id": "1",
+      "keywords": ["annulment", "marriage", "divorce"],
+      "title": "Annulment Process Philippines",
+      "content": "Annulment is a legal procedure to declare a marriage null and void. The process involves filing a petition in court, serving notice to the other party, and presenting evidence. Typical grounds include lack of parental consent, insanity, fraud, force/intimidation, impotence, or sexually transmissible disease.",
+      "category": "Family Law"
+    },
+    {
+      "id": "2",
+      "keywords": ["visa", "immigration", "permanent resident"],
+      "title": "Philippine Visa Types",
+      "content": "Common visa types include: Tourist Visa (9A), Work Visa (9G), Student Visa (9F), Special Resident Retiree's Visa (SRRV), and Permanent Resident Visa (13A for spouses of Filipinos). Each has specific requirements and application procedures through the Bureau of Immigration.",
+      "category": "Immigration Law"
+    },
+    {
+      "id": "3",
+      "keywords": ["estate tax", "BIR", "inheritance tax"],
+      "title": "Estate Tax Amnesty",
+      "content": "The Estate Tax Amnesty allows settlement of estate tax obligations at a reduced rate. The amnesty rate is 6% of the decedent's total net estate without penalties. Available until a set deadline set by law. Required documents include death certificate, tax identification number of the estate, and inventory of assets.",
+      "category": "Tax Law"
+    }
+  ],
+  "behavior": {
+    "autoOpenDelay": 0,
+    "showTimestamps": true,
+    "enableCopyButton": true,
+    "enableQuoteRequest": true,
+    "quoteEmail": "info@duranschulze.com"
+  }
+}
