@@ -1,21 +1,17 @@
 import type { AppearanceConfig } from '@duran-chatbot/config'
 import type { QuickLink } from '@duran-chatbot/config'
-import { Copy } from 'lucide-react'
-import { createElement } from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
 
 interface VisitorProfile {
   name: string
   email: string
 }
 
-export const copyIconMarkup = renderToStaticMarkup(
-  createElement(Copy, {
-    size: 14,
-    strokeWidth: 2,
-    'aria-hidden': true,
-  }),
-)
+export const copyIconMarkup = `
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <rect x="9" y="9" width="13" height="13"></rect>
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+  </svg>
+`
 
 export function getCSSVariables(appearance: AppearanceConfig, position: string): string {
   return `
