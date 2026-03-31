@@ -1,6 +1,9 @@
 import type { ChatbotConfig } from "@duran-chatbot/config"
 
 export function getEmbedCode(config: ChatbotConfig): string {
+  const widgetBaseUrl =
+    typeof window !== "undefined" ? window.location.origin : "https://your-domain.com"
+
   return `<!-- Chatbot Widget -->
 <div id="chatbot-widget"></div>
 <script>
@@ -12,5 +15,5 @@ export function getEmbedCode(config: ChatbotConfig): string {
     }
   };
 </script>
-<script src="https://your-domain.com/widget.js" async></script>`
+<script src="${widgetBaseUrl}/widget.js" async></script>`
 }
