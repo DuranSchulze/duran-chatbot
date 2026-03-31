@@ -18,5 +18,8 @@
     "eslint": "^9.39.4",
     "typescript": "~5.9.3"
   },
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "redis": "^5.11.0"
+  }
 }

@@ -1,19 +1,61 @@
 import fs from "node:fs";
 import path from "node:path";
+import { createClient } from "redis";
 
-const configPath = path.join(process.cwd(), "data", "config.json");
+const CONFIG_KEY = "chatbot:config";
+const fallbackConfigPath = path.join(process.cwd(), "data", "config.json");
 
-function readConfig() {
-  const file = fs.readFileSync(configPath, "utf8");
+const redisUrl = process.env.REDIS_URL;
+const redis = redisUrl ? createClient({ url: redisUrl }) : null;
+const redisConnection = redis ? redis.connect() : null;
+
+function readFallbackConfig() {
+  const file = fs.readFileSync(fallbackConfigPath, "utf8");
   return JSON.parse(file);
 }
 
-export default function handler(req, res) {
+async function readRequestBody(req) {
+  if (req.body && typeof req.body === "object") {
+    return req.body;
+  }
+
+  const chunks = [];
+
+  for await (const chunk of req) {
+    chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+  }
+
+  const rawBody = Buffer.concat(chunks).toString("utf8");
+  return rawBody ? JSON.parse(rawBody) : {};
+}
+
+async function getRedisClient() {
+  if (!redis || !redisConnection) {
+    throw new Error("REDIS_URL is not configured");
+  }
+
+  await redisConnection;
+  return redis;
+}
+
+async function getStoredConfig() {
+  const client = await getRedisClient();
+  const rawConfig = await client.get(CONFIG_KEY);
+
+  if (!rawConfig) {
+    const fallbackConfig = readFallbackConfig();
+    await client.set(CONFIG_KEY, JSON.stringify(fallbackConfig));
+    return fallbackConfig;
+  }
+
+  return JSON.parse(rawConfig);
+}
+
+export default async function handler(req, res) {
   if (req.method === "GET") {
     try {
-      const config = readConfig();
-      res.setHeader("Content-Type", "application/json");
-      res.status(200).send(JSON.stringify(config));
+      const config = redisUrl ? await getStoredConfig() : readFallbackConfig();
+      res.status(200).json(config);
     } catch (error) {
       res.status(500).json({
         error: "Failed to read config",
@@ -24,13 +66,22 @@ export default function handler(req, res) {
   }
 
   if (req.method === "POST") {
-    res.status(501).json({
-      error: "Saving config is not configured for this Vercel deployment yet.",
-    });
+    try {
+      const client = await getRedisClient();
+      const nextConfig = await readRequestBody(req);
+
+      await client.set(CONFIG_KEY, JSON.stringify(nextConfig));
+
+      res.status(200).json({ success: true });
+    } catch (error) {
+      res.status(500).json({
+        error: "Failed to save config",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
     return;
   }
 
   res.setHeader("Allow", "GET, POST");
   res.status(405).json({ error: "Method not allowed" });
 }
-
