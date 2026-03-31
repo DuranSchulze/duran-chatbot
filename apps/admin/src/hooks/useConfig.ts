@@ -1,43 +1,43 @@
-import { useState, useEffect } from 'react';
-import type { ChatbotConfig } from '@duran-chatbot/config';
-import { fetchConfig, saveConfig } from '../api/config';
+import { useCallback, useEffect, useState } from "react"
+import type { ChatbotConfig } from "@duran-chatbot/config"
+import { fetchConfig, saveConfig } from "@/api/config"
 
 export function useConfig() {
-  const [config, setConfig] = useState<ChatbotConfig | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [config, setConfig] = useState<ChatbotConfig | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  const loadConfig = useCallback(async () => {
+    try {
+      setLoading(true)
+      const data = await fetchConfig()
+      setConfig(data)
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load config")
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    loadConfig();
-  }, []);
-
-  const loadConfig = async () => {
-    try {
-      setLoading(true);
-      const data = await fetchConfig();
-      setConfig(data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load config');
-    } finally {
-      setLoading(false);
-    }
-  };
+    loadConfig()
+  }, [loadConfig])
 
   const updateConfig = async (newConfig: ChatbotConfig) => {
     try {
-      setSaving(true);
-      await saveConfig(newConfig);
-      setConfig(newConfig);
-      return true;
+      setSaving(true)
+      await saveConfig(newConfig)
+      setConfig(newConfig)
+      return true
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save config');
-      return false;
+      setError(err instanceof Error ? err.message : "Failed to save config")
+      return false
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
-  return { config, loading, error, saving, updateConfig, reload: loadConfig };
+  return { config, loading, error, saving, updateConfig, reload: loadConfig }
 }

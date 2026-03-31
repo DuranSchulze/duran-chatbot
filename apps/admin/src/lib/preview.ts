@@ -1,0 +1,23 @@
+import type { ChatbotConfig } from "@duran-chatbot/config";
+
+const PREVIEW_CONFIG_KEY = "duran-chatbot-preview-config";
+
+export function savePreviewConfig(config: ChatbotConfig) {
+  window.localStorage.setItem(PREVIEW_CONFIG_KEY, JSON.stringify(config));
+}
+
+export function loadPreviewConfig(): ChatbotConfig | null {
+  const rawValue = window.localStorage.getItem(PREVIEW_CONFIG_KEY);
+
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(rawValue) as ChatbotConfig;
+  } catch {
+    window.localStorage.removeItem(PREVIEW_CONFIG_KEY);
+    return null;
+  }
+}
+

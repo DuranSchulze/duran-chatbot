@@ -1,11 +1,3 @@
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import type { SidebarItem } from "@/features/config-editor/types";
 import { cn } from "@/lib/utils";
 
@@ -23,20 +15,46 @@ export function SidebarNav({
   dirty,
 }: SidebarNavProps) {
   return (
-    <Card className="bg-white shadow-sm">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <CardTitle>Workspace</CardTitle>
-            <CardDescription>Choose a settings section.</CardDescription>
-          </div>
-          <Badge variant={dirty ? "warning" : "success"}>
-            {dirty ? "Draft" : "Saved"}
-          </Badge>
+    <div className="flex flex-1 flex-col">
+      {/* Logo / Brand */}
+      <div className="flex items-center gap-3 px-5 py-5 border-b border-slate-800">
+        <img
+          src="/logo.webp"
+          alt="Logo"
+          className="h-9 w-auto shrink-0 object-contain"
+        />
+      </div>
+
+      {/* Status pill */}
+      <div className="px-4 py-3">
+        <div
+          className={cn(
+            "flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium",
+            dirty
+              ? "bg-amber-500/15 text-amber-300"
+              : "bg-emerald-500/15 text-emerald-400",
+          )}
+        >
+          <span
+            className={cn(
+              "size-1.5 rounded-full",
+              dirty ? "bg-amber-400" : "bg-emerald-400",
+            )}
+          />
+          {dirty ? "Unsaved changes" : "All changes saved"}
         </div>
-      </CardHeader>
-      <CardContent className="space-y-1.5">
-        {items.map((item, index) => {
+      </div>
+
+      {/* Nav label */}
+      <div className="px-5 pb-2 pt-1">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+          Settings
+        </p>
+      </div>
+
+      {/* Nav items */}
+      <nav className="flex-1 space-y-0.5 px-3 pb-4">
+        {items.map((item) => {
           const Icon = item.icon;
           const isActive = item.id === activeId;
 
@@ -46,37 +64,28 @@ export function SidebarNav({
               type="button"
               onClick={() => onSelect(item.id)}
               className={cn(
-                "group flex w-full items-start gap-3 rounded-2xl border px-3.5 py-3 text-left transition",
+                "group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all",
                 isActive
-                  ? "border-primary/15 bg-slate-50 text-foreground"
-                  : "border-transparent bg-transparent hover:border-border/80 hover:bg-slate-50",
+                  ? "bg-blue-500/20 text-white"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-slate-100",
               )}
             >
-              <div
+              <Icon
                 className={cn(
-                  "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl border",
+                  "size-4 shrink-0",
                   isActive
-                    ? "border-primary/10 bg-white text-primary"
-                    : "border-border/80 bg-white text-muted-foreground",
+                    ? "text-blue-400"
+                    : "text-slate-500 group-hover:text-slate-300",
                 )}
-              >
-                <Icon className="size-4" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold">{item.label}</span>
-                  <span className="text-[11px] text-muted-foreground">
-                    0{index + 1}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  {item.description}
-                </p>
-              </div>
+              />
+              <span className="font-medium">{item.label}</span>
+              {isActive && (
+                <span className="ml-auto size-1.5 rounded-full bg-blue-400" />
+              )}
             </button>
           );
         })}
-      </CardContent>
-    </Card>
+      </nav>
+    </div>
   );
 }

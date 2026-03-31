@@ -1,46 +1,37 @@
-import { useState } from "react"
-import { Braces, Check, Copy } from "lucide-react"
-
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState } from "react";
+import { Check, Copy } from "lucide-react";
 
 type EmbedCodeCardProps = {
-  code: string
-}
+  code: string;
+};
 
 export function EmbedCodeCard({ code }: EmbedCodeCardProps) {
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(code)
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 2000)
-  }
+    await navigator.clipboard.writeText(code);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
-    <Card className="bg-white shadow-sm">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <CardTitle>Embed Code</CardTitle>
-            <CardDescription>Copy this snippet to install the widget.</CardDescription>
-          </div>
-          <Badge variant="secondary" className="gap-1.5">
-            <Braces className="size-3.5" />
-            Snippet
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <pre className="overflow-x-auto rounded-2xl border border-border bg-slate-900 p-4 text-xs leading-6 text-slate-100">
-          <code>{code}</code>
-        </pre>
-        <Button variant="outline" className="w-full" onClick={handleCopy}>
-          {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-          {copied ? "Copied" : "Copy to Clipboard"}
-        </Button>
-      </CardContent>
-    </Card>
-  )
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+          Embed snippet
+        </p>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
+        >
+          {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+      <pre className="overflow-x-auto rounded-xl bg-slate-900 p-3 text-[11px] leading-5 text-slate-300">
+        <code>{code}</code>
+      </pre>
+    </div>
+  );
 }

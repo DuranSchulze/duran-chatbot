@@ -1,17 +1,17 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { ChatbotConfig } from "@duran-chatbot/config";
-import { getEmbedCode } from "lib/embed";
-
+import { getEmbedCode } from "@/lib/embed";
 import { AdminShell } from "@/components/layout/admin-shell";
 import { ConfigSummaryCard } from "@/components/cards/config-summary-card";
 import { EmbedCodeCard } from "@/components/cards/embed-code-card";
 import { StatusBanner } from "@/components/cards/status-banner";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { TopBar } from "@/components/layout/top-bar";
-import { Card, CardContent } from "@/components/ui/card";
 import { getConfigSections } from "@/features/config-editor/sections";
 import type { ConfigSectionId } from "@/features/config-editor/types";
 import { useConfig } from "@/hooks/useConfig";
+import { savePreviewConfig } from "@/lib/preview";
+import { WidgetPreviewPage } from "@/pages/widget-preview-page";
 
 function App() {
   const { config, loading, error, saving, updateConfig } = useConfig();
@@ -19,13 +19,15 @@ function App() {
     useState<ConfigSectionId>("appearance");
   const [editedConfig, setEditedConfig] = useState<ChatbotConfig | null>(null);
   const [saveStatus, setSaveStatus] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isPreviewPage = new URLSearchParams(window.location.search).get("preview") === "1";
 
   const currentConfig = editedConfig ?? config;
 
-  const handleConfigChange = (newConfig: ChatbotConfig) => {
+  const handleConfigChange = useCallback((newConfig: ChatbotConfig) => {
     setEditedConfig(newConfig);
     setSaveStatus("");
-  };
+  }, []);
 
   const handleSave = async () => {
     if (!editedConfig) {
@@ -40,38 +42,18 @@ function App() {
     }
   };
 
-  const updateSection = <K extends keyof ChatbotConfig>(
-    key: K,
-    value: ChatbotConfig[K],
-  ) => {
-    if (!currentConfig) {
-      return;
-    }
-
-    handleConfigChange({
-      ...currentConfig,
-      [key]: value,
-    });
-  };
-
-  const getEmbedCode = () => {
-    if (!currentConfig) {
-      return "";
-    }
-
-    return `<!-- Chatbot Widget -->
-<div id="chatbot-widget"></div>
-<script>
-  window.ChatbotConfig = {
-    appearance: {
-      position: '${currentConfig.appearance.position}',
-      companyName: '${currentConfig.appearance.companyName}',
-      primaryColor: '${currentConfig.appearance.primaryColor}'
-    }
-  };
-</script>
-<script src="https://your-domain.com/widget.js" async></script>`;
-  };
+  const updateSection = useCallback(
+    <K extends keyof ChatbotConfig>(key: K, value: ChatbotConfig[K]) => {
+      if (!currentConfig) {
+        return;
+      }
+      handleConfigChange({
+        ...currentConfig,
+        [key]: value,
+      });
+    },
+    [currentConfig, handleConfigChange],
+  );
 
   const sections = useMemo(
     () =>
@@ -91,22 +73,23 @@ function App() {
             onBehaviorChange: (behavior) => updateSection("behavior", behavior),
           })
         : [],
-    [currentConfig],
+    [currentConfig, updateSection],
   );
 
   const currentPanel =
     sections.find((section) => section.id === activeSection) ?? sections[0];
 
+  if (isPreviewPage) {
+    return <WidgetPreviewPage />;
+  }
+
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="py-10 text-center">
-            <p className="text-lg font-medium text-foreground">
-              Loading admin workspace...
-            </p>
-          </CardContent>
-        </Card>
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="size-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-500" />
+          <p className="text-sm text-slate-500">Loading workspace…</p>
+        </div>
       </div>
     );
   }
@@ -114,7 +97,7 @@ function App() {
   if (error || !currentConfig || !currentPanel) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="w-full max-w-xl">
+        <div className="w-full max-w-sm">
           <StatusBanner
             tone="error"
             title="Unable to load configuration"
@@ -127,26 +110,37 @@ function App() {
 
   return (
     <AdminShell
+      sidebarOpen={sidebarOpen}
+      onSidebarClose={() => setSidebarOpen(false)}
       header={
         <TopBar
           saving={saving}
           dirty={Boolean(editedConfig)}
           saveStatus={saveStatus}
           onSave={handleSave}
+          onPreview={() => {
+            savePreviewConfig(currentConfig);
+            window.open("/?preview=1", "_blank", "noopener,noreferrer");
+          }}
+          onMenuClick={() => setSidebarOpen(true)}
+          activeLabel={currentPanel.label}
         />
       }
       sidebar={
         <SidebarNav
           items={sections}
           activeId={currentPanel.id}
-          onSelect={(id) => setActiveSection(id as ConfigSectionId)}
+          onSelect={(id) => {
+            setActiveSection(id as ConfigSectionId);
+            setSidebarOpen(false);
+          }}
           dirty={Boolean(editedConfig)}
         />
       }
       main={
-        <Card className="min-h-full bg-white shadow-sm">
-          <CardContent className="pt-6">{currentPanel.render()}</CardContent>
-        </Card>
+        <div className="rounded-2xl border border-slate-200 bg-white">
+          <div className="px-6 py-6">{currentPanel.render()}</div>
+        </div>
       }
       aside={
         <>
@@ -155,11 +149,11 @@ function App() {
           ) : (
             <StatusBanner
               title="Editing workflow"
-              description="Adjust any section, review the current setup on the right, and save once your draft is ready."
+              description="Adjust any section, review and save when ready."
             />
           )}
           <ConfigSummaryCard config={currentConfig} />
-          <EmbedCodeCard code={getEmbedCode()} />
+          <EmbedCodeCard code={getEmbedCode(currentConfig)} />
         </>
       }
     />

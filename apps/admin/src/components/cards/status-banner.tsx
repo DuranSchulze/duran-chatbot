@@ -1,40 +1,42 @@
-import { AlertTriangle, Info } from "lucide-react"
-
-import { Card } from "@/components/ui/card"
-import { cn } from "@/lib/utils"
+import { AlertTriangle, Info } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type StatusBannerProps = {
-  tone?: "info" | "error"
-  title: string
-  description: string
-}
+  tone?: "info" | "error";
+  title: string;
+  description: string;
+};
 
 export function StatusBanner({
   tone = "info",
   title,
   description,
 }: StatusBannerProps) {
-  const Icon = tone === "error" ? AlertTriangle : Info
+  const Icon = tone === "error" ? AlertTriangle : Info;
 
   return (
-    <Card
+    <div
       className={cn(
-        "flex items-start gap-3 border px-4 py-4 shadow-none",
-        tone === "error" ? "border-rose-200 bg-rose-50" : "border-border bg-white"
+        "flex items-start gap-3 rounded-2xl border p-4",
+        tone === "error"
+          ? "border-rose-200 bg-rose-50"
+          : "border-slate-200 bg-white",
       )}
     >
       <div
         className={cn(
-          "flex size-9 shrink-0 items-center justify-center rounded-xl",
-          tone === "error" ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-700"
+          "flex size-8 shrink-0 items-center justify-center rounded-lg",
+          tone === "error"
+            ? "bg-rose-100 text-rose-600"
+            : "bg-slate-100 text-slate-500",
         )}
       >
         <Icon className="size-4" />
       </div>
-      <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-        <p className="text-sm leading-6 text-muted-foreground">{description}</p>
+      <div className="min-w-0 space-y-0.5">
+        <p className="text-sm font-semibold text-slate-900">{title}</p>
+        <p className="text-xs leading-5 text-slate-500">{description}</p>
       </div>
-    </Card>
-  )
+    </div>
+  );
 }

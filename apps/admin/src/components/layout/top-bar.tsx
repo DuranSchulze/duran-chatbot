@@ -1,50 +1,81 @@
-import { CheckCircle2, Save, Sparkles } from "lucide-react"
+import { CheckCircle2, ExternalLink, Menu, Save } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button";
 
 type TopBarProps = {
-  saving: boolean
-  dirty: boolean
-  saveStatus: string
-  onSave: () => void
-}
+  saving: boolean;
+  dirty: boolean;
+  saveStatus: string;
+  onSave: () => void;
+  onPreview: () => void;
+  onMenuClick: () => void;
+  activeLabel?: string;
+};
 
-export function TopBar({ saving, dirty, saveStatus, onSave }: TopBarProps) {
+export function TopBar({
+  saving,
+  dirty,
+  saveStatus,
+  onSave,
+  onPreview,
+  onMenuClick,
+  activeLabel,
+}: TopBarProps) {
   return (
-    <Card className="border-border bg-white px-5 py-4 shadow-sm">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            <Sparkles className="size-4" />
-            Chatbot Admin
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[30px]">
-            Chatbot settings
-          </h1>
-          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Manage appearance, behavior, and knowledge in one focused workspace.
-          </p>
-        </div>
+    <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
+      {/* Mobile hamburger */}
+      <button
+        type="button"
+        onClick={onMenuClick}
+        className="flex items-center justify-center size-8 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors lg:hidden"
+        aria-label="Open navigation"
+      >
+        <Menu className="size-5" />
+      </button>
 
-        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-          {saveStatus ? (
-            <Badge variant="success" className="gap-1.5">
-              <CheckCircle2 className="size-3.5" />
-              {saveStatus}
-            </Badge>
-          ) : (
-            <Badge variant={dirty ? "warning" : "secondary"}>
-              {dirty ? "Unsaved changes" : "All changes saved"}
-            </Badge>
-          )}
-          <Button size="default" onClick={onSave} disabled={saving || !dirty} className="min-w-36">
-            <Save className="size-4" />
-            {saving ? "Saving..." : "Save Changes"}
-          </Button>
-        </div>
+      {/* Page title */}
+      <div className="flex-1 min-w-0">
+        <h1 className="text-sm font-semibold text-slate-900 truncate">
+          {activeLabel ?? "Chatbot Settings"}
+        </h1>
+        <p className="hidden sm:block text-xs text-slate-400">
+          Manage appearance, behavior, and knowledge.
+        </p>
       </div>
-    </Card>
-  )
+
+      {/* Actions */}
+      <div className="flex items-center gap-2.5 shrink-0">
+        {saveStatus ? (
+          <span className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+            <CheckCircle2 className="size-3.5" />
+            Saved
+          </span>
+        ) : dirty ? (
+          <span className="hidden sm:block text-xs font-medium text-amber-600">
+            Unsaved changes
+          </span>
+        ) : null}
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onPreview}
+          className="h-8 gap-1.5 px-3 text-xs"
+        >
+          <ExternalLink className="size-3.5" />
+          Preview
+        </Button>
+
+        <Button
+          size="sm"
+          onClick={onSave}
+          disabled={saving || !dirty}
+          className="h-8 gap-1.5 px-3 text-xs"
+        >
+          <Save className="size-3.5" />
+          {saving ? "Saving…" : "Save"}
+        </Button>
+      </div>
+    </div>
+  );
 }

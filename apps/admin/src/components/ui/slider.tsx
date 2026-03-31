@@ -1,16 +1,20 @@
-import type { InputHTMLAttributes } from "react"
+import type { InputHTMLAttributes } from "react";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
-export function Slider({ className, type, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+export function Slider({
+  className,
+  type,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       type="range"
       className={cn(
-        "h-2 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary",
-        className
+        "h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-blue-600",
+        className,
       )}
       {...props}
     />
-  )
+  );
 }

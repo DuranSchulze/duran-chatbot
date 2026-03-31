@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import type { ReactNode } from "react";
 
 export function SectionHeader({
   eyebrow,
@@ -6,23 +6,25 @@ export function SectionHeader({
   description,
   action,
 }: {
-  eyebrow?: string
-  title: string
-  description: string
-  action?: ReactNode
+  eyebrow?: string;
+  title: string;
+  description: string;
+  action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 border-b border-border pb-5 md:flex-row md:items-start md:justify-between">
-      <div className="space-y-1.5">
+    <div className="flex flex-col gap-3 border-b border-slate-100 pb-5 md:flex-row md:items-start md:justify-between">
+      <div className="space-y-1">
         {eyebrow ? (
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">{eyebrow}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+            {eyebrow}
+          </p>
         ) : null}
-        <div className="space-y-1">
-          <h2 className="text-[22px] font-semibold tracking-tight text-foreground">{title}</h2>
-          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
-        </div>
+        <h2 className="text-xl font-semibold tracking-tight text-slate-900">
+          {title}
+        </h2>
+        <p className="text-sm leading-6 text-slate-500">{description}</p>
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>
-  )
+  );
 }

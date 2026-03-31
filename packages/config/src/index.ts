@@ -24,8 +24,6 @@ export interface AppearanceConfig {
   backgroundColor: string;
   /** Text color (hex) */
   textColor: string;
-  /** Font family */
-  fontFamily: string;
   /** Widget position on screen */
   position: 'bottom-right' | 'bottom-left';
   /** Border radius in pixels */
@@ -112,7 +110,6 @@ export const defaultConfig: ChatbotConfig = {
     accentColor: '#0056b3',
     backgroundColor: '#ffffff',
     textColor: '#212529',
-    fontFamily: "'Inter', system-ui, sans-serif",
     position: 'bottom-right',
     borderRadius: 12,
     companyName: 'AI Assistant',
