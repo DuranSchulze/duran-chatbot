@@ -15,7 +15,7 @@ export const copyIconMarkup = `
 
 export function getCSSVariables(appearance: AppearanceConfig, position: string): string {
   return `
-    :root {
+    :host {
       --cb-primary: ${appearance.primaryColor};
       --cb-accent: ${appearance.accentColor};
       --cb-bg: ${appearance.backgroundColor};
@@ -133,7 +133,7 @@ export function getWidgetHTML(companyName: string, welcomeMessage: string, quick
   `
 }
 
-export function populateLeadForm(visitorProfile: VisitorProfile, root: HTMLElement) {
+export function populateLeadForm(visitorProfile: VisitorProfile, root: ParentNode) {
   const nameInput = root.querySelector<HTMLInputElement>('.cb-lead-name')
   const emailInput = root.querySelector<HTMLInputElement>('.cb-lead-email')
 
@@ -146,7 +146,7 @@ export function populateLeadForm(visitorProfile: VisitorProfile, root: HTMLEleme
   }
 }
 
-export function setLeadCaptureVisibility(root: HTMLElement, visitorProfile: VisitorProfile | null) {
+export function setLeadCaptureVisibility(root: ParentNode, visitorProfile: VisitorProfile | null) {
   const leadForm = root.querySelector<HTMLElement>('.cb-lead-form')
   const chatInputs = root.querySelector<HTMLElement>('.cb-chat-inputs')
 
@@ -158,7 +158,7 @@ export function setLeadCaptureVisibility(root: HTMLElement, visitorProfile: Visi
   chatInputs.classList.toggle('cb-hidden', !visitorProfile)
 }
 
-export function setLeadError(root: HTMLElement, message: string) {
+export function setLeadError(root: ParentNode, message: string) {
   const errorEl = root.querySelector<HTMLElement>('.cb-lead-error')
 
   if (errorEl) {
@@ -186,11 +186,11 @@ export function validateVisitorProfile(name: string, email: string): VisitorProf
   }
 }
 
-export function getFocusInput(root: HTMLElement): HTMLInputElement | null {
+export function getFocusInput(root: ParentNode): HTMLInputElement | null {
   return root.querySelector<HTMLInputElement>('.cb-input')
 }
 
-export function getLeadFormElements(root: HTMLElement) {
+export function getLeadFormElements(root: ParentNode) {
   return {
     leadForm: root.querySelector<HTMLFormElement>('.cb-lead-form'),
     nameInput: root.querySelector<HTMLInputElement>('.cb-lead-name'),

@@ -15,5 +15,5 @@ export function getEmbedCode(config: ChatbotConfig): string {
     }
   };
 </script>
-<script src="${widgetBaseUrl}/widget.js" async></script>`
+<script src="${widgetBaseUrl}/widget.js" defer></script>`
 }

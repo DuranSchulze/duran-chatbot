@@ -29,6 +29,8 @@ interface VisitorProfile {
 const VISITOR_PROFILE_STORAGE_KEY = 'duran-chatbot-visitor-profile'
 
 export class ChatbotWidget {
+  private host: HTMLElement | null = null
+  private shadowRoot: ShadowRoot | null = null
   private config: ChatbotConfig
   private embedConfig: WidgetEmbedConfig
   private container: HTMLElement | null = null
@@ -47,22 +49,20 @@ export class ChatbotWidget {
   }
 
   private init() {
-    this.injectStyles()
     this.createWidget()
     this.attachEventListeners()
   }
 
-  private injectStyles() {
-    if (document.getElementById('chatbot-widget-styles')) return
+  private createWidget() {
+    this.host = document.createElement('div')
+    this.host.id = 'chatbot-widget-root'
+    this.shadowRoot = this.host.attachShadow({ mode: 'open' })
 
     const styleEl = document.createElement('style')
-    styleEl.id = 'chatbot-widget-styles'
     const pos = this.embedConfig.position || this.config.appearance.position
     styleEl.textContent = getCSSVariables(this.config.appearance, pos) + styles
-    document.head.appendChild(styleEl)
-  }
+    this.shadowRoot.appendChild(styleEl)
 
-  private createWidget() {
     this.container = document.createElement('div')
     this.container.className = 'cb-widget-container'
     this.container.dataset.position = this.embedConfig.position || this.config.appearance.position
@@ -71,17 +71,21 @@ export class ChatbotWidget {
       this.config.appearance.welcomeMessage,
       this.config.quickLinks,
     )
-    document.body.appendChild(this.container)
+
+    this.shadowRoot.appendChild(this.container)
+    document.body.appendChild(this.host)
+
     this.chatWindow = this.container.querySelector('.cb-chat-window')
     this.syncLeadCaptureState()
   }
 
   private attachEventListeners() {
-    if (!this.container) return
+    const root = this.getRoot()
+    if (!this.container || !root) return
 
-    const toggleBtn = this.container.querySelector('.cb-toggle-btn')
-    const closeBtn = this.container.querySelector('.cb-close-btn')
-    const { leadForm, nameInput, emailInput, inputForm, messageInput } = getLeadFormElements(this.container)
+    const toggleBtn = root.querySelector('.cb-toggle-btn')
+    const closeBtn = root.querySelector('.cb-close-btn')
+    const { leadForm, nameInput, emailInput, inputForm, messageInput } = getLeadFormElements(root)
 
     toggleBtn?.addEventListener('click', () => this.toggle())
     closeBtn?.addEventListener('click', () => this.close())
@@ -92,15 +96,15 @@ export class ChatbotWidget {
       const visitorProfile = validateVisitorProfile(nameInput?.value ?? '', emailInput?.value ?? '')
 
       if (!visitorProfile) {
-        setLeadError(this.container!, 'Please enter a valid name and email address.')
+        setLeadError(root, 'Please enter a valid name and email address.')
         return
       }
 
       this.visitorProfile = visitorProfile
       this.saveVisitorProfile(visitorProfile)
-      setLeadError(this.container!, '')
-      setLeadCaptureVisibility(this.container!, visitorProfile)
-      getFocusInput(this.container!)?.focus()
+      setLeadError(root, '')
+      setLeadCaptureVisibility(root, visitorProfile)
+      getFocusInput(root)?.focus()
     })
 
     inputForm?.addEventListener('submit', (e) => {
@@ -130,12 +134,16 @@ export class ChatbotWidget {
   }
 
   private open() {
+    const root = this.getRoot()
+
     this.isOpen = true
     this.container?.classList.add('cb-open')
     this.chatWindow?.setAttribute('aria-hidden', 'false')
+
     const input = this.visitorProfile
-      ? getFocusInput(this.container as HTMLElement)
-      : this.container?.querySelector<HTMLInputElement>('.cb-lead-name')
+      ? (root ? getFocusInput(root) : null)
+      : root?.querySelector<HTMLInputElement>('.cb-lead-name')
+
     setTimeout(() => input?.focus(), 100)
   }
 
@@ -175,7 +183,7 @@ export class ChatbotWidget {
     const msg: Message = { text, sender, timestamp: new Date() }
     this.messages.push(msg)
 
-    const messagesContainer = this.container?.querySelector('.cb-messages')
+    const messagesContainer = this.getRoot()?.querySelector('.cb-messages')
     if (!messagesContainer) return
 
     const msgEl = document.createElement('div')
@@ -205,11 +213,12 @@ export class ChatbotWidget {
   }
 
   private setLoading(loading: boolean) {
-    const btn = this.container?.querySelector('.cb-send-btn') as HTMLButtonElement | null
-    const input = this.container?.querySelector('.cb-input') as HTMLInputElement
-    const leadButton = this.container?.querySelector('.cb-lead-submit') as HTMLButtonElement | null
-    const nameInput = this.container?.querySelector('.cb-lead-name') as HTMLInputElement | null
-    const emailInput = this.container?.querySelector('.cb-lead-email') as HTMLInputElement | null
+    const root = this.getRoot()
+    const btn = root?.querySelector('.cb-send-btn') as HTMLButtonElement | null
+    const input = root?.querySelector('.cb-input') as HTMLInputElement | null
+    const leadButton = root?.querySelector('.cb-lead-submit') as HTMLButtonElement | null
+    const nameInput = root?.querySelector('.cb-lead-name') as HTMLInputElement | null
+    const emailInput = root?.querySelector('.cb-lead-email') as HTMLInputElement | null
 
     if (btn) {
       btn.disabled = loading
@@ -283,19 +292,26 @@ export class ChatbotWidget {
   }
 
   private syncLeadCaptureState() {
-    if (!this.container) return
+    const root = this.getRoot()
+    if (!root) return
 
     if (this.visitorProfile) {
-      populateLeadForm(this.visitorProfile, this.container)
+      populateLeadForm(this.visitorProfile, root)
     }
 
-    setLeadCaptureVisibility(this.container, this.visitorProfile)
-    setLeadError(this.container, '')
+    setLeadCaptureVisibility(root, this.visitorProfile)
+    setLeadError(root, '')
+  }
+
+  private getRoot() {
+    return this.shadowRoot ?? this.container
   }
 
   destroy() {
-    this.container?.remove()
-    const styleEl = document.getElementById('chatbot-widget-styles')
-    styleEl?.remove()
+    this.host?.remove()
+    this.shadowRoot = null
+    this.host = null
+    this.container = null
+    this.chatWindow = null
   }
 }

@@ -11,33 +11,53 @@ declare global {
     ChatbotWidget: typeof ChatbotWidget;
     ChatbotConfig?: Partial<ChatbotConfig>;
     initChatbot?: (config?: Partial<ChatbotConfig>, embedConfig?: WidgetEmbedConfig) => ChatbotWidget;
+    __chatbotWidgetInstance?: ChatbotWidget;
   }
 }
 
 // Auto-initialize if config is present
 if (typeof window !== 'undefined') {
   window.ChatbotWidget = ChatbotWidget;
-  
+
+  const collectEmbedConfig = (): WidgetEmbedConfig => {
+    const embedConfig: WidgetEmbedConfig = {}
+    const container = document.getElementById('chatbot-widget')
+
+    if (container) {
+      const dataset = container.dataset
+      if (dataset.apiKey) embedConfig.apiKey = dataset.apiKey
+      if (dataset.position) embedConfig.position = dataset.position as 'bottom-right' | 'bottom-left'
+      if (dataset.primaryColor) embedConfig.primaryColor = dataset.primaryColor
+      if (dataset.companyName) embedConfig.companyName = dataset.companyName
+    }
+
+    return embedConfig
+  }
+
+  const mountWidget = (config?: Partial<ChatbotConfig>, embedConfig?: WidgetEmbedConfig) => {
+    window.__chatbotWidgetInstance?.destroy()
+    const instance = new ChatbotWidget(config, embedConfig)
+    window.__chatbotWidgetInstance = instance
+    return instance
+  }
+
   window.initChatbot = (config, embedConfig) => {
-    return new ChatbotWidget(config, embedConfig);
+    return mountWidget(config, embedConfig)
   };
 
-  // Auto-initialize if ChatbotConfig is defined
-  if (window.ChatbotConfig) {
-    const embedConfig: WidgetEmbedConfig = {};
-    
-    // Check for data attributes on the container element
-    const container = document.getElementById('chatbot-widget');
-    if (container) {
-      const dataset = container.dataset;
-      if (dataset.apiKey) embedConfig.apiKey = dataset.apiKey;
-      if (dataset.position) embedConfig.position = dataset.position as 'bottom-right' | 'bottom-left';
-      if (dataset.primaryColor) embedConfig.primaryColor = dataset.primaryColor;
-      if (dataset.companyName) embedConfig.companyName = dataset.companyName;
+  const boot = () => {
+    if (!window.ChatbotConfig) {
+      return
     }
-    
-    document.addEventListener('DOMContentLoaded', () => {
-      new ChatbotWidget(window.ChatbotConfig, embedConfig);
-    });
+
+    mountWidget(window.ChatbotConfig, collectEmbedConfig())
+  }
+
+  if (window.ChatbotConfig) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', boot, { once: true })
+    } else {
+      boot()
+    }
   }
 }

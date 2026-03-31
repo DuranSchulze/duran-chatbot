@@ -1,11 +1,30 @@
 export const styles = `
 /* Chatbot Widget Styles */
+:host {
+  all: initial;
+}
+
 .cb-widget-container {
   position: fixed;
   bottom: 20px;
   right: 20px;
   z-index: 9999;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--cb-text);
+}
+
+.cb-widget-container,
+.cb-widget-container *,
+.cb-widget-container *::before,
+.cb-widget-container *::after {
+  box-sizing: border-box;
+}
+
+.cb-widget-container button,
+.cb-widget-container input,
+.cb-widget-container textarea,
+.cb-widget-container select {
+  font: inherit;
 }
 
 .cb-widget-container.cb-open {
