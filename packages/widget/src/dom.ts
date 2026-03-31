@@ -1,10 +1,21 @@
 import type { AppearanceConfig } from '@duran-chatbot/config'
 import type { QuickLink } from '@duran-chatbot/config'
+import { Copy } from 'lucide-react'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 
 interface VisitorProfile {
   name: string
   email: string
 }
+
+export const copyIconMarkup = renderToStaticMarkup(
+  createElement(Copy, {
+    size: 14,
+    strokeWidth: 2,
+    'aria-hidden': true,
+  }),
+)
 
 export function getCSSVariables(appearance: AppearanceConfig, position: string): string {
   return `

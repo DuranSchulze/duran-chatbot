@@ -2,6 +2,7 @@ import type { ChatbotConfig, WidgetEmbedConfig } from '@duran-chatbot/config'
 import { mergeWithDefaults } from '@duran-chatbot/config'
 import { callGeminiAPI } from './api'
 import {
+  copyIconMarkup,
   escapeHtml,
   getCSSVariables,
   getFocusInput,
@@ -181,7 +182,9 @@ export class ChatbotWidget {
     msgEl.className = `cb-message cb-${sender}-message`
 
     const copyBtn =
-      sender === 'ai' ? `<button class="cb-copy-btn" aria-label="Copy message">📋</button>` : ''
+      sender === 'ai'
+        ? `<button class="cb-copy-btn" aria-label="Copy message">${copyIconMarkup}</button>`
+        : ''
 
     msgEl.innerHTML = `<p>${escapeHtml(text)}</p>${copyBtn}`
 

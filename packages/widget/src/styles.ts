@@ -212,10 +212,18 @@ export const styles = `
   border: none;
   border-radius: 4px;
   padding: 4px 6px;
-  font-size: 12px;
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+}
+
+.cb-copy-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
 .cb-message:hover .cb-copy-btn {
