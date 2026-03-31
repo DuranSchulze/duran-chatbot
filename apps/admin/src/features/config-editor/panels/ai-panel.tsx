@@ -1,5 +1,7 @@
+import { useEffect, useMemo, useState } from "react";
 import type { AIConfig } from "@duran-chatbot/config";
 
+import { fetchModels, type GeminiModelOption } from "@/api/models";
 import {
   Field,
   FieldDescription,
@@ -18,9 +20,54 @@ type AIPanelProps = {
 };
 
 export function AIPanel({ ai, onChange }: AIPanelProps) {
+  const [models, setModels] = useState<GeminiModelOption[]>([]);
+  const [modelsError, setModelsError] = useState("");
+
   const update = <K extends keyof AIConfig>(key: K, value: AIConfig[K]) => {
     onChange({ ...ai, [key]: value });
   };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadModels = async () => {
+      try {
+        const nextModels = await fetchModels();
+        if (!cancelled) {
+          setModels(nextModels);
+          setModelsError("");
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setModelsError(
+            error instanceof Error ? error.message : "Failed to load models",
+          );
+        }
+      }
+    };
+
+    loadModels();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const modelOptions = useMemo(() => {
+    const fallbackOptions: GeminiModelOption[] = [
+      { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+      { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+      { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
+    ];
+
+    const options = models.length > 0 ? models : fallbackOptions;
+
+    if (!options.some((option) => option.id === ai.model)) {
+      return [{ id: ai.model, label: ai.model }, ...options];
+    }
+
+    return options;
+  }, [ai.model, models]);
 
   return (
     <div className="space-y-8">
@@ -38,10 +85,17 @@ export function AIPanel({ ai, onChange }: AIPanelProps) {
             value={ai.model}
             onChange={(event) => update("model", event.target.value)}
           >
-            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+            {modelOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
           </Select>
+          <FieldDescription>
+            {modelsError
+              ? `Using fallback model list. ${modelsError}`
+              : "Loaded from the Gemini models API."}
+          </FieldDescription>
         </Field>
         <Field>
           <FieldLabel htmlFor="maxTokens">Max tokens</FieldLabel>
@@ -79,17 +133,6 @@ export function AIPanel({ ai, onChange }: AIPanelProps) {
         <FieldDescription>
           Lower values keep answers stable. Higher values allow more variation.
         </FieldDescription>
-      </Field>
-
-      <Field>
-        <FieldLabel htmlFor="apiKey">API key</FieldLabel>
-        <Input
-          id="apiKey"
-          type="password"
-          placeholder="Leave empty to require an API key at embed time"
-          value={ai.apiKey ?? ""}
-          onChange={(event) => update("apiKey", event.target.value)}
-        />
       </Field>
 
       <Field>

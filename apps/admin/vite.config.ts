@@ -1,16 +1,25 @@
 import react from "@vitejs/plugin-react"
 import path from "path"
-import { defineConfig } from "vite"
+import { defineConfig, loadEnv } from "vite"
 import { apiPlugin } from "./src/server/api-plugin"
 
-export default defineConfig({
-  plugins: [react(), apiPlugin()],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+export default defineConfig(({ mode }) => {
+  // Load env from the monorepo root (two levels up from apps/admin)
+  const monorepoRoot = path.resolve(__dirname, "../..")
+  const env = loadEnv(mode, monorepoRoot, "")
+
+  // Inject into process.env so the Vite plugin (Node context) can read them
+  Object.assign(process.env, env)
+
+  return {
+    plugins: [react(), apiPlugin()],
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
     },
-  },
-  server: {
-    port: 5173,
-  },
+    server: {
+      port: 5173,
+    },
+  }
 })

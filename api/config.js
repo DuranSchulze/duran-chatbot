@@ -52,9 +52,12 @@ async function getStoredConfig() {
 }
 
 export default async function handler(req, res) {
+  const geminiApiKey = process.env.GEMINI_API_KEY ?? "";
+
   if (req.method === "GET") {
     try {
-      const config = redisUrl ? await getStoredConfig() : readFallbackConfig();
+      let config = redisUrl ? await getStoredConfig() : readFallbackConfig();
+      config = { ...config, ai: { ...config.ai, apiKey: geminiApiKey } };
       res.status(200).json(config);
     } catch (error) {
       res.status(500).json({
@@ -69,8 +72,9 @@ export default async function handler(req, res) {
     try {
       const client = await getRedisClient();
       const nextConfig = await readRequestBody(req);
+      const { ai: { apiKey: _dropped, ...ai }, ...rest } = nextConfig;
 
-      await client.set(CONFIG_KEY, JSON.stringify(nextConfig));
+      await client.set(CONFIG_KEY, JSON.stringify({ ...rest, ai }));
 
       res.status(200).json({ success: true });
     } catch (error) {
