@@ -205,3 +205,70 @@ export function escapeHtml(text: string): string {
   div.textContent = text
   return div.innerHTML
 }
+
+function escapeStr(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function processInline(raw: string): string {
+  const urlRegex = /(https?:\/\/[^\s]+)/g
+  const parts = raw.split(urlRegex)
+  return parts
+    .map((part, i) => {
+      if (i % 2 === 1) {
+        const safe = escapeStr(part)
+        return `<a href="${safe}" target="_blank" rel="noopener noreferrer">${safe}</a>`
+      }
+      let s = escapeStr(part)
+      s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      s = s.replace(/\*([^*\s][^*]*)\*/g, '<em>$1</em>')
+      return s
+    })
+    .join('')
+}
+
+export function formatMessage(text: string): string {
+  const lines = text.split('\n')
+  const html: string[] = []
+  let inUl = false
+  let inOl = false
+
+  const closeUl = () => { if (inUl) { html.push('</ul>'); inUl = false } }
+  const closeOl = () => { if (inOl) { html.push('</ol>'); inOl = false } }
+  const closeLists = () => { closeUl(); closeOl() }
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+
+    if (!trimmed) {
+      closeLists()
+      continue
+    }
+
+    const bulletMatch = trimmed.match(/^[-*]\s+(.+)$/)
+    if (bulletMatch) {
+      closeOl()
+      if (!inUl) { html.push('<ul>'); inUl = true }
+      html.push(`<li>${processInline(bulletMatch[1])}</li>`)
+      continue
+    }
+
+    const numberedMatch = trimmed.match(/^\d+\.\s+(.+)$/)
+    if (numberedMatch) {
+      closeUl()
+      if (!inOl) { html.push('<ol>'); inOl = true }
+      html.push(`<li>${processInline(numberedMatch[1])}</li>`)
+      continue
+    }
+
+    closeLists()
+    html.push(`<p>${processInline(trimmed)}</p>`)
+  }
+
+  closeLists()
+  return html.join('')
+}

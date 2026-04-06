@@ -191,7 +191,53 @@ export const styles = `
 }
 
 .cb-message p {
-  margin: 0;
+  margin: 0 0 8px 0;
+}
+
+.cb-message p:last-child {
+  margin-bottom: 0;
+}
+
+.cb-message ul,
+.cb-message ol {
+  margin: 4px 0 8px 0;
+  padding-left: 20px;
+}
+
+.cb-message ul:last-child,
+.cb-message ol:last-child {
+  margin-bottom: 0;
+}
+
+.cb-message li {
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.cb-message li:last-child {
+  margin-bottom: 0;
+}
+
+.cb-message a {
+  color: var(--cb-primary);
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+.cb-ai-message a {
+  color: #0056b3;
+}
+
+.cb-message a:hover {
+  opacity: 0.8;
+}
+
+.cb-message strong {
+  font-weight: 600;
+}
+
+.cb-message em {
+  font-style: italic;
 }
 
 .cb-user-message {

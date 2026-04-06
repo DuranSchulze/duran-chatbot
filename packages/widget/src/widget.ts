@@ -4,6 +4,7 @@ import { callGeminiAPI } from './api'
 import {
   copyIconMarkup,
   escapeHtml,
+  formatMessage,
   getCSSVariables,
   getFocusInput,
   getLeadFormElements,
@@ -194,7 +195,7 @@ export class ChatbotWidget {
         ? `<button class="cb-copy-btn" aria-label="Copy message">${copyIconMarkup}</button>`
         : ''
 
-    msgEl.innerHTML = `<p>${escapeHtml(text)}</p>${copyBtn}`
+    msgEl.innerHTML = (sender === 'ai' ? formatMessage(text) : `<p>${escapeHtml(text)}</p>`) + copyBtn
 
     if (this.config.behavior.showTimestamps) {
       const time = document.createElement('time')
