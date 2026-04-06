@@ -1,6 +1,6 @@
 {
   "name": "@duran-chatbot/widget",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "main": "./dist/widget.umd.js",
   "module": "./dist/widget.es.js",

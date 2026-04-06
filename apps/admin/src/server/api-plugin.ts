@@ -58,6 +58,9 @@ export function apiPlugin(): PluginOption {
       server.middlewares.use(
         "/api/models",
         async (_req: IncomingMessage, res: ServerResponse) => {
+          res.setHeader("Access-Control-Allow-Origin", "*")
+          res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS")
+          res.setHeader("Access-Control-Allow-Headers", "Content-Type")
           const geminiApiKey = process.env.GEMINI_API_KEY;
 
           if (!geminiApiKey) {
@@ -103,11 +106,17 @@ export function apiPlugin(): PluginOption {
 
       server.middlewares.use(
         "/api/config",
-        async (
-          req: IncomingMessage,
-          res: ServerResponse,
-          next: Connect.NextFunction,
-        ) => {
+        async (req: IncomingMessage, res: ServerResponse, next: Connect.NextFunction) => {
+          res.setHeader("Access-Control-Allow-Origin", "*")
+          res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+          res.setHeader("Access-Control-Allow-Headers", "Content-Type")
+
+          if (req.method === "OPTIONS") {
+            res.statusCode = 204
+            res.end()
+            return
+          }
+
           const configPath = path.resolve(
             __dirname,
             "../../../../data/config.json",
