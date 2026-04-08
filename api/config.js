@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createClient } from "redis";
+import { mergeWithDefaults } from "@duran-chatbot/config";
 
 const CONFIG_KEY = "chatbot:config";
 const fallbackConfigPath = path.join(process.cwd(), "data", "config.json");
@@ -11,7 +12,7 @@ const redisConnection = redis ? redis.connect() : null;
 
 function readFallbackConfig() {
   const file = fs.readFileSync(fallbackConfigPath, "utf8");
-  return JSON.parse(file);
+  return mergeWithDefaults(JSON.parse(file));
 }
 
 async function readRequestBody(req) {
@@ -48,7 +49,7 @@ async function getStoredConfig() {
     return fallbackConfig;
   }
 
-  return JSON.parse(rawConfig);
+  return mergeWithDefaults(JSON.parse(rawConfig));
 }
 
 export default async function handler(req, res) {
@@ -81,7 +82,8 @@ export default async function handler(req, res) {
     try {
       const client = await getRedisClient();
       const nextConfig = await readRequestBody(req);
-      const { ai: { apiKey: _dropped, ...ai }, ...rest } = nextConfig;
+      const normalizedConfig = mergeWithDefaults(nextConfig);
+      const { ai: { apiKey: _dropped, ...ai }, ...rest } = normalizedConfig;
 
       await client.set(CONFIG_KEY, JSON.stringify({ ...rest, ai }));
 

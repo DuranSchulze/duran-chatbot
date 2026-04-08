@@ -2,17 +2,16 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import fs from "fs";
 import path from "path";
 import type { Connect, PluginOption, ViteDevServer } from "vite";
+import { createClient } from "redis";
+import { mergeWithDefaults } from "@duran-chatbot/config";
 
 const GEMINI_MODELS_URL =
   "https://generativelanguage.googleapis.com/v1beta/models";
+const CONFIG_KEY = "chatbot:config";
 
 function readConfig(configPath: string) {
   const data = fs.readFileSync(configPath, "utf-8");
-  return JSON.parse(data);
-}
-
-function writeConfig(configPath: string, config: unknown) {
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+  return mergeWithDefaults(JSON.parse(data));
 }
 
 async function readRequestBody(req: IncomingMessage) {
@@ -49,6 +48,42 @@ function normalizeModels(payload: unknown) {
     }))
     .filter((model) => model.id.length > 0)
     .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+let redisClient: ReturnType<typeof createClient> | null = null;
+let redisConnection: Promise<unknown> | null = null;
+
+async function getRedisClient() {
+  const redisUrl = process.env.REDIS_URL;
+
+  if (!redisUrl) {
+    throw new Error("REDIS_URL is not configured");
+  }
+
+  if (!redisClient) {
+    redisClient = createClient({ url: redisUrl });
+    redisConnection = redisClient.connect();
+  }
+
+  if (!redisConnection) {
+    throw new Error("Redis connection failed to initialize");
+  }
+
+  await redisConnection;
+  return redisClient;
+}
+
+async function getStoredConfig(configPath: string) {
+  const client = await getRedisClient();
+  const rawConfig = await client.get(CONFIG_KEY);
+
+  if (!rawConfig) {
+    const fallbackConfig = readConfig(configPath);
+    await client.set(CONFIG_KEY, JSON.stringify(fallbackConfig));
+    return fallbackConfig;
+  }
+
+  return mergeWithDefaults(JSON.parse(rawConfig));
 }
 
 export function apiPlugin(): PluginOption {
@@ -124,7 +159,9 @@ export function apiPlugin(): PluginOption {
 
           if (req.method === "GET") {
             try {
-              const config = readConfig(configPath);
+              const config = process.env.REDIS_URL
+                ? await getStoredConfig(configPath)
+                : readConfig(configPath);
               const geminiApiKey = process.env.GEMINI_API_KEY ?? "";
 
               // Inject API key from env — never stored in the file
@@ -150,16 +187,18 @@ export function apiPlugin(): PluginOption {
 
           if (req.method === "POST") {
             try {
+              const client = await getRedisClient();
               const body = await readRequestBody(req);
+              const normalizedConfig = mergeWithDefaults(body);
 
               // Strip apiKey before saving — it lives in env only
               const {
                 ai: { apiKey: _dropped, ...ai },
                 ...rest
-              } = body;
+              } = normalizedConfig;
               const config = { ...rest, ai };
 
-              writeConfig(configPath, config);
+              await client.set(CONFIG_KEY, JSON.stringify(config));
 
               res.setHeader("Content-Type", "application/json");
               res.end(JSON.stringify({ success: true }));

@@ -1,4 +1,4 @@
-import type { ChatbotConfig } from "@duran-chatbot/config"
+import { mergeWithDefaults, type ChatbotConfig } from "@duran-chatbot/config"
 
 const CONFIG_PATH = "/api/config"
 
@@ -28,7 +28,8 @@ export async function fetchConfig(): Promise<ChatbotConfig> {
       await getErrorMessage(response, `Failed to fetch config (${response.status})`),
     )
   }
-  return response.json()
+  const config = (await response.json()) as Partial<ChatbotConfig>
+  return mergeWithDefaults(config)
 }
 
 export async function saveConfig(config: ChatbotConfig): Promise<void> {

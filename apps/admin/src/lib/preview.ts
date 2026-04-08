@@ -1,4 +1,4 @@
-import type { ChatbotConfig } from "@duran-chatbot/config";
+import { mergeWithDefaults, type ChatbotConfig } from "@duran-chatbot/config";
 
 const PREVIEW_CONFIG_KEY = "duran-chatbot-preview-config";
 
@@ -14,10 +14,9 @@ export function loadPreviewConfig(): ChatbotConfig | null {
   }
 
   try {
-    return JSON.parse(rawValue) as ChatbotConfig;
+    return mergeWithDefaults(JSON.parse(rawValue) as Partial<ChatbotConfig>);
   } catch {
     window.localStorage.removeItem(PREVIEW_CONFIG_KEY);
     return null;
   }
 }
-

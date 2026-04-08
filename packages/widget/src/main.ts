@@ -1,5 +1,5 @@
 import { ChatbotWidget } from './widget';
-import type { ChatbotConfig, WidgetEmbedConfig } from '@duran-chatbot/config';
+import { mergeWithDefaults, type ChatbotConfig, type WidgetEmbedConfig } from '@duran-chatbot/config';
 
 // Export for module usage
 export { ChatbotWidget };
@@ -70,13 +70,17 @@ if (typeof window !== 'undefined') {
 
     // window.ChatbotConfig overrides take priority — deep merge nested objects
     const overrides = window.ChatbotConfig ?? {}
-    const merged = {
+    const merged = mergeWithDefaults({
       ...serverConfig,
       ...overrides,
       appearance: { ...serverConfig.appearance, ...overrides.appearance },
       ai: { ...serverConfig.ai, ...overrides.ai },
+      persona: { ...serverConfig.persona, ...overrides.persona },
       behavior: { ...serverConfig.behavior, ...overrides.behavior },
-    } as Partial<ChatbotConfig>
+      services: overrides.services ?? serverConfig.services,
+      quickLinks: overrides.quickLinks ?? serverConfig.quickLinks,
+      dataset: overrides.dataset ?? serverConfig.dataset,
+    } as Partial<ChatbotConfig>)
 
     mountWidget(merged, collectEmbedConfig())
   }
