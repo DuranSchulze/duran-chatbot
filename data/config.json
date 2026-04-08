@@ -16,6 +16,18 @@
     "temperature": 0.7,
     "maxTokens": 2048
   },
+  "persona": {
+    "enabled": false,
+    "personaName": "",
+    "roleOrRelationship": "",
+    "tone": "",
+    "writingStyle": "",
+    "signaturePhrases": "",
+    "dos": "",
+    "donts": "",
+    "audienceNotes": ""
+  },
+  "services": [],
   "quickLinks": [
     {
       "id": "1",

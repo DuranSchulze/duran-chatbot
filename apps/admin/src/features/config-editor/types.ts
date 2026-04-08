@@ -4,10 +4,12 @@ import type {
   AppearanceConfig,
   BehaviorConfig,
   DatasetEntry,
+  PersonaConfig,
   QuickLink,
+  ServiceEntry,
 } from "@duran-chatbot/config"
 
-export type ConfigSectionId = "appearance" | "ai" | "links" | "dataset" | "behavior"
+export type ConfigSectionId = "appearance" | "ai" | "persona" | "links" | "services" | "dataset" | "behavior"
 
 export type SidebarItem = {
   id: string
@@ -27,11 +29,15 @@ export type ConfigSectionDefinition = {
 export type SectionBindings = {
   appearance: AppearanceConfig
   ai: AIConfig
+  persona: PersonaConfig
+  services: ServiceEntry[]
   quickLinks: QuickLink[]
   dataset: DatasetEntry[]
   behavior: BehaviorConfig
   onAppearanceChange: (appearance: AppearanceConfig) => void
   onAIChange: (ai: AIConfig) => void
+  onPersonaChange: (persona: PersonaConfig) => void
+  onServicesChange: (services: ServiceEntry[]) => void
   onQuickLinksChange: (quickLinks: QuickLink[]) => void
   onDatasetChange: (dataset: DatasetEntry[]) => void
   onBehaviorChange: (behavior: BehaviorConfig) => void

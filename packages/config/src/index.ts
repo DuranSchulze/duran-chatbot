@@ -7,6 +7,10 @@ export interface ChatbotConfig {
   appearance: AppearanceConfig;
   /** AI system prompt and settings */
   ai: AIConfig;
+  /** Persona and voice settings */
+  persona: PersonaConfig;
+  /** Structured service and pricing knowledge */
+  services: ServiceEntry[];
   /** Quick links shown in chat */
   quickLinks: QuickLink[];
   /** Dataset/guides for prompt enhancement */
@@ -49,6 +53,27 @@ export interface AIConfig {
   apiKey?: string;
 }
 
+export interface PersonaConfig {
+  /** Enable persona-based voice guidance */
+  enabled: boolean;
+  /** Person or persona name */
+  personaName: string;
+  /** Role or relationship of the persona */
+  roleOrRelationship: string;
+  /** High-level tonal direction */
+  tone: string;
+  /** Writing style and structure guidance */
+  writingStyle: string;
+  /** Signature phrases or wording patterns */
+  signaturePhrases: string;
+  /** Positive instructions to follow */
+  dos: string;
+  /** Things to avoid in responses */
+  donts: string;
+  /** Notes about the intended audience */
+  audienceNotes: string;
+}
+
 export interface QuickLink {
   /** Unique ID */
   id: string;
@@ -58,6 +83,23 @@ export interface QuickLink {
   url: string;
   /** Icon name (optional, from lucide icons) */
   icon?: string;
+}
+
+export interface ServiceEntry {
+  /** Unique ID */
+  id: string;
+  /** Service name */
+  name: string;
+  /** Keywords that trigger this service */
+  keywords: string[];
+  /** Flexible pricing text */
+  price: string;
+  /** Process explanation */
+  process: string;
+  /** Sales notes, caveats, inclusions, exclusions */
+  notes: string;
+  /** Recommended next step or CTA */
+  cta: string;
 }
 
 export interface DatasetEntry {
@@ -121,6 +163,18 @@ export const defaultConfig: ChatbotConfig = {
     temperature: 0.7,
     maxTokens: 2048,
   },
+  persona: {
+    enabled: false,
+    personaName: '',
+    roleOrRelationship: '',
+    tone: '',
+    writingStyle: '',
+    signaturePhrases: '',
+    dos: '',
+    donts: '',
+    audienceNotes: '',
+  },
+  services: [],
   quickLinks: [],
   dataset: [],
   behavior: {
@@ -136,6 +190,8 @@ export function mergeWithDefaults(partial: Partial<ChatbotConfig>): ChatbotConfi
   return {
     appearance: { ...defaultConfig.appearance, ...partial.appearance },
     ai: { ...defaultConfig.ai, ...partial.ai },
+    persona: { ...defaultConfig.persona, ...partial.persona },
+    services: partial.services ?? defaultConfig.services,
     quickLinks: partial.quickLinks ?? defaultConfig.quickLinks,
     dataset: partial.dataset ?? defaultConfig.dataset,
     behavior: { ...defaultConfig.behavior, ...partial.behavior },

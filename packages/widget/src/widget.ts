@@ -167,7 +167,9 @@ export class ChatbotWidget {
       const response = await callGeminiAPI(
         text,
         this.config.ai,
+        this.config.persona,
         this.apiKey,
+        this.config.services,
         this.config.dataset,
         this.visitorProfile ?? undefined,
       )

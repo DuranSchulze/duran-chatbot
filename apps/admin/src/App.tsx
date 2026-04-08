@@ -61,12 +61,17 @@ function App() {
         ? getConfigSections({
             appearance: currentConfig.appearance,
             ai: currentConfig.ai,
+            persona: currentConfig.persona,
+            services: currentConfig.services,
             quickLinks: currentConfig.quickLinks,
             dataset: currentConfig.dataset,
             behavior: currentConfig.behavior,
             onAppearanceChange: (appearance) =>
               updateSection("appearance", appearance),
             onAIChange: (ai) => updateSection("ai", ai),
+            onPersonaChange: (persona) => updateSection("persona", persona),
+            onServicesChange: (services) =>
+              updateSection("services", services),
             onQuickLinksChange: (quickLinks) =>
               updateSection("quickLinks", quickLinks),
             onDatasetChange: (dataset) => updateSection("dataset", dataset),

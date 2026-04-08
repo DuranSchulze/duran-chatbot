@@ -1,11 +1,15 @@
-(function(e,t){typeof exports==`object`&&typeof module<`u`?t(exports):typeof define==`function`&&define.amd?define([`exports`],t):(e=typeof globalThis<`u`?globalThis:e||self,t(e.ChatbotWidget={}))})(this,function(e){Object.defineProperty(e,Symbol.toStringTag,{value:`Module`});var t={appearance:{primaryColor:`#004a99`,accentColor:`#0056b3`,backgroundColor:`#ffffff`,textColor:`#212529`,position:`bottom-right`,borderRadius:12,companyName:`AI Assistant`,welcomeMessage:`Hello! How can I help you today?`},ai:{systemPrompt:`You are a helpful AI assistant. Provide clear, accurate, and helpful responses.`,model:`gemini-2.5-flash`,temperature:.7,maxTokens:2048},quickLinks:[],dataset:[],behavior:{autoOpenDelay:0,showTimestamps:!0,enableCopyButton:!0,enableQuoteRequest:!1}};function n(e){return{appearance:{...t.appearance,...e.appearance},ai:{...t.ai,...e.ai},quickLinks:e.quickLinks??t.quickLinks,dataset:e.dataset??t.dataset,behavior:{...t.behavior,...e.behavior}}}async function r(e,t,n,r,i){let a=r.length>0?`\n\nKnowledge base:\n${r.map(e=>`${e.title}: ${e.content}`).join(`
+(function(e,t){typeof exports==`object`&&typeof module<`u`?t(exports):typeof define==`function`&&define.amd?define([`exports`],t):(e=typeof globalThis<`u`?globalThis:e||self,t(e.ChatbotWidget={}))})(this,function(e){Object.defineProperty(e,Symbol.toStringTag,{value:`Module`});var t={appearance:{primaryColor:`#004a99`,accentColor:`#0056b3`,backgroundColor:`#ffffff`,textColor:`#212529`,position:`bottom-right`,borderRadius:12,companyName:`AI Assistant`,welcomeMessage:`Hello! How can I help you today?`},ai:{systemPrompt:`You are a helpful AI assistant. Provide clear, accurate, and helpful responses.`,model:`gemini-2.5-flash`,temperature:.7,maxTokens:2048},persona:{enabled:!1,personaName:``,roleOrRelationship:``,tone:``,writingStyle:``,signaturePhrases:``,dos:``,donts:``,audienceNotes:``},services:[],quickLinks:[],dataset:[],behavior:{autoOpenDelay:0,showTimestamps:!0,enableCopyButton:!0,enableQuoteRequest:!1}};function n(e){return{appearance:{...t.appearance,...e.appearance},ai:{...t.ai,...e.ai},persona:{...t.persona,...e.persona},services:e.services??t.services,quickLinks:e.quickLinks??t.quickLinks,dataset:e.dataset??t.dataset,behavior:{...t.behavior,...e.behavior}}}function r(e){if(!e.enabled)return``;let t=[e.personaName?`Reference voice: ${e.personaName}`:``,e.roleOrRelationship?`Role or relationship: ${e.roleOrRelationship}`:``,e.tone?`Tone: ${e.tone}`:``,e.writingStyle?`Writing style: ${e.writingStyle}`:``,e.signaturePhrases?`Signature phrases: ${e.signaturePhrases}`:``,e.dos?`Do: ${e.dos}`:``,e.donts?`Don't: ${e.donts}`:``,e.audienceNotes?`Audience notes: ${e.audienceNotes}`:``].filter(Boolean);return t.length===0?``:`\n\nPersona voice guidance:\nReflect this person's tone, phrasing, and communication style without claiming to literally be them. Keep all existing business, legal, and safety guardrails intact.\n${t.join(`
+`)}`}function i(e){return e.length===0?``:`\n\nServices knowledge base:\nUse these service entries when users ask about pricing, process, what is included, or next steps. Answer like a helpful sales assistant: explain the process clearly, use the stored price text faithfully, treat pricing as indicative or estimated unless the service details make it clearly fixed, avoid inventing prices that are not present, and guide the user toward the recommended next step when relevant.\n\n${e.map(e=>[`Service: ${e.name}`,`Keywords: ${e.keywords.join(`, `)}`,`Price guidance: ${e.price}`,`Process: ${e.process}`,e.notes?`Notes: ${e.notes}`:``,`Next step: ${e.cta}`].filter(Boolean).join(`
+`)).join(`
 
-`)}`:``,o=i?`\n\nVisitor details:\nName: ${i.name}\nEmail: ${i.email}`:``,s=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${t.model}:generateContent?key=${n}`,{method:`POST`,headers:{"Content-Type":`application/json`},body:JSON.stringify({contents:[{role:`user`,parts:[{text:e}]}],systemInstruction:{parts:[{text:t.systemPrompt+a+o}]},generationConfig:{temperature:t.temperature,maxOutputTokens:t.maxTokens}})});if(!s.ok)throw Error(`API error: ${s.status}`);return(await s.json()).candidates?.[0]?.content?.parts?.[0]?.text??`No response received`}var i=`
+`)}`}async function a(e,t,n,a,o,s,c){let l=s.length>0?`\n\nKnowledge base:\n${s.map(e=>`${e.title}: ${e.content}`).join(`
+
+`)}`:``,u=c?`\n\nVisitor details:\nName: ${c.name}\nEmail: ${c.email}`:``,d=r(n),f=i(o),p=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${t.model}:generateContent?key=${a}`,{method:`POST`,headers:{"Content-Type":`application/json`},body:JSON.stringify({contents:[{role:`user`,parts:[{text:e}]}],systemInstruction:{parts:[{text:t.systemPrompt+d+f+l+u}]},generationConfig:{temperature:t.temperature,maxOutputTokens:t.maxTokens}})});if(!p.ok)throw Error(`API error: ${p.status}`);return(await p.json()).candidates?.[0]?.content?.parts?.[0]?.text??`No response received`}var o=`
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <rect x="9" y="9" width="13" height="13"></rect>
     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
   </svg>
-`;function a(e,t){return`
+`;function s(e,t){return`
     :host {
       --cb-primary: ${e.primaryColor};
       --cb-accent: ${e.accentColor};
@@ -16,20 +20,20 @@
       --cb-chat-left: ${t===`bottom-left`?`20px`:`auto`};
       --cb-chat-right: ${t===`bottom-left`?`auto`:`20px`};
     }
-  `}function o(e){return e.replace(/&/g,`&amp;`).replace(/"/g,`&quot;`).replace(/'/g,`&#39;`)}function s(e){return e.length===0?``:`
+  `}function c(e){return e.replace(/&/g,`&amp;`).replace(/"/g,`&quot;`).replace(/'/g,`&#39;`)}function l(e){return e.length===0?``:`
     <div class="cb-quick-links" aria-label="Quick actions">
       ${e.slice(0,2).map(e=>`
             <a
               class="cb-quick-link"
-              href="${o(e.url)}"
+              href="${c(e.url)}"
               target="_blank"
               rel="noopener noreferrer"
             >
-              ${h(e.label)}
+              ${_(e.label)}
             </a>
           `).join(``)}
     </div>
-  `}function c(e,t,n){return`
+  `}function u(e,t,n){return`
     <button class="cb-toggle-btn" aria-label="Open chat">
       <svg class="cb-icon-message" viewBox="0 0 24 24" fill="currentColor">
         <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
@@ -80,7 +84,7 @@
         </form>
 
         <div class="cb-chat-inputs cb-hidden">
-          ${s(n)}
+          ${l(n)}
 
           <form class="cb-input-form">
             <input
@@ -99,7 +103,8 @@
         </div>
       </div>
     </div>
-  `}function l(e,t){let n=t.querySelector(`.cb-lead-name`),r=t.querySelector(`.cb-lead-email`);n&&(n.value=e.name),r&&(r.value=e.email)}function u(e,t){let n=e.querySelector(`.cb-lead-form`),r=e.querySelector(`.cb-chat-inputs`);!n||!r||(n.classList.toggle(`cb-hidden`,!!t),r.classList.toggle(`cb-hidden`,!t))}function d(e,t){let n=e.querySelector(`.cb-lead-error`);n&&(n.textContent=t)}function f(e,t){let n=e.trim(),r=t.trim();return!n||!r||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r)?null:{name:n,email:r}}function p(e){return e.querySelector(`.cb-input`)}function m(e){return{leadForm:e.querySelector(`.cb-lead-form`),nameInput:e.querySelector(`.cb-lead-name`),emailInput:e.querySelector(`.cb-lead-email`),inputForm:e.querySelector(`.cb-input-form`),messageInput:e.querySelector(`.cb-input`)}}function h(e){let t=document.createElement(`div`);return t.textContent=e,t.innerHTML}var g=`
+  `}function d(e,t){let n=t.querySelector(`.cb-lead-name`),r=t.querySelector(`.cb-lead-email`);n&&(n.value=e.name),r&&(r.value=e.email)}function f(e,t){let n=e.querySelector(`.cb-lead-form`),r=e.querySelector(`.cb-chat-inputs`);!n||!r||(n.classList.toggle(`cb-hidden`,!!t),r.classList.toggle(`cb-hidden`,!t))}function p(e,t){let n=e.querySelector(`.cb-lead-error`);n&&(n.textContent=t)}function m(e,t){let n=e.trim(),r=t.trim();return!n||!r||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r)?null:{name:n,email:r}}function h(e){return e.querySelector(`.cb-input`)}function g(e){return{leadForm:e.querySelector(`.cb-lead-form`),nameInput:e.querySelector(`.cb-lead-name`),emailInput:e.querySelector(`.cb-lead-email`),inputForm:e.querySelector(`.cb-input-form`),messageInput:e.querySelector(`.cb-input`)}}function _(e){let t=document.createElement(`div`);return t.textContent=e,t.innerHTML}function v(e){return e.replace(/&/g,`&amp;`).replace(/</g,`&lt;`).replace(/>/g,`&gt;`).replace(/"/g,`&quot;`)}function y(e){return e.split(/(https?:\/\/[^\s]+)/g).map((e,t)=>{if(t%2==1){let t=v(e);return`<a href="${t}" target="_blank" rel="noopener noreferrer">${t}</a>`}let n=v(e);return n=n.replace(/\*\*(.+?)\*\*/g,`<strong>$1</strong>`),n=n.replace(/\*([^*\s][^*]*)\*/g,`<em>$1</em>`),n}).join(``)}function b(e){let t=e.split(`
+`),n=[],r=!1,i=!1,a=()=>{r&&=(n.push(`</ul>`),!1)},o=()=>{i&&=(n.push(`</ol>`),!1)},s=()=>{a(),o()};for(let e of t){let t=e.trim();if(!t){s();continue}let c=t.match(/^[-*]\s+(.+)$/);if(c){o(),r||=(n.push(`<ul>`),!0),n.push(`<li>${y(c[1])}</li>`);continue}let l=t.match(/^\d+\.\s+(.+)$/);if(l){a(),i||=(n.push(`<ol>`),!0),n.push(`<li>${y(l[1])}</li>`);continue}s(),n.push(`<p>${y(t)}</p>`)}return s(),n.join(``)}var x=`
 /* Chatbot Widget Styles */
 :host {
   all: initial;
@@ -292,7 +297,53 @@
 }
 
 .cb-message p {
-  margin: 0;
+  margin: 0 0 8px 0;
+}
+
+.cb-message p:last-child {
+  margin-bottom: 0;
+}
+
+.cb-message ul,
+.cb-message ol {
+  margin: 4px 0 8px 0;
+  padding-left: 20px;
+}
+
+.cb-message ul:last-child,
+.cb-message ol:last-child {
+  margin-bottom: 0;
+}
+
+.cb-message li {
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.cb-message li:last-child {
+  margin-bottom: 0;
+}
+
+.cb-message a {
+  color: var(--cb-primary);
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+.cb-ai-message a {
+  color: #0056b3;
+}
+
+.cb-message a:hover {
+  opacity: 0.8;
+}
+
+.cb-message strong {
+  font-weight: 600;
+}
+
+.cb-message em {
+  font-style: italic;
 }
 
 .cb-user-message {
@@ -593,4 +644,4 @@
 .cb-messages::-webkit-scrollbar-thumb:hover {
   background: #a1a1a1;
 }
-`,_=`duran-chatbot-visitor-profile`,v=class{constructor(e={},t={}){this.host=null,this.shadowRoot=null,this.container=null,this.chatWindow=null,this.isOpen=!1,this.messages=[],this.visitorProfile=null,this.config=n(e),this.embedConfig=t,this.apiKey=t.apiKey||this.config.ai.apiKey||``,this.visitorProfile=this.getInitialVisitorProfile(),this.init()}init(){this.createWidget(),this.attachEventListeners()}createWidget(){this.host=document.createElement(`div`),this.host.id=`chatbot-widget-root`,this.shadowRoot=this.host.attachShadow({mode:`open`});let e=document.createElement(`style`),t=this.embedConfig.position||this.config.appearance.position;e.textContent=a(this.config.appearance,t)+g,this.shadowRoot.appendChild(e),this.container=document.createElement(`div`),this.container.className=`cb-widget-container`,this.container.dataset.position=this.embedConfig.position||this.config.appearance.position,this.container.innerHTML=c(this.config.appearance.companyName,this.config.appearance.welcomeMessage,this.config.quickLinks),this.shadowRoot.appendChild(this.container),document.body.appendChild(this.host),this.chatWindow=this.container.querySelector(`.cb-chat-window`),this.syncLeadCaptureState()}attachEventListeners(){let e=this.getRoot();if(!this.container||!e)return;let t=e.querySelector(`.cb-toggle-btn`),n=e.querySelector(`.cb-close-btn`),{leadForm:r,nameInput:i,emailInput:a,inputForm:o,messageInput:s}=m(e);t?.addEventListener(`click`,()=>this.toggle()),n?.addEventListener(`click`,()=>this.close()),r?.addEventListener(`submit`,t=>{t.preventDefault();let n=f(i?.value??``,a?.value??``);if(!n){d(e,`Please enter a valid name and email address.`);return}this.visitorProfile=n,this.saveVisitorProfile(n),d(e,``),u(e,n),p(e)?.focus()}),o?.addEventListener(`submit`,e=>{e.preventDefault();let t=s?.value.trim();t&&(this.sendMessage(t),s&&(s.value=``))}),document.addEventListener(`keydown`,e=>{e.key===`Escape`&&this.isOpen&&this.close()}),this.config.behavior.autoOpenDelay>0&&setTimeout(()=>this.open(),this.config.behavior.autoOpenDelay*1e3)}toggle(){this.isOpen?this.close():this.open()}open(){let e=this.getRoot();this.isOpen=!0,this.container?.classList.add(`cb-open`),this.chatWindow?.setAttribute(`aria-hidden`,`false`);let t=this.visitorProfile?e?p(e):null:e?.querySelector(`.cb-lead-name`);setTimeout(()=>t?.focus(),100)}close(){this.isOpen=!1,this.container?.classList.remove(`cb-open`),this.chatWindow?.setAttribute(`aria-hidden`,`true`)}async sendMessage(e){if(!this.apiKey){this.addMessage(`Error: API key not configured`,`error`);return}this.addMessage(e,`user`),this.setLoading(!0);try{let t=await r(e,this.config.ai,this.apiKey,this.config.dataset,this.visitorProfile??void 0);this.addMessage(t,`ai`)}catch(e){console.error(`Chatbot API error:`,e),this.addMessage(`Sorry, I encountered an error. Please try again.`,`error`)}finally{this.setLoading(!1)}}addMessage(e,t){let n={text:e,sender:t,timestamp:new Date};this.messages.push(n);let r=this.getRoot()?.querySelector(`.cb-messages`);if(!r)return;let a=document.createElement(`div`);a.className=`cb-message cb-${t}-message`;let o=t===`ai`?`<button class="cb-copy-btn" aria-label="Copy message">${i}</button>`:``;if(a.innerHTML=`<p>${h(e)}</p>${o}`,this.config.behavior.showTimestamps){let e=document.createElement(`time`);e.className=`cb-timestamp`,e.textContent=n.timestamp.toLocaleTimeString([],{hour:`numeric`,minute:`2-digit`}),a.appendChild(e)}r.appendChild(a),r.scrollTop=r.scrollHeight,t===`ai`&&a.querySelector(`.cb-copy-btn`)?.addEventListener(`click`,()=>this.copyToClipboard(e))}setLoading(e){let t=this.getRoot(),n=t?.querySelector(`.cb-send-btn`),r=t?.querySelector(`.cb-input`),i=t?.querySelector(`.cb-lead-submit`),a=t?.querySelector(`.cb-lead-name`),o=t?.querySelector(`.cb-lead-email`);n&&(n.disabled=e,n.innerHTML=e?`<div class="cb-spinner"></div>`:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>`),r&&(r.disabled=e),i&&(i.disabled=e),a&&(a.disabled=e),o&&(o.disabled=e)}async copyToClipboard(e){try{await navigator.clipboard.writeText(e)}catch(e){console.error(`Failed to copy:`,e)}}getInitialVisitorProfile(){let e=this.embedConfig.user;if(e?.name&&e?.email){let t={name:e.name,email:e.email};return this.saveVisitorProfile(t),t}try{let e=window.localStorage.getItem(_);if(!e)return null;let t=JSON.parse(e);if(typeof t.name==`string`&&typeof t.email==`string`)return{name:t.name,email:t.email}}catch(e){console.error(`Failed to load visitor profile:`,e)}return null}saveVisitorProfile(e){try{window.localStorage.setItem(_,JSON.stringify(e))}catch(e){console.error(`Failed to save visitor profile:`,e)}}syncLeadCaptureState(){let e=this.getRoot();e&&(this.visitorProfile&&l(this.visitorProfile,e),u(e,this.visitorProfile),d(e,``))}getRoot(){return this.shadowRoot??this.container}destroy(){this.host?.remove(),this.shadowRoot=null,this.host=null,this.container=null,this.chatWindow=null}};if(typeof window<`u`){window.ChatbotWidget=v;let e=()=>{let e={},t=document.getElementById(`chatbot-widget`);if(t){let n=t.dataset;n.apiKey&&(e.apiKey=n.apiKey),n.position&&(e.position=n.position),n.primaryColor&&(e.primaryColor=n.primaryColor),n.companyName&&(e.companyName=n.companyName)}return e},t=(e,t)=>{window.__chatbotWidgetInstance?.destroy();let n=new v(e,t);return window.__chatbotWidgetInstance=n,n};window.initChatbot=(e,n)=>t(e,n);let n=()=>{window.ChatbotConfig&&t(window.ChatbotConfig,e())};window.ChatbotConfig&&(document.readyState===`loading`?document.addEventListener(`DOMContentLoaded`,n,{once:!0}):n())}e.ChatbotWidget=v});
+`,S=`duran-chatbot-visitor-profile`,C=class{constructor(e={},t={}){this.host=null,this.shadowRoot=null,this.container=null,this.chatWindow=null,this.isOpen=!1,this.messages=[],this.visitorProfile=null,this.config=n(e),this.embedConfig=t,this.apiKey=t.apiKey||this.config.ai.apiKey||``,this.visitorProfile=this.getInitialVisitorProfile(),this.init()}init(){this.createWidget(),this.attachEventListeners()}createWidget(){this.host=document.createElement(`div`),this.host.id=`chatbot-widget-root`,this.shadowRoot=this.host.attachShadow({mode:`open`});let e=document.createElement(`style`),t=this.embedConfig.position||this.config.appearance.position;e.textContent=s(this.config.appearance,t)+x,this.shadowRoot.appendChild(e),this.container=document.createElement(`div`),this.container.className=`cb-widget-container`,this.container.dataset.position=this.embedConfig.position||this.config.appearance.position,this.container.innerHTML=u(this.config.appearance.companyName,this.config.appearance.welcomeMessage,this.config.quickLinks),this.shadowRoot.appendChild(this.container),document.body.appendChild(this.host),this.chatWindow=this.container.querySelector(`.cb-chat-window`),this.syncLeadCaptureState()}attachEventListeners(){let e=this.getRoot();if(!this.container||!e)return;let t=e.querySelector(`.cb-toggle-btn`),n=e.querySelector(`.cb-close-btn`),{leadForm:r,nameInput:i,emailInput:a,inputForm:o,messageInput:s}=g(e);t?.addEventListener(`click`,()=>this.toggle()),n?.addEventListener(`click`,()=>this.close()),r?.addEventListener(`submit`,t=>{t.preventDefault();let n=m(i?.value??``,a?.value??``);if(!n){p(e,`Please enter a valid name and email address.`);return}this.visitorProfile=n,this.saveVisitorProfile(n),p(e,``),f(e,n),h(e)?.focus()}),o?.addEventListener(`submit`,e=>{e.preventDefault();let t=s?.value.trim();t&&(this.sendMessage(t),s&&(s.value=``))}),document.addEventListener(`keydown`,e=>{e.key===`Escape`&&this.isOpen&&this.close()}),this.config.behavior.autoOpenDelay>0&&setTimeout(()=>this.open(),this.config.behavior.autoOpenDelay*1e3)}toggle(){this.isOpen?this.close():this.open()}open(){let e=this.getRoot();this.isOpen=!0,this.container?.classList.add(`cb-open`),this.chatWindow?.setAttribute(`aria-hidden`,`false`);let t=this.visitorProfile?e?h(e):null:e?.querySelector(`.cb-lead-name`);setTimeout(()=>t?.focus(),100)}close(){this.isOpen=!1,this.container?.classList.remove(`cb-open`),this.chatWindow?.setAttribute(`aria-hidden`,`true`)}async sendMessage(e){if(!this.apiKey){this.addMessage(`Error: API key not configured`,`error`);return}this.addMessage(e,`user`),this.setLoading(!0);try{let t=await a(e,this.config.ai,this.config.persona,this.apiKey,this.config.services,this.config.dataset,this.visitorProfile??void 0);this.addMessage(t,`ai`)}catch(e){console.error(`Chatbot API error:`,e),this.addMessage(`Sorry, I encountered an error. Please try again.`,`error`)}finally{this.setLoading(!1)}}addMessage(e,t){let n={text:e,sender:t,timestamp:new Date};this.messages.push(n);let r=this.getRoot()?.querySelector(`.cb-messages`);if(!r)return;let i=document.createElement(`div`);i.className=`cb-message cb-${t}-message`;let a=t===`ai`?`<button class="cb-copy-btn" aria-label="Copy message">${o}</button>`:``;if(i.innerHTML=(t===`ai`?b(e):`<p>${_(e)}</p>`)+a,this.config.behavior.showTimestamps){let e=document.createElement(`time`);e.className=`cb-timestamp`,e.textContent=n.timestamp.toLocaleTimeString([],{hour:`numeric`,minute:`2-digit`}),i.appendChild(e)}r.appendChild(i),r.scrollTop=r.scrollHeight,t===`ai`&&i.querySelector(`.cb-copy-btn`)?.addEventListener(`click`,()=>this.copyToClipboard(e))}setLoading(e){let t=this.getRoot(),n=t?.querySelector(`.cb-send-btn`),r=t?.querySelector(`.cb-input`),i=t?.querySelector(`.cb-lead-submit`),a=t?.querySelector(`.cb-lead-name`),o=t?.querySelector(`.cb-lead-email`);n&&(n.disabled=e,n.innerHTML=e?`<div class="cb-spinner"></div>`:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>`),r&&(r.disabled=e),i&&(i.disabled=e),a&&(a.disabled=e),o&&(o.disabled=e)}async copyToClipboard(e){try{await navigator.clipboard.writeText(e)}catch(e){console.error(`Failed to copy:`,e)}}getInitialVisitorProfile(){let e=this.embedConfig.user;if(e?.name&&e?.email){let t={name:e.name,email:e.email};return this.saveVisitorProfile(t),t}try{let e=window.localStorage.getItem(S);if(!e)return null;let t=JSON.parse(e);if(typeof t.name==`string`&&typeof t.email==`string`)return{name:t.name,email:t.email}}catch(e){console.error(`Failed to load visitor profile:`,e)}return null}saveVisitorProfile(e){try{window.localStorage.setItem(S,JSON.stringify(e))}catch(e){console.error(`Failed to save visitor profile:`,e)}}syncLeadCaptureState(){let e=this.getRoot();e&&(this.visitorProfile&&d(this.visitorProfile,e),f(e,this.visitorProfile),p(e,``))}getRoot(){return this.shadowRoot??this.container}destroy(){this.host?.remove(),this.shadowRoot=null,this.host=null,this.container=null,this.chatWindow=null}},w=(()=>{try{let e=document.currentScript?.src;return e?new URL(e).origin:window.location.origin}catch{return window.location.origin}})();if(typeof window<`u`){window.ChatbotWidget=C;let e=()=>{let e={},t=document.getElementById(`chatbot-widget`);if(t){let n=t.dataset;n.apiKey&&(e.apiKey=n.apiKey),n.position&&(e.position=n.position),n.primaryColor&&(e.primaryColor=n.primaryColor),n.companyName&&(e.companyName=n.companyName)}return e},t=(e,t)=>{window.__chatbotWidgetInstance?.destroy();let n=new C(e,t);return window.__chatbotWidgetInstance=n,n};window.initChatbot=(e,n)=>t(e,n);let n=async()=>{let n={};try{let e=await fetch(`${w}/api/config`);e.ok&&(n=await e.json())}catch{}let r=window.ChatbotConfig??{};t({...n,...r,appearance:{...n.appearance,...r.appearance},ai:{...n.ai,...r.ai},behavior:{...n.behavior,...r.behavior}},e())};document.readyState===`loading`?document.addEventListener(`DOMContentLoaded`,()=>n(),{once:!0}):n()}e.ChatbotWidget=C});
