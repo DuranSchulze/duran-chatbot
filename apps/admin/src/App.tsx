@@ -10,19 +10,47 @@ import { TopBar } from "@/components/layout/top-bar";
 import { getConfigSections } from "@/features/config-editor/sections";
 import type { ConfigSectionId } from "@/features/config-editor/types";
 import { useConfig } from "@/hooks/useConfig";
+import { useProfiles } from "@/hooks/useProfiles";
 import { savePreviewConfig } from "@/lib/preview";
 import { WidgetPreviewPage } from "@/pages/widget-preview-page";
+import { ProfileList } from "@/features/profiles/profile-list";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft } from "lucide-react";
 
 function App() {
-  const { config, loading, error, saving, updateConfig } = useConfig();
+  const [activeProfileSlug, setActiveProfileSlug] = useState<string | null>(
+    null,
+  );
   const [activeSection, setActiveSection] =
     useState<ConfigSectionId>("appearance");
   const [editedConfig, setEditedConfig] = useState<ChatbotConfig | null>(null);
   const [saveStatus, setSaveStatus] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const isPreviewPage = new URLSearchParams(window.location.search).get("preview") === "1";
 
+  const isPreviewPage =
+    new URLSearchParams(window.location.search).get("preview") === "1";
+
+  const {
+    profiles,
+    loading: profilesLoading,
+    error: profilesError,
+    create,
+    archive,
+  } = useProfiles();
+  const {
+    config,
+    loading: configLoading,
+    error: configError,
+    saving,
+    updateConfig,
+  } = useConfig(activeProfileSlug ?? undefined);
+
+  const loading = activeProfileSlug ? configLoading : profilesLoading;
+  const error = activeProfileSlug ? configError : profilesError;
   const currentConfig = editedConfig ?? config;
+
+  const activeProfileMeta =
+    profiles.find((p) => p.slug === activeProfileSlug) ?? null;
 
   const handleConfigChange = useCallback((newConfig: ChatbotConfig) => {
     setEditedConfig(newConfig);
@@ -30,10 +58,7 @@ function App() {
   }, []);
 
   const handleSave = async () => {
-    if (!editedConfig) {
-      return;
-    }
-
+    if (!editedConfig) return;
     const success = await updateConfig(editedConfig);
     if (success) {
       setSaveStatus("Saved successfully");
@@ -44,13 +69,8 @@ function App() {
 
   const updateSection = useCallback(
     <K extends keyof ChatbotConfig>(key: K, value: ChatbotConfig[K]) => {
-      if (!currentConfig) {
-        return;
-      }
-      handleConfigChange({
-        ...currentConfig,
-        [key]: value,
-      });
+      if (!currentConfig) return;
+      handleConfigChange({ ...currentConfig, [key]: value });
     },
     [currentConfig, handleConfigChange],
   );
@@ -70,8 +90,7 @@ function App() {
               updateSection("appearance", appearance),
             onAIChange: (ai) => updateSection("ai", ai),
             onPersonaChange: (persona) => updateSection("persona", persona),
-            onServicesChange: (services) =>
-              updateSection("services", services),
+            onServicesChange: (services) => updateSection("services", services),
             onQuickLinksChange: (quickLinks) =>
               updateSection("quickLinks", quickLinks),
             onDatasetChange: (dataset) => updateSection("dataset", dataset),
@@ -88,6 +107,27 @@ function App() {
     return <WidgetPreviewPage />;
   }
 
+  if (!activeProfileSlug) {
+    return (
+      <ProfileList
+        profiles={profiles}
+        loading={profilesLoading}
+        error={profilesError}
+        onSelect={(slug) => {
+          setActiveProfileSlug(slug);
+          setEditedConfig(null);
+          setSaveStatus("");
+        }}
+        onCreate={async (name, slug) => {
+          await create(name, slug);
+          setActiveProfileSlug(slug);
+          setEditedConfig(null);
+        }}
+        onArchive={archive}
+      />
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
@@ -102,12 +142,20 @@ function App() {
   if (error || !currentConfig || !currentPanel) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-sm space-y-4">
           <StatusBanner
             tone="error"
             title="Unable to load configuration"
             description={error || "Failed to load configuration"}
           />
+          <Button
+            variant="outline"
+            onClick={() => setActiveProfileSlug(null)}
+            className="w-full gap-2"
+          >
+            <ChevronLeft className="size-4" />
+            Back to profiles
+          </Button>
         </div>
       </div>
     );
@@ -129,6 +177,12 @@ function App() {
           }}
           onMenuClick={() => setSidebarOpen(true)}
           activeLabel={currentPanel.label}
+          profileName={activeProfileMeta?.name}
+          onBackToProfiles={() => {
+            setActiveProfileSlug(null);
+            setEditedConfig(null);
+            setSaveStatus("");
+          }}
         />
       }
       sidebar={
@@ -158,7 +212,9 @@ function App() {
             />
           )}
           <ConfigSummaryCard config={currentConfig} />
-          <EmbedCodeCard code={getEmbedCode(currentConfig)} />
+          <EmbedCodeCard
+            code={getEmbedCode(currentConfig, activeProfileSlug ?? undefined)}
+          />
         </>
       }
     />

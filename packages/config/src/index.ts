@@ -124,8 +124,28 @@ export interface BehaviorConfig {
   enableCopyButton: boolean;
   /** Enable quote request feature */
   enableQuoteRequest: boolean;
-  /** Email for quote requests */
+  /** Email for quote requests (legacy single address) */
   quoteEmail?: string;
+  /** Primary recipients for internal quote notification emails */
+  quoteNotifyTo: string[];
+  /** CC recipients for internal quote notification emails */
+  quoteNotifyCC: string[];
+  /** Subject template for internal quote notification emails */
+  quoteEmailSubject: string;
+}
+
+/** A chatbot profile wrapping a full config with metadata */
+export interface ChatbotProfile {
+  /** URL-safe slug used as the profile identifier */
+  slug: string;
+  /** Human-readable display name */
+  name: string;
+  /** Active or archived */
+  status: 'active' | 'archived';
+  /** ISO timestamp of creation */
+  createdAt: string;
+  /** Full chatbot config for this profile */
+  config: ChatbotConfig;
 }
 
 /** Widget embed configuration (runtime overrides) */
@@ -182,6 +202,9 @@ export const defaultConfig: ChatbotConfig = {
     showTimestamps: true,
     enableCopyButton: true,
     enableQuoteRequest: false,
+    quoteNotifyTo: [],
+    quoteNotifyCC: [],
+    quoteEmailSubject: 'New Quote Request via Chatbot',
   },
 };
 
@@ -194,6 +217,11 @@ export function mergeWithDefaults(partial: Partial<ChatbotConfig>): ChatbotConfi
     services: partial.services ?? defaultConfig.services,
     quickLinks: partial.quickLinks ?? defaultConfig.quickLinks,
     dataset: partial.dataset ?? defaultConfig.dataset,
-    behavior: { ...defaultConfig.behavior, ...partial.behavior },
+    behavior: {
+      ...defaultConfig.behavior,
+      ...partial.behavior,
+      quoteNotifyTo: partial.behavior?.quoteNotifyTo ?? defaultConfig.behavior.quoteNotifyTo,
+      quoteNotifyCC: partial.behavior?.quoteNotifyCC ?? defaultConfig.behavior.quoteNotifyCC,
+    },
   };
 }

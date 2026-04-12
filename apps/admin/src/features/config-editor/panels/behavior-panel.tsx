@@ -114,16 +114,68 @@ export function BehaviorPanel({ behavior, onChange }: BehaviorPanelProps) {
       </Field>
 
       {behavior.enableQuoteRequest ? (
-        <Field>
-          <FieldLabel htmlFor="quoteEmail">Quote request email</FieldLabel>
-          <Input
-            id="quoteEmail"
-            type="email"
-            value={behavior.quoteEmail ?? ""}
-            onChange={(event) => update("quoteEmail", event.target.value)}
-            placeholder="sales@example.com"
-          />
-        </Field>
+        <div className="space-y-4 rounded-2xl border border-blue-100 bg-blue-50/40 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">
+            Email Notifications
+          </p>
+
+          <Field>
+            <FieldLabel htmlFor="quoteNotifyTo">Notify recipients</FieldLabel>
+            <Input
+              id="quoteNotifyTo"
+              type="text"
+              value={(behavior.quoteNotifyTo ?? []).join(", ")}
+              onChange={(event) =>
+                update(
+                  "quoteNotifyTo",
+                  event.target.value
+                    .split(",")
+                    .map((e) => e.trim())
+                    .filter(Boolean),
+                )
+              }
+              placeholder="sales@example.com, team@example.com"
+            />
+            <FieldDescription>
+              Comma-separated list of internal email addresses that receive
+              quote requests.
+            </FieldDescription>
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="quoteNotifyCC">
+              CC recipients (optional)
+            </FieldLabel>
+            <Input
+              id="quoteNotifyCC"
+              type="text"
+              value={(behavior.quoteNotifyCC ?? []).join(", ")}
+              onChange={(event) =>
+                update(
+                  "quoteNotifyCC",
+                  event.target.value
+                    .split(",")
+                    .map((e) => e.trim())
+                    .filter(Boolean),
+                )
+              }
+              placeholder="manager@example.com"
+            />
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="quoteEmailSubject">Email subject</FieldLabel>
+            <Input
+              id="quoteEmailSubject"
+              type="text"
+              value={behavior.quoteEmailSubject ?? ""}
+              onChange={(event) =>
+                update("quoteEmailSubject", event.target.value)
+              }
+              placeholder="New Quote Request via Chatbot"
+            />
+          </Field>
+        </div>
       ) : null}
     </div>
   );

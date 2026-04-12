@@ -21,8 +21,12 @@ async function getErrorMessage(response: Response, fallback: string) {
   return fallback
 }
 
-export async function fetchConfig(): Promise<ChatbotConfig> {
-  const response = await fetch(CONFIG_PATH)
+function configUrl(profileSlug?: string): string {
+  return profileSlug ? `${CONFIG_PATH}?profile=${encodeURIComponent(profileSlug)}` : CONFIG_PATH
+}
+
+export async function fetchConfig(profileSlug?: string): Promise<ChatbotConfig> {
+  const response = await fetch(configUrl(profileSlug))
   if (!response.ok) {
     throw new Error(
       await getErrorMessage(response, `Failed to fetch config (${response.status})`),
@@ -32,8 +36,8 @@ export async function fetchConfig(): Promise<ChatbotConfig> {
   return mergeWithDefaults(config)
 }
 
-export async function saveConfig(config: ChatbotConfig): Promise<void> {
-  const response = await fetch(CONFIG_PATH, {
+export async function saveConfig(config: ChatbotConfig, profileSlug?: string): Promise<void> {
+  const response = await fetch(configUrl(profileSlug), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(config),

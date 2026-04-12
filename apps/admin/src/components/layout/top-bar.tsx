@@ -1,4 +1,10 @@
-import { CheckCircle2, ExternalLink, Menu, Save } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronLeft,
+  ExternalLink,
+  Menu,
+  Save,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -10,6 +16,8 @@ type TopBarProps = {
   onPreview: () => void;
   onMenuClick: () => void;
   activeLabel?: string;
+  profileName?: string;
+  onBackToProfiles?: () => void;
 };
 
 export function TopBar({
@@ -20,6 +28,8 @@ export function TopBar({
   onPreview,
   onMenuClick,
   activeLabel,
+  profileName,
+  onBackToProfiles,
 }: TopBarProps) {
   return (
     <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
@@ -33,14 +43,31 @@ export function TopBar({
         <Menu className="size-5" />
       </button>
 
-      {/* Page title */}
-      <div className="flex-1 min-w-0">
-        <h1 className="text-sm font-semibold text-slate-900 truncate">
-          {activeLabel ?? "Chatbot Settings"}
-        </h1>
-        <p className="hidden sm:block text-xs text-slate-400">
-          Manage appearance, behavior, and knowledge.
-        </p>
+      {/* Back to profiles + page title */}
+      <div className="flex flex-1 items-center gap-2 min-w-0">
+        {onBackToProfiles && (
+          <button
+            type="button"
+            onClick={onBackToProfiles}
+            className="hidden sm:flex items-center gap-1 text-xs text-slate-400 hover:text-slate-700 transition-colors shrink-0"
+          >
+            <ChevronLeft className="size-3.5" />
+            Profiles
+          </button>
+        )}
+        {onBackToProfiles && (
+          <span className="hidden sm:block text-slate-300 text-xs">/</span>
+        )}
+        <div className="min-w-0">
+          {profileName && (
+            <p className="text-xs text-slate-500 truncate leading-none mb-0.5">
+              {profileName}
+            </p>
+          )}
+          <h1 className="text-sm font-semibold text-slate-900 truncate leading-none">
+            {activeLabel ?? "Chatbot Settings"}
+          </h1>
+        </div>
       </div>
 
       {/* Actions */}

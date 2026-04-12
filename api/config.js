@@ -3,7 +3,10 @@ import path from "node:path";
 import { createClient } from "redis";
 import { mergeWithDefaults } from "@duran-chatbot/config";
 
-const CONFIG_KEY = "chatbot:config";
+const LEGACY_CONFIG_KEY = "chatbot:config";
+const PROFILES_INDEX_KEY = "chatbot:profiles";
+const PROFILE_KEY = (slug) => `chatbot:profile:${slug}`;
+const DEFAULT_SLUG = "duran-schulze";
 const fallbackConfigPath = path.join(process.cwd(), "data", "config.json");
 
 const redisUrl = process.env.REDIS_URL;
@@ -39,14 +42,44 @@ async function getRedisClient() {
   return redis;
 }
 
-async function getStoredConfig() {
-  const client = await getRedisClient();
-  const rawConfig = await client.get(CONFIG_KEY);
+/** Resolve the config key to read/write for a given slug, bootstrapping if needed. */
+async function resolveProfileKey(client, slug) {
+  const profileKey = PROFILE_KEY(slug);
+
+  const profilesIndexRaw = await client.get(PROFILES_INDEX_KEY);
+  if (!profilesIndexRaw) {
+    const legacyRaw = await client.get(LEGACY_CONFIG_KEY);
+    const config = legacyRaw
+      ? mergeWithDefaults(JSON.parse(legacyRaw))
+      : readFallbackConfig();
+
+    const defaultProfile = {
+      slug: DEFAULT_SLUG,
+      name: "Duran Schulze",
+      status: "active",
+      createdAt: new Date().toISOString(),
+    };
+
+    await client.set(PROFILE_KEY(DEFAULT_SLUG), JSON.stringify(config));
+    await client.set(PROFILES_INDEX_KEY, JSON.stringify([defaultProfile]));
+
+    return PROFILE_KEY(slug || DEFAULT_SLUG);
+  }
+
+  return profileKey;
+}
+
+async function getStoredConfig(client, slug) {
+  const key = await resolveProfileKey(client, slug || DEFAULT_SLUG);
+  const rawConfig = await client.get(key);
 
   if (!rawConfig) {
-    const fallbackConfig = readFallbackConfig();
-    await client.set(CONFIG_KEY, JSON.stringify(fallbackConfig));
-    return fallbackConfig;
+    if (!slug || slug === DEFAULT_SLUG) {
+      const fallback = readFallbackConfig();
+      await client.set(key, JSON.stringify(fallback));
+      return fallback;
+    }
+    return readFallbackConfig();
   }
 
   return mergeWithDefaults(JSON.parse(rawConfig));
@@ -62,11 +95,20 @@ export default async function handler(req, res) {
     return;
   }
 
+  const urlParams = new URL(req.url, "http://localhost").searchParams;
+  const profileSlug = req.query?.profile ?? urlParams.get("profile") ?? "";
+
   const geminiApiKey = process.env.GEMINI_API_KEY ?? "";
 
   if (req.method === "GET") {
     try {
-      let config = redisUrl ? await getStoredConfig() : readFallbackConfig();
+      let config;
+      if (redisUrl) {
+        const client = await getRedisClient();
+        config = await getStoredConfig(client, profileSlug);
+      } else {
+        config = readFallbackConfig();
+      }
       config = { ...config, ai: { ...config.ai, apiKey: geminiApiKey } };
       res.status(200).json(config);
     } catch (error) {
@@ -85,7 +127,9 @@ export default async function handler(req, res) {
       const normalizedConfig = mergeWithDefaults(nextConfig);
       const { ai: { apiKey: _dropped, ...ai }, ...rest } = normalizedConfig;
 
-      await client.set(CONFIG_KEY, JSON.stringify({ ...rest, ai }));
+      const slug = profileSlug || DEFAULT_SLUG;
+      const key = await resolveProfileKey(client, slug);
+      await client.set(key, JSON.stringify({ ...rest, ai }));
 
       res.status(200).json({ success: true });
     } catch (error) {

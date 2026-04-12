@@ -1,4 +1,4 @@
-(function(e,t){typeof exports==`object`&&typeof module<`u`?t(exports):typeof define==`function`&&define.amd?define([`exports`],t):(e=typeof globalThis<`u`?globalThis:e||self,t(e.ChatbotWidget={}))})(this,function(e){Object.defineProperty(e,Symbol.toStringTag,{value:`Module`});var t={appearance:{primaryColor:`#004a99`,accentColor:`#0056b3`,backgroundColor:`#ffffff`,textColor:`#212529`,position:`bottom-right`,borderRadius:12,companyName:`AI Assistant`,welcomeMessage:`Hello! How can I help you today?`},ai:{systemPrompt:`You are a helpful AI assistant. Provide clear, accurate, and helpful responses.`,model:`gemini-2.5-flash`,temperature:.7,maxTokens:2048},persona:{enabled:!1,personaName:``,roleOrRelationship:``,tone:``,writingStyle:``,signaturePhrases:``,dos:``,donts:``,audienceNotes:``},services:[],quickLinks:[],dataset:[],behavior:{autoOpenDelay:0,showTimestamps:!0,enableCopyButton:!0,enableQuoteRequest:!1}};function n(e){return{appearance:{...t.appearance,...e.appearance},ai:{...t.ai,...e.ai},persona:{...t.persona,...e.persona},services:e.services??t.services,quickLinks:e.quickLinks??t.quickLinks,dataset:e.dataset??t.dataset,behavior:{...t.behavior,...e.behavior}}}function r(e){if(!e.enabled)return``;let t=[e.personaName?`Reference voice: ${e.personaName}`:``,e.roleOrRelationship?`Role or relationship: ${e.roleOrRelationship}`:``,e.tone?`Tone: ${e.tone}`:``,e.writingStyle?`Writing style: ${e.writingStyle}`:``,e.signaturePhrases?`Signature phrases: ${e.signaturePhrases}`:``,e.dos?`Do: ${e.dos}`:``,e.donts?`Don't: ${e.donts}`:``,e.audienceNotes?`Audience notes: ${e.audienceNotes}`:``].filter(Boolean);return t.length===0?``:`\n\nPersona voice guidance:\nReflect this person's tone, phrasing, and communication style without claiming to literally be them. Keep all existing business, legal, and safety guardrails intact.\n${t.join(`
+(function(e,t){typeof exports==`object`&&typeof module<`u`?t(exports):typeof define==`function`&&define.amd?define([`exports`],t):(e=typeof globalThis<`u`?globalThis:e||self,t(e.ChatbotWidget={}))})(this,function(e){Object.defineProperty(e,Symbol.toStringTag,{value:`Module`});var t={appearance:{primaryColor:`#004a99`,accentColor:`#0056b3`,backgroundColor:`#ffffff`,textColor:`#212529`,position:`bottom-right`,borderRadius:12,companyName:`AI Assistant`,welcomeMessage:`Hello! How can I help you today?`},ai:{systemPrompt:`You are a helpful AI assistant. Provide clear, accurate, and helpful responses.`,model:`gemini-2.5-flash`,temperature:.7,maxTokens:2048},persona:{enabled:!1,personaName:``,roleOrRelationship:``,tone:``,writingStyle:``,signaturePhrases:``,dos:``,donts:``,audienceNotes:``},services:[],quickLinks:[],dataset:[],behavior:{autoOpenDelay:0,showTimestamps:!0,enableCopyButton:!0,enableQuoteRequest:!1,quoteNotifyTo:[],quoteNotifyCC:[],quoteEmailSubject:`New Quote Request via Chatbot`}};function n(e){return{appearance:{...t.appearance,...e.appearance},ai:{...t.ai,...e.ai},persona:{...t.persona,...e.persona},services:e.services??t.services,quickLinks:e.quickLinks??t.quickLinks,dataset:e.dataset??t.dataset,behavior:{...t.behavior,...e.behavior,quoteNotifyTo:e.behavior?.quoteNotifyTo??t.behavior.quoteNotifyTo,quoteNotifyCC:e.behavior?.quoteNotifyCC??t.behavior.quoteNotifyCC}}}function r(e){if(!e.enabled)return``;let t=[e.personaName?`Reference voice: ${e.personaName}`:``,e.roleOrRelationship?`Role or relationship: ${e.roleOrRelationship}`:``,e.tone?`Tone: ${e.tone}`:``,e.writingStyle?`Writing style: ${e.writingStyle}`:``,e.signaturePhrases?`Signature phrases: ${e.signaturePhrases}`:``,e.dos?`Do: ${e.dos}`:``,e.donts?`Don't: ${e.donts}`:``,e.audienceNotes?`Audience notes: ${e.audienceNotes}`:``].filter(Boolean);return t.length===0?``:`\n\nPersona voice guidance:\nReflect this person's tone, phrasing, and communication style without claiming to literally be them. Keep all existing business, legal, and safety guardrails intact.\n${t.join(`
 `)}`}function i(e){return e.length===0?``:`\n\nServices knowledge base:\nUse these service entries when users ask about pricing, process, what is included, or next steps. Answer like a helpful sales assistant: explain the process clearly, use the stored price text faithfully, treat pricing as indicative or estimated unless the service details make it clearly fixed, avoid inventing prices that are not present, and guide the user toward the recommended next step when relevant.\n\n${e.map(e=>[`Service: ${e.name}`,`Keywords: ${e.keywords.join(`, `)}`,`Price guidance: ${e.price}`,`Process: ${e.process}`,e.notes?`Notes: ${e.notes}`:``,`Next step: ${e.cta}`].filter(Boolean).join(`
 `)).join(`
 
@@ -29,7 +29,7 @@
               target="_blank"
               rel="noopener noreferrer"
             >
-              ${_(e.label)}
+              ${v(e.label)}
             </a>
           `).join(``)}
     </div>
@@ -103,8 +103,21 @@
         </div>
       </div>
     </div>
-  `}function d(e,t){let n=t.querySelector(`.cb-lead-name`),r=t.querySelector(`.cb-lead-email`);n&&(n.value=e.name),r&&(r.value=e.email)}function f(e,t){let n=e.querySelector(`.cb-lead-form`),r=e.querySelector(`.cb-chat-inputs`);!n||!r||(n.classList.toggle(`cb-hidden`,!!t),r.classList.toggle(`cb-hidden`,!t))}function p(e,t){let n=e.querySelector(`.cb-lead-error`);n&&(n.textContent=t)}function m(e,t){let n=e.trim(),r=t.trim();return!n||!r||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r)?null:{name:n,email:r}}function h(e){return e.querySelector(`.cb-input`)}function g(e){return{leadForm:e.querySelector(`.cb-lead-form`),nameInput:e.querySelector(`.cb-lead-name`),emailInput:e.querySelector(`.cb-lead-email`),inputForm:e.querySelector(`.cb-input-form`),messageInput:e.querySelector(`.cb-input`)}}function _(e){let t=document.createElement(`div`);return t.textContent=e,t.innerHTML}function v(e){return e.replace(/&/g,`&amp;`).replace(/</g,`&lt;`).replace(/>/g,`&gt;`).replace(/"/g,`&quot;`)}function y(e){return e.split(/(https?:\/\/[^\s]+)/g).map((e,t)=>{if(t%2==1){let t=v(e);return`<a href="${t}" target="_blank" rel="noopener noreferrer">${t}</a>`}let n=v(e);return n=n.replace(/\*\*(.+?)\*\*/g,`<strong>$1</strong>`),n=n.replace(/\*([^*\s][^*]*)\*/g,`<em>$1</em>`),n}).join(``)}function b(e){let t=e.split(`
-`),n=[],r=!1,i=!1,a=()=>{r&&=(n.push(`</ul>`),!1)},o=()=>{i&&=(n.push(`</ol>`),!1)},s=()=>{a(),o()};for(let e of t){let t=e.trim();if(!t){s();continue}let c=t.match(/^[-*]\s+(.+)$/);if(c){o(),r||=(n.push(`<ul>`),!0),n.push(`<li>${y(c[1])}</li>`);continue}let l=t.match(/^\d+\.\s+(.+)$/);if(l){a(),i||=(n.push(`<ol>`),!0),n.push(`<li>${y(l[1])}</li>`);continue}s(),n.push(`<p>${y(t)}</p>`)}return s(),n.join(``)}var x=`
+  `}function d(e,t){let n=t.querySelector(`.cb-lead-name`),r=t.querySelector(`.cb-lead-email`);n&&(n.value=e.name),r&&(r.value=e.email)}function f(e,t){let n=e.querySelector(`.cb-lead-form`),r=e.querySelector(`.cb-chat-inputs`);!n||!r||(n.classList.toggle(`cb-hidden`,!!t),r.classList.toggle(`cb-hidden`,!t))}function p(e,t){let n=e.querySelector(`.cb-lead-error`);n&&(n.textContent=t)}function m(e,t){let n=e.trim(),r=t.trim();return!n||!r||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r)?null:{name:n,email:r}}function h(e){return e.querySelector(`.cb-input`)}function g(e){return{leadForm:e.querySelector(`.cb-lead-form`),nameInput:e.querySelector(`.cb-lead-name`),emailInput:e.querySelector(`.cb-lead-email`),inputForm:e.querySelector(`.cb-input-form`),messageInput:e.querySelector(`.cb-input`)}}function _(e){return`
+    <div class="cb-quote-card" role="region" aria-label="Quote request">
+      <p class="cb-quote-card-title">Request a Quote</p>
+      <p class="cb-quote-card-desc">Hi${e?`, ${v(e)}`:``}! Briefly describe what you need help with and we'll follow up with a personalised quote.</p>
+      <textarea
+        class="cb-quote-textarea"
+        placeholder="e.g. I need help with an employment dispute and want to know the estimated cost."
+        rows="3"
+        aria-label="Describe what you need"
+      ></textarea>
+      <p class="cb-quote-error" aria-live="polite"></p>
+      <button type="button" class="cb-quote-submit">Send request</button>
+    </div>
+  `}function v(e){let t=document.createElement(`div`);return t.textContent=e,t.innerHTML}function y(e){return e.replace(/&/g,`&amp;`).replace(/</g,`&lt;`).replace(/>/g,`&gt;`).replace(/"/g,`&quot;`)}function b(e){return e.split(/(https?:\/\/[^\s]+)/g).map((e,t)=>{if(t%2==1){let t=y(e);return`<a href="${t}" target="_blank" rel="noopener noreferrer">${t}</a>`}let n=y(e);return n=n.replace(/\*\*(.+?)\*\*/g,`<strong>$1</strong>`),n=n.replace(/\*([^*\s][^*]*)\*/g,`<em>$1</em>`),n}).join(``)}function x(e){let t=e.split(`
+`),n=[],r=!1,i=!1,a=()=>{r&&=(n.push(`</ul>`),!1)},o=()=>{i&&=(n.push(`</ol>`),!1)},s=()=>{a(),o()};for(let e of t){let t=e.trim();if(!t){s();continue}let c=t.match(/^[-*]\s+(.+)$/);if(c){o(),r||=(n.push(`<ul>`),!0),n.push(`<li>${b(c[1])}</li>`);continue}let l=t.match(/^\d+\.\s+(.+)$/);if(l){a(),i||=(n.push(`<ol>`),!0),n.push(`<li>${b(l[1])}</li>`);continue}s(),n.push(`<p>${b(t)}</p>`)}return s(),n.join(``)}var S=`
 /* Chatbot Widget Styles */
 :host {
   all: initial;
@@ -224,15 +237,34 @@
   }
 }
 
-/* Mobile responsive */
+/* Mobile — fullscreen chat */
 @media (max-width: 420px) {
   .cb-chat-window {
-    width: calc(100vw - 40px);
-    height: calc(100vh - 100px);
-    max-height: none;
-    right: 20px;
-    left: 20px;
-    bottom: 80px;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    top: 0;
+    transform-origin: bottom center;
+  }
+
+  .cb-widget-container.cb-open .cb-chat-window {
+    transform: scale(1) translateY(0);
+  }
+
+  .cb-composer {
+    position: sticky;
+    bottom: var(--cb-keyboard-offset, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .cb-header {
+    padding-top: max(16px, env(safe-area-inset-top, 0px));
   }
 }
 
@@ -644,4 +676,95 @@
 .cb-messages::-webkit-scrollbar-thumb:hover {
   background: #a1a1a1;
 }
-`,S=`duran-chatbot-visitor-profile`,C=class{constructor(e={},t={}){this.host=null,this.shadowRoot=null,this.container=null,this.chatWindow=null,this.isOpen=!1,this.messages=[],this.visitorProfile=null,this.config=n(e),this.embedConfig=t,this.apiKey=t.apiKey||this.config.ai.apiKey||``,this.visitorProfile=this.getInitialVisitorProfile(),this.init()}init(){this.createWidget(),this.attachEventListeners()}createWidget(){this.host=document.createElement(`div`),this.host.id=`chatbot-widget-root`,this.shadowRoot=this.host.attachShadow({mode:`open`});let e=document.createElement(`style`),t=this.embedConfig.position||this.config.appearance.position;e.textContent=s(this.config.appearance,t)+x,this.shadowRoot.appendChild(e),this.container=document.createElement(`div`),this.container.className=`cb-widget-container`,this.container.dataset.position=this.embedConfig.position||this.config.appearance.position,this.container.innerHTML=u(this.config.appearance.companyName,this.config.appearance.welcomeMessage,this.config.quickLinks),this.shadowRoot.appendChild(this.container),document.body.appendChild(this.host),this.chatWindow=this.container.querySelector(`.cb-chat-window`),this.syncLeadCaptureState()}attachEventListeners(){let e=this.getRoot();if(!this.container||!e)return;let t=e.querySelector(`.cb-toggle-btn`),n=e.querySelector(`.cb-close-btn`),{leadForm:r,nameInput:i,emailInput:a,inputForm:o,messageInput:s}=g(e);t?.addEventListener(`click`,()=>this.toggle()),n?.addEventListener(`click`,()=>this.close()),r?.addEventListener(`submit`,t=>{t.preventDefault();let n=m(i?.value??``,a?.value??``);if(!n){p(e,`Please enter a valid name and email address.`);return}this.visitorProfile=n,this.saveVisitorProfile(n),p(e,``),f(e,n),h(e)?.focus()}),o?.addEventListener(`submit`,e=>{e.preventDefault();let t=s?.value.trim();t&&(this.sendMessage(t),s&&(s.value=``))}),document.addEventListener(`keydown`,e=>{e.key===`Escape`&&this.isOpen&&this.close()}),this.config.behavior.autoOpenDelay>0&&setTimeout(()=>this.open(),this.config.behavior.autoOpenDelay*1e3)}toggle(){this.isOpen?this.close():this.open()}open(){let e=this.getRoot();this.isOpen=!0,this.container?.classList.add(`cb-open`),this.chatWindow?.setAttribute(`aria-hidden`,`false`);let t=this.visitorProfile?e?h(e):null:e?.querySelector(`.cb-lead-name`);setTimeout(()=>t?.focus(),100)}close(){this.isOpen=!1,this.container?.classList.remove(`cb-open`),this.chatWindow?.setAttribute(`aria-hidden`,`true`)}async sendMessage(e){if(!this.apiKey){this.addMessage(`Error: API key not configured`,`error`);return}this.addMessage(e,`user`),this.setLoading(!0);try{let t=await a(e,this.config.ai,this.config.persona,this.apiKey,this.config.services,this.config.dataset,this.visitorProfile??void 0);this.addMessage(t,`ai`)}catch(e){console.error(`Chatbot API error:`,e),this.addMessage(`Sorry, I encountered an error. Please try again.`,`error`)}finally{this.setLoading(!1)}}addMessage(e,t){let n={text:e,sender:t,timestamp:new Date};this.messages.push(n);let r=this.getRoot()?.querySelector(`.cb-messages`);if(!r)return;let i=document.createElement(`div`);i.className=`cb-message cb-${t}-message`;let a=t===`ai`?`<button class="cb-copy-btn" aria-label="Copy message">${o}</button>`:``;if(i.innerHTML=(t===`ai`?b(e):`<p>${_(e)}</p>`)+a,this.config.behavior.showTimestamps){let e=document.createElement(`time`);e.className=`cb-timestamp`,e.textContent=n.timestamp.toLocaleTimeString([],{hour:`numeric`,minute:`2-digit`}),i.appendChild(e)}r.appendChild(i),r.scrollTop=r.scrollHeight,t===`ai`&&i.querySelector(`.cb-copy-btn`)?.addEventListener(`click`,()=>this.copyToClipboard(e))}setLoading(e){let t=this.getRoot(),n=t?.querySelector(`.cb-send-btn`),r=t?.querySelector(`.cb-input`),i=t?.querySelector(`.cb-lead-submit`),a=t?.querySelector(`.cb-lead-name`),o=t?.querySelector(`.cb-lead-email`);n&&(n.disabled=e,n.innerHTML=e?`<div class="cb-spinner"></div>`:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>`),r&&(r.disabled=e),i&&(i.disabled=e),a&&(a.disabled=e),o&&(o.disabled=e)}async copyToClipboard(e){try{await navigator.clipboard.writeText(e)}catch(e){console.error(`Failed to copy:`,e)}}getInitialVisitorProfile(){let e=this.embedConfig.user;if(e?.name&&e?.email){let t={name:e.name,email:e.email};return this.saveVisitorProfile(t),t}try{let e=window.localStorage.getItem(S);if(!e)return null;let t=JSON.parse(e);if(typeof t.name==`string`&&typeof t.email==`string`)return{name:t.name,email:t.email}}catch(e){console.error(`Failed to load visitor profile:`,e)}return null}saveVisitorProfile(e){try{window.localStorage.setItem(S,JSON.stringify(e))}catch(e){console.error(`Failed to save visitor profile:`,e)}}syncLeadCaptureState(){let e=this.getRoot();e&&(this.visitorProfile&&d(this.visitorProfile,e),f(e,this.visitorProfile),p(e,``))}getRoot(){return this.shadowRoot??this.container}destroy(){this.host?.remove(),this.shadowRoot=null,this.host=null,this.container=null,this.chatWindow=null}},w=(()=>{try{let e=document.currentScript?.src;return e?new URL(e).origin:window.location.origin}catch{return window.location.origin}})();if(typeof window<`u`){window.ChatbotWidget=C;let e=()=>{let e={},t=document.getElementById(`chatbot-widget`);if(t){let n=t.dataset;n.apiKey&&(e.apiKey=n.apiKey),n.position&&(e.position=n.position),n.primaryColor&&(e.primaryColor=n.primaryColor),n.companyName&&(e.companyName=n.companyName)}return e},t=(e,t)=>{window.__chatbotWidgetInstance?.destroy();let n=new C(e,t);return window.__chatbotWidgetInstance=n,n};window.initChatbot=(e,n)=>t(e,n);let r=async()=>{let r={};try{let e=await fetch(`${w}/api/config`);e.ok&&(r=await e.json())}catch{}let i=window.ChatbotConfig??{};t(n({...r,...i,appearance:{...r.appearance,...i.appearance},ai:{...r.ai,...i.ai},persona:{...r.persona,...i.persona},behavior:{...r.behavior,...i.behavior},services:i.services??r.services,quickLinks:i.quickLinks??r.quickLinks,dataset:i.dataset??r.dataset}),e())};document.readyState===`loading`?document.addEventListener(`DOMContentLoaded`,()=>r(),{once:!0}):r()}e.ChatbotWidget=C});
+
+/* Quote request card */
+.cb-quote-card {
+  align-self: flex-start;
+  width: 100%;
+  max-width: 100%;
+  background: #f0f6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 13px;
+  animation: cb-message-enter 0.28s ease both;
+}
+
+.cb-quote-card-title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e3a5f;
+}
+
+.cb-quote-card-desc {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: #4b6a94;
+  line-height: 1.5;
+}
+
+.cb-quote-textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #93c5fd;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #1e3a5f;
+  background: #fff;
+  resize: vertical;
+  min-height: 72px;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.cb-quote-textarea:focus {
+  border-color: var(--cb-primary);
+  box-shadow: 0 0 0 3px rgba(0, 74, 153, 0.12);
+}
+
+.cb-quote-submit {
+  margin-top: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--cb-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.cb-quote-submit:hover:not(:disabled) {
+  background: var(--cb-accent);
+  transform: translateY(-1px);
+}
+
+.cb-quote-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cb-quote-error {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: #dc2626;
+  min-height: 16px;
+}
+
+.cb-quote-success {
+  align-self: flex-start;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 14px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #166534;
+  font-weight: 500;
+  animation: cb-message-enter 0.28s ease both;
+}
+`,C=`duran-chatbot-visitor-profile`,w=[`quote`,`quotation`,`estimate`,`how much`,`cost`,`pricing`,`price`,`fee`,`fees`,`rate`,`rates`,`charges`,`billing`,`invoice`,`payment`,`how much does`];function T(e){let t=e.toLowerCase();return w.some(e=>t.includes(e))}function E(){return window.innerWidth<=420}var D=class{constructor(e={},t={},r=``,i=``){this.host=null,this.shadowRoot=null,this.container=null,this.chatWindow=null,this.isOpen=!1,this.messages=[],this.visitorProfile=null,this.quoteCardShown=!1,this.config=n(e),this.embedConfig=t,this.apiKey=t.apiKey||this.config.ai.apiKey||``,this.visitorProfile=this.getInitialVisitorProfile(),this.profileSlug=r,this.apiOrigin=i,this.init()}init(){this.createWidget(),this.attachEventListeners(),this.setupViewportListener()}createWidget(){this.host=document.createElement(`div`),this.host.id=`chatbot-widget-root`,this.shadowRoot=this.host.attachShadow({mode:`open`});let e=document.createElement(`style`),t=this.embedConfig.position||this.config.appearance.position;e.textContent=s(this.config.appearance,t)+S,this.shadowRoot.appendChild(e),this.container=document.createElement(`div`),this.container.className=`cb-widget-container`,this.container.dataset.position=this.embedConfig.position||this.config.appearance.position,this.container.innerHTML=u(this.config.appearance.companyName,this.config.appearance.welcomeMessage,this.config.quickLinks),this.shadowRoot.appendChild(this.container),document.body.appendChild(this.host),this.chatWindow=this.container.querySelector(`.cb-chat-window`),this.syncLeadCaptureState()}attachEventListeners(){let e=this.getRoot();if(!this.container||!e)return;let t=e.querySelector(`.cb-toggle-btn`),n=e.querySelector(`.cb-close-btn`),{leadForm:r,nameInput:i,emailInput:a,inputForm:o,messageInput:s}=g(e);t?.addEventListener(`click`,()=>this.toggle()),n?.addEventListener(`click`,()=>this.close()),r?.addEventListener(`submit`,t=>{t.preventDefault();let n=m(i?.value??``,a?.value??``);if(!n){p(e,`Please enter a valid name and email address.`);return}this.visitorProfile=n,this.saveVisitorProfile(n),p(e,``),f(e,n),h(e)?.focus()}),o?.addEventListener(`submit`,e=>{e.preventDefault();let t=s?.value.trim();t&&(this.sendMessage(t),s&&(s.value=``))}),document.addEventListener(`keydown`,e=>{e.key===`Escape`&&this.isOpen&&this.close()}),this.config.behavior.autoOpenDelay>0&&setTimeout(()=>this.open(),this.config.behavior.autoOpenDelay*1e3)}toggle(){this.isOpen?this.close():this.open()}open(){let e=this.getRoot();this.isOpen=!0,this.container?.classList.add(`cb-open`),this.chatWindow?.setAttribute(`aria-hidden`,`false`),E()&&(document.body.style.overflow=`hidden`);let t=this.visitorProfile?e?h(e):null:e?.querySelector(`.cb-lead-name`);setTimeout(()=>t?.focus(),100)}close(){this.isOpen=!1,this.container?.classList.remove(`cb-open`),this.chatWindow?.setAttribute(`aria-hidden`,`true`),document.body.style.overflow=``}async sendMessage(e){if(!this.apiKey){this.addMessage(`Error: API key not configured`,`error`);return}let t=this.config.behavior.enableQuoteRequest&&!this.quoteCardShown&&T(e);this.addMessage(e,`user`),this.setLoading(!0);try{let n=await a(e,this.config.ai,this.config.persona,this.apiKey,this.config.services,this.config.dataset,this.visitorProfile??void 0);this.addMessage(n,`ai`),t&&this.showQuoteCard()}catch(e){console.error(`Chatbot API error:`,e),this.addMessage(`Sorry, I encountered an error. Please try again.`,`error`)}finally{this.setLoading(!1)}}addMessage(e,t){let n={text:e,sender:t,timestamp:new Date};this.messages.push(n);let r=this.getRoot()?.querySelector(`.cb-messages`);if(!r)return;let i=document.createElement(`div`);i.className=`cb-message cb-${t}-message`;let a=t===`ai`?`<button class="cb-copy-btn" aria-label="Copy message">${o}</button>`:``;if(i.innerHTML=(t===`ai`?x(e):`<p>${v(e)}</p>`)+a,this.config.behavior.showTimestamps){let e=document.createElement(`time`);e.className=`cb-timestamp`,e.textContent=n.timestamp.toLocaleTimeString([],{hour:`numeric`,minute:`2-digit`}),i.appendChild(e)}r.appendChild(i),r.scrollTop=r.scrollHeight,t===`ai`&&i.querySelector(`.cb-copy-btn`)?.addEventListener(`click`,()=>this.copyToClipboard(e))}setLoading(e){let t=this.getRoot(),n=t?.querySelector(`.cb-send-btn`),r=t?.querySelector(`.cb-input`),i=t?.querySelector(`.cb-lead-submit`),a=t?.querySelector(`.cb-lead-name`),o=t?.querySelector(`.cb-lead-email`);n&&(n.disabled=e,n.innerHTML=e?`<div class="cb-spinner"></div>`:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>`),r&&(r.disabled=e),i&&(i.disabled=e),a&&(a.disabled=e),o&&(o.disabled=e)}async copyToClipboard(e){try{await navigator.clipboard.writeText(e)}catch(e){console.error(`Failed to copy:`,e)}}getInitialVisitorProfile(){let e=this.embedConfig.user;if(e?.name&&e?.email){let t={name:e.name,email:e.email};return this.saveVisitorProfile(t),t}try{let e=window.localStorage.getItem(C);if(!e)return null;let t=JSON.parse(e);if(typeof t.name==`string`&&typeof t.email==`string`)return{name:t.name,email:t.email}}catch(e){console.error(`Failed to load visitor profile:`,e)}return null}saveVisitorProfile(e){try{window.localStorage.setItem(C,JSON.stringify(e))}catch(e){console.error(`Failed to save visitor profile:`,e)}}syncLeadCaptureState(){let e=this.getRoot();e&&(this.visitorProfile&&d(this.visitorProfile,e),f(e,this.visitorProfile),p(e,``))}setupViewportListener(){if(typeof window>`u`||!window.visualViewport)return;let e=()=>{if(!this.isOpen||!E())return;let e=window.visualViewport,t=Math.max(0,window.innerHeight-e.height-e.offsetTop),n=this.host;if(n&&n.style.setProperty(`--cb-keyboard-offset`,`${t}px`),t>0){let e=this.getRoot()?.querySelector(`.cb-messages`);e&&setTimeout(()=>{e.scrollTop=e.scrollHeight},50)}};window.visualViewport.addEventListener(`resize`,e),window.visualViewport.addEventListener(`scroll`,e)}showQuoteCard(){if(this.quoteCardShown)return;this.quoteCardShown=!0;let e=this.getRoot()?.querySelector(`.cb-messages`);if(!e)return;let t=document.createElement(`div`);t.innerHTML=_(this.visitorProfile?.name??``);let n=t.firstElementChild;if(!n)return;e.appendChild(n),e.scrollTop=e.scrollHeight;let r=n.querySelector(`.cb-quote-submit`),i=n.querySelector(`.cb-quote-textarea`),a=n.querySelector(`.cb-quote-error`);r?.addEventListener(`click`,async()=>{let e=i?.value.trim()??``;if(!e){a&&(a.textContent=`Please describe what you need help with.`);return}a&&(a.textContent=``),r&&(r.disabled=!0),r&&(r.textContent=`Sending…`),await this.handleQuoteSubmit(e,n)})}async handleQuoteSubmit(e,t){let n=this.visitorProfile,r=t.querySelector(`.cb-quote-submit`),i=t.querySelector(`.cb-quote-error`);try{let r=this.apiOrigin||window.location.origin,i=await fetch(`${r}/api/quote-request`,{method:`POST`,headers:{"Content-Type":`application/json`},body:JSON.stringify({name:n?.name??``,email:n?.email??``,message:e,service:e,profile:this.profileSlug||void 0})});if(!i.ok){let e=await i.json().catch(()=>({}));throw Error(e.error||`Request failed (${i.status})`)}let a=document.createElement(`div`);a.className=`cb-quote-success`,a.textContent=`✓ Request sent! Our team will be in touch shortly.`,t.replaceWith(a);let o=this.getRoot()?.querySelector(`.cb-messages`);o&&(o.scrollTop=o.scrollHeight)}catch(e){console.error(`Quote request failed:`,e),i&&(i.textContent=e instanceof Error?e.message:`Failed to send. Please try again.`),r&&(r.disabled=!1,r.textContent=`Send request`)}}getRoot(){return this.shadowRoot??this.container}destroy(){document.body.style.overflow=``,this.host?.remove(),this.shadowRoot=null,this.host=null,this.container=null,this.chatWindow=null}},O=(()=>{try{let e=document.currentScript?.src;return e?new URL(e).origin:window.location.origin}catch{return window.location.origin}})();if(typeof window<`u`){window.ChatbotWidget=D;let e=()=>{let e={},t=document.getElementById(`chatbot-widget`);if(t){let n=t.dataset;n.apiKey&&(e.apiKey=n.apiKey),n.position&&(e.position=n.position),n.primaryColor&&(e.primaryColor=n.primaryColor),n.companyName&&(e.companyName=n.companyName)}return e},t=()=>document.getElementById(`chatbot-widget`)?.dataset.profile??``,r=(e,t,n=``)=>{window.__chatbotWidgetInstance?.destroy();let r=new D(e,t,n,O);return window.__chatbotWidgetInstance=r,r};window.initChatbot=(e,n)=>r(e,n,t());let i=async()=>{let i={},a=t(),o=a?`${O}/api/config?profile=${encodeURIComponent(a)}`:`${O}/api/config`;try{let e=await fetch(o);e.ok&&(i=await e.json())}catch{}let s=window.ChatbotConfig??{};r(n({...i,...s,appearance:{...i.appearance,...s.appearance},ai:{...i.ai,...s.ai},persona:{...i.persona,...s.persona},behavior:{...i.behavior,...s.behavior},services:s.services??i.services,quickLinks:s.quickLinks??i.quickLinks,dataset:s.dataset??i.dataset}),e(),a)};document.readyState===`loading`?document.addEventListener(`DOMContentLoaded`,()=>i(),{once:!0}):i()}e.ChatbotWidget=D});

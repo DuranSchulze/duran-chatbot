@@ -8,6 +8,7 @@ import {
   getCSSVariables,
   getFocusInput,
   getLeadFormElements,
+  getQuoteCardHTML,
   getWidgetHTML,
   populateLeadForm,
   setLeadCaptureVisibility,
@@ -29,6 +30,20 @@ interface VisitorProfile {
 
 const VISITOR_PROFILE_STORAGE_KEY = 'duran-chatbot-visitor-profile'
 
+const QUOTE_INTENT_KEYWORDS = [
+  'quote', 'quotation', 'estimate', 'how much', 'cost', 'pricing', 'price', 'fee', 'fees',
+  'rate', 'rates', 'charges', 'billing', 'invoice', 'payment', 'how much does',
+]
+
+function detectQuoteIntent(text: string): boolean {
+  const lower = text.toLowerCase()
+  return QUOTE_INTENT_KEYWORDS.some((kw) => lower.includes(kw))
+}
+
+function isMobile(): boolean {
+  return window.innerWidth <= 420
+}
+
 export class ChatbotWidget {
   private host: HTMLElement | null = null
   private shadowRoot: ShadowRoot | null = null
@@ -40,18 +55,29 @@ export class ChatbotWidget {
   private messages: Message[] = []
   private apiKey: string
   private visitorProfile: VisitorProfile | null = null
+  private profileSlug: string
+  private quoteCardShown = false
+  private apiOrigin: string
 
-  constructor(config: Partial<ChatbotConfig> = {}, embedConfig: WidgetEmbedConfig = {}) {
+  constructor(
+    config: Partial<ChatbotConfig> = {},
+    embedConfig: WidgetEmbedConfig = {},
+    profileSlug = '',
+    apiOrigin = '',
+  ) {
     this.config = mergeWithDefaults(config)
     this.embedConfig = embedConfig
     this.apiKey = embedConfig.apiKey || this.config.ai.apiKey || ''
     this.visitorProfile = this.getInitialVisitorProfile()
+    this.profileSlug = profileSlug
+    this.apiOrigin = apiOrigin
     this.init()
   }
 
   private init() {
     this.createWidget()
     this.attachEventListeners()
+    this.setupViewportListener()
   }
 
   private createWidget() {
@@ -141,6 +167,10 @@ export class ChatbotWidget {
     this.container?.classList.add('cb-open')
     this.chatWindow?.setAttribute('aria-hidden', 'false')
 
+    if (isMobile()) {
+      document.body.style.overflow = 'hidden'
+    }
+
     const input = this.visitorProfile
       ? (root ? getFocusInput(root) : null)
       : root?.querySelector<HTMLInputElement>('.cb-lead-name')
@@ -152,6 +182,7 @@ export class ChatbotWidget {
     this.isOpen = false
     this.container?.classList.remove('cb-open')
     this.chatWindow?.setAttribute('aria-hidden', 'true')
+    document.body.style.overflow = ''
   }
 
   private async sendMessage(text: string) {
@@ -159,6 +190,11 @@ export class ChatbotWidget {
       this.addMessage('Error: API key not configured', 'error')
       return
     }
+
+    const hasQuoteIntent =
+      this.config.behavior.enableQuoteRequest &&
+      !this.quoteCardShown &&
+      detectQuoteIntent(text)
 
     this.addMessage(text, 'user')
     this.setLoading(true)
@@ -174,6 +210,10 @@ export class ChatbotWidget {
         this.visitorProfile ?? undefined,
       )
       this.addMessage(response, 'ai')
+
+      if (hasQuoteIntent) {
+        this.showQuoteCard()
+      }
     } catch (error) {
       console.error('Chatbot API error:', error)
       this.addMessage('Sorry, I encountered an error. Please try again.', 'error')
@@ -306,11 +346,116 @@ export class ChatbotWidget {
     setLeadError(root, '')
   }
 
+  private setupViewportListener() {
+    if (typeof window === 'undefined' || !window.visualViewport) return
+
+    const onResize = () => {
+      if (!this.isOpen || !isMobile()) return
+      const vv = window.visualViewport!
+      const keyboardHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+      const host = this.host
+      if (host) {
+        host.style.setProperty('--cb-keyboard-offset', `${keyboardHeight}px`)
+      }
+
+      if (keyboardHeight > 0) {
+        const messagesEl = this.getRoot()?.querySelector<HTMLElement>('.cb-messages')
+        if (messagesEl) {
+          setTimeout(() => {
+            messagesEl.scrollTop = messagesEl.scrollHeight
+          }, 50)
+        }
+      }
+    }
+
+    window.visualViewport.addEventListener('resize', onResize)
+    window.visualViewport.addEventListener('scroll', onResize)
+  }
+
+  private showQuoteCard() {
+    if (this.quoteCardShown) return
+    this.quoteCardShown = true
+
+    const messagesContainer = this.getRoot()?.querySelector('.cb-messages')
+    if (!messagesContainer) return
+
+    const cardEl = document.createElement('div')
+    cardEl.innerHTML = getQuoteCardHTML(this.visitorProfile?.name ?? '')
+    const card = cardEl.firstElementChild as HTMLElement | null
+    if (!card) return
+
+    messagesContainer.appendChild(card)
+    messagesContainer.scrollTop = messagesContainer.scrollHeight
+
+    const submitBtn = card.querySelector<HTMLButtonElement>('.cb-quote-submit')
+    const textarea = card.querySelector<HTMLTextAreaElement>('.cb-quote-textarea')
+    const errorEl = card.querySelector<HTMLElement>('.cb-quote-error')
+
+    submitBtn?.addEventListener('click', async () => {
+      const service = textarea?.value.trim() ?? ''
+      if (!service) {
+        if (errorEl) errorEl.textContent = 'Please describe what you need help with.'
+        return
+      }
+      if (errorEl) errorEl.textContent = ''
+      if (submitBtn) submitBtn.disabled = true
+      if (submitBtn) submitBtn.textContent = 'Sending…'
+
+      await this.handleQuoteSubmit(service, card)
+    })
+  }
+
+  private async handleQuoteSubmit(service: string, card: HTMLElement) {
+    const profile = this.visitorProfile
+    const submitBtn = card.querySelector<HTMLButtonElement>('.cb-quote-submit')
+    const errorEl = card.querySelector<HTMLElement>('.cb-quote-error')
+
+    try {
+      const origin = this.apiOrigin || window.location.origin
+      const res = await fetch(`${origin}/api/quote-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: profile?.name ?? '',
+          email: profile?.email ?? '',
+          message: service,
+          service,
+          profile: this.profileSlug || undefined,
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(data.error || `Request failed (${res.status})`)
+      }
+
+      const successEl = document.createElement('div')
+      successEl.className = 'cb-quote-success'
+      successEl.textContent = '✓ Request sent! Our team will be in touch shortly.'
+      card.replaceWith(successEl)
+
+      const messagesContainer = this.getRoot()?.querySelector<HTMLElement>('.cb-messages')
+      if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight
+      }
+    } catch (err) {
+      console.error('Quote request failed:', err)
+      if (errorEl) {
+        errorEl.textContent = err instanceof Error ? err.message : 'Failed to send. Please try again.'
+      }
+      if (submitBtn) {
+        submitBtn.disabled = false
+        submitBtn.textContent = 'Send request'
+      }
+    }
+  }
+
   private getRoot() {
     return this.shadowRoot ?? this.container
   }
 
   destroy() {
+    document.body.style.overflow = ''
     this.host?.remove()
     this.shadowRoot = null
     this.host = null

@@ -43,24 +43,33 @@ if (typeof window !== 'undefined') {
     return embedConfig
   }
 
-  const mountWidget = (config?: Partial<ChatbotConfig>, embedConfig?: WidgetEmbedConfig) => {
+  const getProfileSlug = (): string => {
+    const container = document.getElementById('chatbot-widget')
+    return container?.dataset.profile ?? ''
+  }
+
+  const mountWidget = (config?: Partial<ChatbotConfig>, embedConfig?: WidgetEmbedConfig, profileSlug = '') => {
     window.__chatbotWidgetInstance?.destroy()
-    const instance = new ChatbotWidget(config, embedConfig)
+    const instance = new ChatbotWidget(config, embedConfig, profileSlug, scriptOrigin)
     window.__chatbotWidgetInstance = instance
     return instance
   }
 
   window.initChatbot = (config, embedConfig) => {
-    return mountWidget(config, embedConfig)
+    return mountWidget(config, embedConfig, getProfileSlug())
   };
 
   const boot = async () => {
     let serverConfig: Partial<ChatbotConfig> = {}
+    const profileSlug = getProfileSlug()
+    const configUrl = profileSlug
+      ? `${scriptOrigin}/api/config?profile=${encodeURIComponent(profileSlug)}`
+      : `${scriptOrigin}/api/config`
 
     // Always fetch config from the server that hosts widget.js — this delivers
     // the API key (injected server-side) regardless of which site embeds the widget.
     try {
-      const res = await fetch(`${scriptOrigin}/api/config`)
+      const res = await fetch(configUrl)
       if (res.ok) {
         serverConfig = await res.json() as Partial<ChatbotConfig>
       }
@@ -82,7 +91,7 @@ if (typeof window !== 'undefined') {
       dataset: overrides.dataset ?? serverConfig.dataset,
     } as Partial<ChatbotConfig>)
 
-    mountWidget(merged, collectEmbedConfig())
+    mountWidget(merged, collectEmbedConfig(), profileSlug)
   }
 
   if (document.readyState === 'loading') {

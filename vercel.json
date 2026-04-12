@@ -9,5 +9,9 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/profiles.js": { "maxDuration": 10 },
+    "api/quote-request.js": { "maxDuration": 15 }
+  }
 }

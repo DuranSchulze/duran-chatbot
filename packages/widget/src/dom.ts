@@ -200,6 +200,24 @@ export function getLeadFormElements(root: ParentNode) {
   }
 }
 
+export function getQuoteCardHTML(visitorName: string): string {
+  const greeting = visitorName ? `, ${escapeHtml(visitorName)}` : ''
+  return `
+    <div class="cb-quote-card" role="region" aria-label="Quote request">
+      <p class="cb-quote-card-title">Request a Quote</p>
+      <p class="cb-quote-card-desc">Hi${greeting}! Briefly describe what you need help with and we'll follow up with a personalised quote.</p>
+      <textarea
+        class="cb-quote-textarea"
+        placeholder="e.g. I need help with an employment dispute and want to know the estimated cost."
+        rows="3"
+        aria-label="Describe what you need"
+      ></textarea>
+      <p class="cb-quote-error" aria-live="polite"></p>
+      <button type="button" class="cb-quote-submit">Send request</button>
+    </div>
+  `
+}
+
 export function escapeHtml(text: string): string {
   const div = document.createElement('div')
   div.textContent = text

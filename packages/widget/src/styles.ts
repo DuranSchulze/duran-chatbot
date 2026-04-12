@@ -118,15 +118,34 @@ export const styles = `
   }
 }
 
-/* Mobile responsive */
+/* Mobile — fullscreen chat */
 @media (max-width: 420px) {
   .cb-chat-window {
-    width: calc(100vw - 40px);
-    height: calc(100vh - 100px);
-    max-height: none;
-    right: 20px;
-    left: 20px;
-    bottom: 80px;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    top: 0;
+    transform-origin: bottom center;
+  }
+
+  .cb-widget-container.cb-open .cb-chat-window {
+    transform: scale(1) translateY(0);
+  }
+
+  .cb-composer {
+    position: sticky;
+    bottom: var(--cb-keyboard-offset, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .cb-header {
+    padding-top: max(16px, env(safe-area-inset-top, 0px));
   }
 }
 
@@ -537,5 +556,96 @@ export const styles = `
 
 .cb-messages::-webkit-scrollbar-thumb:hover {
   background: #a1a1a1;
+}
+
+/* Quote request card */
+.cb-quote-card {
+  align-self: flex-start;
+  width: 100%;
+  max-width: 100%;
+  background: #f0f6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 13px;
+  animation: cb-message-enter 0.28s ease both;
+}
+
+.cb-quote-card-title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e3a5f;
+}
+
+.cb-quote-card-desc {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: #4b6a94;
+  line-height: 1.5;
+}
+
+.cb-quote-textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #93c5fd;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #1e3a5f;
+  background: #fff;
+  resize: vertical;
+  min-height: 72px;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.cb-quote-textarea:focus {
+  border-color: var(--cb-primary);
+  box-shadow: 0 0 0 3px rgba(0, 74, 153, 0.12);
+}
+
+.cb-quote-submit {
+  margin-top: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--cb-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.cb-quote-submit:hover:not(:disabled) {
+  background: var(--cb-accent);
+  transform: translateY(-1px);
+}
+
+.cb-quote-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cb-quote-error {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: #dc2626;
+  min-height: 16px;
+}
+
+.cb-quote-success {
+  align-self: flex-start;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 14px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #166534;
+  font-weight: 500;
+  animation: cb-message-enter 0.28s ease both;
 }
 `;

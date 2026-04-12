@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react"
 import type { ChatbotConfig } from "@duran-chatbot/config"
 import { fetchConfig, saveConfig } from "@/api/config"
 
-export function useConfig() {
+export function useConfig(profileSlug?: string) {
   const [config, setConfig] = useState<ChatbotConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -11,7 +11,7 @@ export function useConfig() {
   const loadConfig = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await fetchConfig()
+      const data = await fetchConfig(profileSlug)
       setConfig(data)
       setError(null)
     } catch (err) {
@@ -19,7 +19,7 @@ export function useConfig() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [profileSlug])
 
   useEffect(() => {
     loadConfig()
@@ -28,7 +28,7 @@ export function useConfig() {
   const updateConfig = async (newConfig: ChatbotConfig) => {
     try {
       setSaving(true)
-      await saveConfig(newConfig)
+      await saveConfig(newConfig, profileSlug)
       setConfig(newConfig)
       return true
     } catch (err) {
