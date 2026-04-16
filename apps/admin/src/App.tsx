@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 import type { ChatbotConfig } from "@duran-chatbot/config";
 import { getEmbedCode } from "@/lib/embed";
 import { AdminShell } from "@/components/layout/admin-shell";
@@ -14,10 +15,13 @@ import { useProfiles } from "@/hooks/useProfiles";
 import { savePreviewConfig } from "@/lib/preview";
 import { WidgetPreviewPage } from "@/pages/widget-preview-page";
 import { ProfileList } from "@/features/profiles/profile-list";
+import { LoginPage } from "@/pages/LoginPage";
+import { ConversationsPage } from "@/pages/ConversationsPage";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 
-function App() {
+function ConfigEditor() {
   const [activeProfileSlug, setActiveProfileSlug] = useState<string | null>(
     null,
   );
@@ -26,9 +30,6 @@ function App() {
   const [editedConfig, setEditedConfig] = useState<ChatbotConfig | null>(null);
   const [saveStatus, setSaveStatus] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const isPreviewPage =
-    new URLSearchParams(window.location.search).get("preview") === "1";
 
   const {
     profiles,
@@ -102,10 +103,6 @@ function App() {
 
   const currentPanel =
     sections.find((section) => section.id === activeSection) ?? sections[0];
-
-  if (isPreviewPage) {
-    return <WidgetPreviewPage />;
-  }
 
   if (!activeProfileSlug) {
     return (
@@ -218,6 +215,38 @@ function App() {
         </>
       }
     />
+  );
+}
+
+function App() {
+  const isPreviewPage =
+    new URLSearchParams(window.location.search).get("preview") === "1";
+
+  if (isPreviewPage) {
+    return <WidgetPreviewPage />;
+  }
+
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <ConfigEditor />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/conversations"
+        element={
+          <ProtectedRoute>
+            <ConversationsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 

@@ -5,6 +5,8 @@ import type { Connect, PluginOption, ViteDevServer } from "vite";
 import { createClient } from "redis";
 import { createTransport } from "nodemailer";
 import { mergeWithDefaults } from "@duran-chatbot/config";
+import { google } from "googleapis";
+import jwt from "jsonwebtoken";
 
 const GEMINI_MODELS_URL =
   "https://generativelanguage.googleapis.com/v1beta/models";
@@ -150,10 +152,154 @@ function jsonRes(res: ServerResponse, status: number, body: unknown) {
   res.end(JSON.stringify(body));
 }
 
+// ─── Google Sheets helpers ────────────────────────────────────────
+
+function getGoogleAuth(scopes: string[]) {
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  if (!raw) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is not configured");
+  const credentials = JSON.parse(raw) as Record<string, unknown>;
+  return new google.auth.GoogleAuth({ credentials, scopes });
+}
+
+function groupBySession(rows: string[][]) {
+  const map = new Map<string, {
+    sessionId: string; userName: string; userEmail: string; profile: string;
+    firstSeen: string; lastActive: string;
+    messages: Array<{ role: "user" | "assistant"; content: string; timestamp: string }>;
+  }>();
+
+  for (const row of rows) {
+    const [timestamp, sessionId, userName, userEmail, userMessage, aiResponse, profile] = row;
+    if (!userMessage) continue;
+    const key = sessionId || `${userEmail}_${userName}`;
+    if (!map.has(key)) {
+      map.set(key, { sessionId: key, userName: userName || "", userEmail: userEmail || "",
+        profile: profile || "", firstSeen: timestamp, lastActive: timestamp, messages: [] });
+    }
+    const s = map.get(key)!;
+    s.lastActive = timestamp;
+    s.messages.push({ role: "user", content: userMessage, timestamp });
+    if (aiResponse) s.messages.push({ role: "assistant", content: aiResponse, timestamp });
+  }
+
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime(),
+  );
+}
+
 export function apiPlugin(): PluginOption {
   return {
     name: "api-server",
     configureServer(server: ViteDevServer) {
+      // ── /api/auth ─────────────────────────────────────────────────
+      server.middlewares.use(
+        "/api/auth",
+        async (req: IncomingMessage, res: ServerResponse) => {
+          res.setHeader("Access-Control-Allow-Origin", "*");
+          res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+          res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+          if (req.method === "OPTIONS") { res.statusCode = 204; res.end(); return; }
+          if (req.method !== "POST") { jsonRes(res, 405, { error: "Method not allowed" }); return; }
+
+          const body = await readRequestBody(req) as { username?: string; password?: string };
+          const { username, password } = body;
+
+          const validUsername = process.env.AUTH_USERNAME;
+          const validPassword = process.env.AUTH_PASSWORD;
+          const jwtSecret = process.env.AUTH_JWT_SECRET;
+
+          if (!validUsername || !validPassword || !jwtSecret) {
+            jsonRes(res, 500, { error: "Auth is not configured on the server" }); return;
+          }
+          if (username !== validUsername || password !== validPassword) {
+            jsonRes(res, 401, { error: "Invalid username or password" }); return;
+          }
+
+          const token = jwt.sign({ username }, jwtSecret, { expiresIn: "7d" });
+          jsonRes(res, 200, { token });
+        },
+      );
+
+      // ── /api/chat-log ─────────────────────────────────────────────
+      server.middlewares.use(
+        "/api/chat-log",
+        async (req: IncomingMessage, res: ServerResponse) => {
+          res.setHeader("Access-Control-Allow-Origin", "*");
+          res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+          res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+          if (req.method === "OPTIONS") { res.statusCode = 204; res.end(); return; }
+          if (req.method !== "POST") { jsonRes(res, 405, { error: "Method not allowed" }); return; }
+
+          const sheetId = process.env.GOOGLE_SHEETS_ID;
+          if (!sheetId) { jsonRes(res, 500, { error: "GOOGLE_SHEETS_ID is not configured" }); return; }
+
+          let body: { profile?: string; sessionId?: string; userName?: string; userEmail?: string; userMessage?: string; aiResponse?: string };
+          try { body = await readRequestBody(req) as typeof body; }
+          catch { jsonRes(res, 400, { error: "Invalid request body" }); return; }
+
+          const { profile, sessionId, userName, userEmail, userMessage, aiResponse } = body;
+          if (!userMessage || !aiResponse) { jsonRes(res, 400, { error: "userMessage and aiResponse are required" }); return; }
+
+          const timestamp = new Date().toISOString();
+          const row = [timestamp, sessionId || "", userName || "", userEmail || "", userMessage, aiResponse, profile || ""];
+
+          try {
+            const auth = getGoogleAuth(["https://www.googleapis.com/auth/spreadsheets"]);
+            const sheets = google.sheets({ version: "v4", auth });
+            await sheets.spreadsheets.values.append({
+              spreadsheetId: sheetId,
+              range: `${profile || "default"}!A:G`,
+              valueInputOption: "RAW",
+              insertDataOption: "INSERT_ROWS",
+              requestBody: { values: [row] },
+            });
+            jsonRes(res, 200, { success: true });
+          } catch (error) {
+            jsonRes(res, 500, { error: "Failed to log to Google Sheets", details: error instanceof Error ? error.message : "Unknown" });
+          }
+        },
+      );
+
+      // ── /api/conversations ────────────────────────────────────────
+      server.middlewares.use(
+        "/api/conversations",
+        async (req: IncomingMessage, res: ServerResponse) => {
+          res.setHeader("Access-Control-Allow-Origin", "*");
+          res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+          res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+          if (req.method === "OPTIONS") { res.statusCode = 204; res.end(); return; }
+          if (req.method !== "GET") { jsonRes(res, 405, { error: "Method not allowed" }); return; }
+
+          const authHeader = (req.headers["authorization"] as string) || "";
+          const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+          const jwtSecret = process.env.AUTH_JWT_SECRET;
+          if (!token || !jwtSecret) { jsonRes(res, 401, { error: "Unauthorized" }); return; }
+          try { jwt.verify(token, jwtSecret); } catch { jsonRes(res, 401, { error: "Unauthorized" }); return; }
+
+          const sheetId = process.env.GOOGLE_SHEETS_ID;
+          if (!sheetId) { jsonRes(res, 500, { error: "GOOGLE_SHEETS_ID is not configured" }); return; }
+
+          const url = new URL(req.url ?? "/", "http://localhost");
+          const profile = url.searchParams.get("profile") ?? "default";
+
+          try {
+            const auth = getGoogleAuth(["https://www.googleapis.com/auth/spreadsheets.readonly"]);
+            const sheets = google.sheets({ version: "v4", auth });
+            const response = await sheets.spreadsheets.values.get({
+              spreadsheetId: sheetId,
+              range: `${profile}!A2:G`,
+            });
+            const rows = (response.data.values ?? []) as string[][];
+            jsonRes(res, 200, { sessions: groupBySession(rows) });
+          } catch (error) {
+            jsonRes(res, 500, { error: "Failed to read conversations", details: error instanceof Error ? error.message : "Unknown" });
+          }
+        },
+      );
+
       server.middlewares.use(
         "/api/models",
         async (_req: IncomingMessage, res: ServerResponse) => {

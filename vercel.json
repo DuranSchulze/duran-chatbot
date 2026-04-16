@@ -11,6 +11,9 @@
     }
   ],
   "functions": {
+    "api/auth.js": { "maxDuration": 10 },
+    "api/chat-log.js": { "maxDuration": 15 },
+    "api/conversations.js": { "maxDuration": 15 },
     "api/profiles.js": { "maxDuration": 10 },
     "api/quote-request.js": { "maxDuration": 15 }
   }

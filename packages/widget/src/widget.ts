@@ -29,6 +29,46 @@ interface VisitorProfile {
 }
 
 const VISITOR_PROFILE_STORAGE_KEY = 'duran-chatbot-visitor-profile'
+const CHAT_HISTORY_STORAGE_KEY = (email: string) => `duran-chatbot-history:${email}`
+const SESSION_ID_STORAGE_KEY = (email: string) => `duran-chatbot-session:${email}`
+
+function generateSessionId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+}
+
+function getOrCreateSessionId(email: string): string {
+  try {
+    const key = SESSION_ID_STORAGE_KEY(email)
+    const existing = localStorage.getItem(key)
+    if (existing) return existing
+    const id = generateSessionId()
+    localStorage.setItem(key, id)
+    return id
+  } catch {
+    return generateSessionId()
+  }
+}
+
+interface StoredMessage {
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: number
+}
+
+function loadChatHistory(email: string): StoredMessage[] {
+  try {
+    const raw = localStorage.getItem(CHAT_HISTORY_STORAGE_KEY(email))
+    return raw ? (JSON.parse(raw) as StoredMessage[]) : []
+  } catch {
+    return []
+  }
+}
+
+function saveChatHistory(email: string, history: StoredMessage[]): void {
+  try {
+    localStorage.setItem(CHAT_HISTORY_STORAGE_KEY(email), JSON.stringify(history))
+  } catch { /* storage full — ignore */ }
+}
 
 const QUOTE_INTENT_KEYWORDS = [
   'quote', 'quotation', 'estimate', 'how much', 'cost', 'pricing', 'price', 'fee', 'fees',
@@ -53,11 +93,13 @@ export class ChatbotWidget {
   private chatWindow: HTMLElement | null = null
   private isOpen = false
   private messages: Message[] = []
+  private chatHistory: StoredMessage[] = []
   private apiKey: string
   private visitorProfile: VisitorProfile | null = null
   private profileSlug: string
   private quoteCardShown = false
   private apiOrigin: string
+  private sessionId: string = generateSessionId()
 
   constructor(
     config: Partial<ChatbotConfig> = {},
@@ -71,7 +113,14 @@ export class ChatbotWidget {
     this.visitorProfile = this.getInitialVisitorProfile()
     this.profileSlug = profileSlug
     this.apiOrigin = apiOrigin
+    if (this.visitorProfile) {
+      this.sessionId = getOrCreateSessionId(this.visitorProfile.email)
+      this.chatHistory = loadChatHistory(this.visitorProfile.email)
+    }
     this.init()
+    if (this.visitorProfile && this.chatHistory.length > 0) {
+      this.restoreChatHistory()
+    }
   }
 
   private init() {
@@ -129,6 +178,9 @@ export class ChatbotWidget {
 
       this.visitorProfile = visitorProfile
       this.saveVisitorProfile(visitorProfile)
+      this.sessionId = getOrCreateSessionId(visitorProfile.email)
+      this.chatHistory = loadChatHistory(visitorProfile.email)
+      this.restoreChatHistory()
       setLeadError(root, '')
       setLeadCaptureVisibility(root, visitorProfile)
       getFocusInput(root)?.focus()
@@ -211,6 +263,9 @@ export class ChatbotWidget {
       )
       this.addMessage(response, 'ai')
 
+      this.persistExchange(text, response)
+      this.logToServer(text, response)
+
       if (hasQuoteIntent) {
         this.showQuoteCard()
       }
@@ -220,6 +275,48 @@ export class ChatbotWidget {
     } finally {
       this.setLoading(false)
     }
+  }
+
+  private persistExchange(userMessage: string, aiResponse: string): void {
+    if (!this.visitorProfile) return
+    const now = Date.now()
+    this.chatHistory.push(
+      { role: 'user', content: userMessage, timestamp: now },
+      { role: 'assistant', content: aiResponse, timestamp: now },
+    )
+    saveChatHistory(this.visitorProfile.email, this.chatHistory)
+  }
+
+  private logToServer(userMessage: string, aiResponse: string): void {
+    const origin = this.apiOrigin || window.location.origin
+    fetch(`${origin}/api/chat-log`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        profile: this.profileSlug || 'default',
+        sessionId: this.sessionId,
+        userName: this.visitorProfile?.name ?? '',
+        userEmail: this.visitorProfile?.email ?? '',
+        userMessage,
+        aiResponse,
+      }),
+    }).catch((err) => console.warn('Chat log failed:', err))
+  }
+
+  private restoreChatHistory(): void {
+    if (this.chatHistory.length === 0) return
+    const messagesContainer = this.getRoot()?.querySelector('.cb-messages')
+    if (!messagesContainer) return
+    for (const msg of this.chatHistory) {
+      const sender = msg.role === 'user' ? 'user' : 'ai'
+      const existing: Message = { text: msg.content, sender, timestamp: new Date(msg.timestamp) }
+      this.messages.push(existing)
+      const msgEl = document.createElement('div')
+      msgEl.className = `cb-message cb-${sender}-message`
+      msgEl.innerHTML = sender === 'ai' ? formatMessage(msg.content) : `<p>${escapeHtml(msg.content)}</p>`
+      messagesContainer.appendChild(msgEl)
+    }
+    messagesContainer.scrollTop = messagesContainer.scrollHeight
   }
 
   private addMessage(text: string, sender: 'user' | 'ai' | 'error') {

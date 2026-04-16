@@ -2,11 +2,15 @@ import {
   CheckCircle2,
   ChevronLeft,
   ExternalLink,
+  LogOut,
   Menu,
+  MessageSquare,
   Save,
 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 type TopBarProps = {
   saving: boolean;
@@ -31,6 +35,13 @@ export function TopBar({
   profileName,
   onBackToProfiles,
 }: TopBarProps) {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    logout();
+    navigate("/login", { replace: true });
+  }
   return (
     <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
       {/* Mobile hamburger */}
@@ -102,6 +113,23 @@ export function TopBar({
           <Save className="size-3.5" />
           {saving ? "Saving…" : "Save"}
         </Button>
+
+        <Link
+          to="/conversations"
+          className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+        >
+          <MessageSquare className="size-3.5" />
+          <span className="hidden sm:inline">Conversations</span>
+        </Link>
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex items-center justify-center size-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+          title="Logout"
+        >
+          <LogOut className="size-4" />
+        </button>
       </div>
     </div>
   );
