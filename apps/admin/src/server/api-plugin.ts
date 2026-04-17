@@ -68,6 +68,11 @@ async function getRedisClient() {
 
   if (!redisClient) {
     redisClient = createClient({ url: redisUrl });
+    redisClient.on("error", (err: Error) => {
+      console.warn("[Redis] connection error:", err.message);
+      redisClient = null;
+      redisConnection = null;
+    });
     redisConnection = redisClient.connect();
   }
 
@@ -154,10 +159,40 @@ function jsonRes(res: ServerResponse, status: number, body: unknown) {
 
 // ─── Google Sheets helpers ────────────────────────────────────────
 
-function getGoogleAuth(scopes: string[]) {
+function buildGoogleCredentials(): Record<string, unknown> {
+  // Method A: full JSON blob
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  if (!raw) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is not configured");
-  const credentials = JSON.parse(raw) as Record<string, unknown>;
+  if (raw) {
+    try {
+      return JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      console.warn("[Google] GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON — falling back to split env vars");
+    }
+  }
+
+  // Method B: individual env vars
+  const client_email = process.env.GOOGLE_CLIENT_EMAIL;
+  const private_key = process.env.GOOGLE_PRIVATE_KEY;
+  const project_id = process.env.GOOGLE_PROJECT_ID;
+
+  if (client_email && private_key) {
+    return {
+      type: "service_account",
+      client_email,
+      // Vercel stores \n as literal backslash-n — restore real newlines
+      private_key: private_key.replace(/\\n/g, "\n"),
+      ...(project_id ? { project_id } : {}),
+    };
+  }
+
+  throw new Error(
+    "Google credentials not configured. Set GOOGLE_SERVICE_ACCOUNT_JSON " +
+      "or GOOGLE_CLIENT_EMAIL + GOOGLE_PRIVATE_KEY.",
+  );
+}
+
+function getGoogleAuth(scopes: string[]) {
+  const credentials = buildGoogleCredentials();
   return new google.auth.GoogleAuth({ credentials, scopes });
 }
 
@@ -286,16 +321,91 @@ export function apiPlugin(): PluginOption {
           const profile = url.searchParams.get("profile") ?? "default";
 
           try {
-            const auth = getGoogleAuth(["https://www.googleapis.com/auth/spreadsheets.readonly"]);
+            const auth = getGoogleAuth(["https://www.googleapis.com/auth/spreadsheets"]);
             const sheets = google.sheets({ version: "v4", auth });
-            const response = await sheets.spreadsheets.values.get({
-              spreadsheetId: sheetId,
-              range: `${profile}!A2:G`,
-            });
-            const rows = (response.data.values ?? []) as string[][];
+            let rows: string[][] = [];
+            try {
+              const response = await sheets.spreadsheets.values.get({
+                spreadsheetId: sheetId,
+                range: `${profile}!A2:G`,
+              });
+              rows = (response.data.values ?? []) as string[][];
+            } catch (rangeErr) {
+              const msg = rangeErr instanceof Error ? rangeErr.message : "";
+              if (msg.toLowerCase().includes("unable to parse range") || msg.toLowerCase().includes("not found")) {
+                await sheets.spreadsheets.batchUpdate({
+                  spreadsheetId: sheetId,
+                  requestBody: { requests: [{ addSheet: { properties: { title: profile } } }] },
+                });
+                await sheets.spreadsheets.values.update({
+                  spreadsheetId: sheetId,
+                  range: `${profile}!A1:G1`,
+                  valueInputOption: "RAW",
+                  requestBody: { values: [["Timestamp", "SessionID", "Name", "Email", "UserMessage", "AIResponse", "Profile"]] },
+                });
+                console.log(`[Sheets] Created tab '${profile}' with headers`);
+              } else {
+                throw rangeErr;
+              }
+            }
             jsonRes(res, 200, { sessions: groupBySession(rows) });
           } catch (error) {
             jsonRes(res, 500, { error: "Failed to read conversations", details: error instanceof Error ? error.message : "Unknown" });
+          }
+        },
+      );
+
+      // ── /api/sheets-status ────────────────────────────────────────
+      server.middlewares.use(
+        "/api/sheets-status",
+        async (req: IncomingMessage, res: ServerResponse) => {
+          res.setHeader("Access-Control-Allow-Origin", "*");
+          res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+          res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+          if (req.method === "OPTIONS") { res.statusCode = 204; res.end(); return; }
+
+          const authHeader = (req.headers["authorization"] as string) || "";
+          const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+          const jwtSecret = process.env.AUTH_JWT_SECRET;
+          if (!token || !jwtSecret) { jsonRes(res, 401, { error: "Unauthorized" }); return; }
+          try { jwt.verify(token, jwtSecret); } catch { jsonRes(res, 401, { error: "Unauthorized" }); return; }
+
+          const sheetId = process.env.GOOGLE_SHEETS_ID;
+          if (!sheetId) { jsonRes(res, 200, { connected: false, error: "GOOGLE_SHEETS_ID is not configured" }); return; }
+
+          let credentials: Record<string, unknown>;
+          try { credentials = buildGoogleCredentials(); }
+          catch (e) { jsonRes(res, 200, { connected: false, error: e instanceof Error ? e.message : "Unknown" }); return; }
+
+          if (req.method === "GET") {
+            try {
+              const auth = new google.auth.GoogleAuth({ credentials, scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"] });
+              const sheets = google.sheets({ version: "v4", auth });
+              const meta = await sheets.spreadsheets.get({ spreadsheetId: sheetId, fields: "spreadsheetId,properties/title,sheets/properties/title" });
+              const tabs = (meta.data.sheets ?? []).map((s) => s.properties?.title).filter(Boolean);
+              jsonRes(res, 200, { connected: true, email: (credentials.client_email as string) ?? "", sheetTitle: meta.data.properties?.title ?? "", tabs, sheetId });
+            } catch (error) {
+              jsonRes(res, 200, { connected: false, error: error instanceof Error ? error.message : "Unknown" });
+            }
+          } else if (req.method === "POST") {
+            try {
+              const auth = getGoogleAuth(["https://www.googleapis.com/auth/spreadsheets"]);
+              const sheets = google.sheets({ version: "v4", auth });
+              const timestamp = new Date().toISOString();
+              await sheets.spreadsheets.values.append({
+                spreadsheetId: sheetId,
+                range: "duran-schulze!A:G",
+                valueInputOption: "RAW",
+                insertDataOption: "INSERT_ROWS",
+                requestBody: { values: [[timestamp, "_test", "Connection Test", "test@test.com", "Connection test message", "Connection test response", "_test"]] },
+              });
+              jsonRes(res, 200, { success: true, message: `Test row written to 'duran-schulze' tab at ${timestamp}` });
+            } catch (error) {
+              jsonRes(res, 500, { success: false, error: error instanceof Error ? error.message : "Unknown" });
+            }
+          } else {
+            jsonRes(res, 405, { error: "Method not allowed" });
           }
         },
       );

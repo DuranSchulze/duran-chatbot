@@ -10,10 +10,40 @@ async function readRequestBody(req) {
   return raw ? JSON.parse(raw) : {};
 }
 
-function getAuthClient() {
+function buildCredentials() {
+  // Method A: full JSON blob
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  if (!raw) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is not configured");
-  const credentials = JSON.parse(raw);
+  if (raw) {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      console.warn("[Google] GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON — falling back to split env vars");
+    }
+  }
+
+  // Method B: individual env vars
+  const client_email = process.env.GOOGLE_CLIENT_EMAIL;
+  const private_key = process.env.GOOGLE_PRIVATE_KEY;
+  const project_id = process.env.GOOGLE_PROJECT_ID;
+
+  if (client_email && private_key) {
+    return {
+      type: "service_account",
+      client_email,
+      // Vercel stores \n as literal backslash-n — restore real newlines
+      private_key: private_key.replace(/\\n/g, "\n"),
+      ...(project_id ? { project_id } : {}),
+    };
+  }
+
+  throw new Error(
+    "Google credentials not configured. Set GOOGLE_SERVICE_ACCOUNT_JSON " +
+      "or GOOGLE_CLIENT_EMAIL + GOOGLE_PRIVATE_KEY.",
+  );
+}
+
+function getAuthClient() {
+  const credentials = buildCredentials();
   return new google.auth.GoogleAuth({
     credentials,
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],

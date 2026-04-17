@@ -289,6 +289,7 @@ export class ChatbotWidget {
 
   private logToServer(userMessage: string, aiResponse: string): void {
     const origin = this.apiOrigin || window.location.origin
+    console.log(`[Widget] Logging chat → ${origin}/api/chat-log | session=${this.sessionId} | profile=${this.profileSlug || 'default'}`)
     fetch(`${origin}/api/chat-log`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

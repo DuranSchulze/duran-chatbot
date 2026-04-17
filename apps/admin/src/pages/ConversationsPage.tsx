@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   MessageSquare,
@@ -9,13 +9,22 @@ import {
   User,
   Clock,
   LogOut,
+  Sheet,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   fetchConversations,
+  checkSheetsStatus,
+  testSheetWrite,
+  UnauthorizedError,
   type ConversationSession,
+  type SheetsStatus,
 } from "@/api/conversations";
 
 const PROFILES = [
@@ -63,6 +72,45 @@ export function ConversationsPage() {
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
+  const [sheetsStatus, setSheetsStatus] = useState<SheetsStatus | null>(null);
+  const [statusChecking, setStatusChecking] = useState(false);
+  const [testWriting, setTestWriting] = useState(false);
+  const [testWriteResult, setTestWriteResult] = useState<{
+    ok: boolean;
+    msg: string;
+  } | null>(null);
+  const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const checkStatus = useCallback(async () => {
+    setStatusChecking(true);
+    try {
+      const status = await checkSheetsStatus();
+      setSheetsStatus(status);
+    } catch {
+      setSheetsStatus({ connected: false, error: "Failed to reach server" });
+    } finally {
+      setStatusChecking(false);
+    }
+  }, []);
+
+  const handleTestWrite = useCallback(async () => {
+    setTestWriting(true);
+    setTestWriteResult(null);
+    try {
+      const result = await testSheetWrite();
+      setTestWriteResult(
+        result.success
+          ? { ok: true, msg: result.message ?? "Row written successfully" }
+          : { ok: false, msg: result.error ?? "Write failed" },
+      );
+    } catch {
+      setTestWriteResult({ ok: false, msg: "Request failed" });
+    } finally {
+      setTestWriting(false);
+      setTimeout(() => setTestWriteResult(null), 6000);
+    }
+  }, []);
+
   const load = useCallback(
     async (showRefresh = false) => {
       if (showRefresh) setRefreshing(true);
@@ -73,17 +121,30 @@ export function ConversationsPage() {
         setSessions(data);
         setSelected(null);
       } catch (err) {
+        if (err instanceof UnauthorizedError) {
+          logout();
+          navigate("/login", { replace: true });
+          return;
+        }
         setError(err instanceof Error ? err.message : "Failed to load");
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [activeProfile],
+    [activeProfile, logout, navigate],
   );
 
   useEffect(() => {
     void load();
+    void checkStatus();
+  }, [load, checkStatus]);
+
+  useEffect(() => {
+    autoRefreshRef.current = setInterval(() => void load(true), 60_000);
+    return () => {
+      if (autoRefreshRef.current) clearInterval(autoRefreshRef.current);
+    };
   }, [load]);
 
   const filtered = sessions.filter(
@@ -237,10 +298,96 @@ export function ConversationsPage() {
 
       {/* ── Right Panel ── */}
       <main className="flex flex-1 flex-col min-w-0">
+        {/* ── Google Sheets Status Banner ── */}
+        <div
+          className={cn(
+            "flex items-center gap-2.5 px-4 py-2.5 text-xs border-b shrink-0",
+            sheetsStatus === null
+              ? "border-slate-800 bg-slate-900 text-slate-500"
+              : sheetsStatus.connected
+                ? "border-green-900/50 bg-green-950/30 text-green-400"
+                : "border-red-900/50 bg-red-950/30 text-red-400",
+          )}
+        >
+          {sheetsStatus === null || statusChecking ? (
+            <Loader2 className="size-3.5 shrink-0 animate-spin" />
+          ) : sheetsStatus.connected ? (
+            <CheckCircle2 className="size-3.5 shrink-0" />
+          ) : (
+            <XCircle className="size-3.5 shrink-0" />
+          )}
+
+          <Sheet className="size-3.5 shrink-0 opacity-70" />
+
+          <span className="flex-1 truncate">
+            {sheetsStatus === null
+              ? "Checking Google Sheets connection…"
+              : sheetsStatus.connected
+                ? `Connected · ${sheetsStatus.sheetTitle ?? "Google Sheet"} · ${sheetsStatus.email ?? ""}`
+                : `Not connected · ${sheetsStatus.error ?? "Unknown error"}`}
+          </span>
+
+          {sheetsStatus?.connected &&
+            sheetsStatus.tabs &&
+            sheetsStatus.tabs.length > 0 && (
+              <span className="hidden lg:flex items-center gap-1 shrink-0 text-green-600">
+                {sheetsStatus.tabs.map((t) => (
+                  <span
+                    key={t}
+                    className="rounded px-1.5 py-0.5 bg-green-900/40 text-green-400 font-mono text-[10px]"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </span>
+            )}
+
+          <button
+            type="button"
+            onClick={() => void checkStatus()}
+            disabled={statusChecking}
+            className="shrink-0 text-[11px] underline underline-offset-2 opacity-60 hover:opacity-100"
+          >
+            Re-check
+          </button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={testWriting || !sheetsStatus?.connected}
+            onClick={() => void handleTestWrite()}
+            className="h-6 gap-1.5 px-2 text-[11px] shrink-0 border-current/30 hover:bg-current/10"
+          >
+            {testWriting ? (
+              <Loader2 className="size-3 animate-spin" />
+            ) : (
+              <Pencil className="size-3" />
+            )}
+            Test Write
+          </Button>
+
+          {testWriteResult && (
+            <span
+              className={cn(
+                "shrink-0 text-[11px] font-medium",
+                testWriteResult.ok ? "text-green-400" : "text-red-400",
+              )}
+            >
+              {testWriteResult.ok ? "✓" : "✗"} {testWriteResult.msg}
+            </span>
+          )}
+        </div>
+
         {!selected ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 text-slate-600">
             <MessageSquare className="size-10" />
             <p className="text-sm">Select a user to view their conversation</p>
+            {sessions.length === 0 && !loading && !error && (
+              <p className="text-xs text-slate-700 max-w-xs text-center">
+                Conversations will appear here after visitors chat with the
+                widget. Make sure the sheet tabs are created and shared.
+              </p>
+            )}
           </div>
         ) : (
           <>

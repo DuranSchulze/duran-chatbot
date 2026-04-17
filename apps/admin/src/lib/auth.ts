@@ -17,7 +17,9 @@ export function isAuthenticated(): boolean {
   if (!token) return false;
   try {
     const [, payload] = token.split(".");
-    const decoded = JSON.parse(atob(payload));
+    // JWT uses base64url — convert to standard base64 before decoding
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const decoded = JSON.parse(atob(base64));
     return decoded.exp * 1000 > Date.now();
   } catch {
     return false;

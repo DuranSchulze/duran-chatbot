@@ -10,13 +10,43 @@ function verifyToken(req) {
   return jwt.verify(token, secret);
 }
 
-function getAuthClient() {
+function buildCredentials() {
+  // Method A: full JSON blob
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  if (!raw) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is not configured");
-  const credentials = JSON.parse(raw);
+  if (raw) {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      console.warn("[Google] GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON — falling back to split env vars");
+    }
+  }
+
+  // Method B: individual env vars
+  const client_email = process.env.GOOGLE_CLIENT_EMAIL;
+  const private_key = process.env.GOOGLE_PRIVATE_KEY;
+  const project_id = process.env.GOOGLE_PROJECT_ID;
+
+  if (client_email && private_key) {
+    return {
+      type: "service_account",
+      client_email,
+      // Vercel stores \n as literal backslash-n — restore real newlines
+      private_key: private_key.replace(/\\n/g, "\n"),
+      ...(project_id ? { project_id } : {}),
+    };
+  }
+
+  throw new Error(
+    "Google credentials not configured. Set GOOGLE_SERVICE_ACCOUNT_JSON " +
+      "or GOOGLE_CLIENT_EMAIL + GOOGLE_PRIVATE_KEY.",
+  );
+}
+
+function getAuthClient() {
+  const credentials = buildCredentials();
   return new google.auth.GoogleAuth({
     credentials,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
 }
 
@@ -88,16 +118,32 @@ export default async function handler(req, res) {
   try {
     const auth = getAuthClient();
     const sheets = google.sheets({ version: "v4", auth });
-
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetId,
-      range: `${profile}!A2:G`,
-    });
-
-    const rows = response.data.values ?? [];
-    const sessions = groupBySession(rows);
-
-    res.status(200).json({ sessions });
+    let rows = [];
+    try {
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: sheetId,
+        range: `${profile}!A2:G`,
+      });
+      rows = response.data.values ?? [];
+    } catch (rangeErr) {
+      const msg = rangeErr instanceof Error ? rangeErr.message : "";
+      if (msg.toLowerCase().includes("unable to parse range") || msg.toLowerCase().includes("not found")) {
+        await sheets.spreadsheets.batchUpdate({
+          spreadsheetId: sheetId,
+          requestBody: { requests: [{ addSheet: { properties: { title: profile } } }] },
+        });
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: sheetId,
+          range: `${profile}!A1:G1`,
+          valueInputOption: "RAW",
+          requestBody: { values: [["Timestamp", "SessionID", "Name", "Email", "UserMessage", "AIResponse", "Profile"]] },
+        });
+        console.log(`[Sheets] Created tab '${profile}' with headers`);
+      } else {
+        throw rangeErr;
+      }
+    }
+    res.status(200).json({ sessions: groupBySession(rows) });
   } catch (error) {
     console.error("Google Sheets read error:", error);
     res.status(500).json({
