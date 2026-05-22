@@ -17,6 +17,7 @@ import { WidgetPreviewPage } from "@/pages/widget-preview-page";
 import { ProfileList } from "@/features/profiles/profile-list";
 import { LoginPage } from "@/pages/LoginPage";
 import { ConversationsPage } from "@/pages/ConversationsPage";
+import { InternalChatPage } from "@/pages/InternalChatPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
@@ -242,6 +243,14 @@ function App() {
         element={
           <ProtectedRoute>
             <ConversationsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/internal"
+        element={
+          <ProtectedRoute>
+            <InternalChatPage />
           </ProtectedRoute>
         }
       />

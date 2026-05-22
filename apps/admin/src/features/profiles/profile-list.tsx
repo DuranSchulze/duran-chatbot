@@ -1,5 +1,6 @@
 import { useState } from "react"
-import { Bot, Plus, Archive, ArrowRight, Calendar, Globe } from "lucide-react"
+import { Link } from "react-router-dom"
+import { Bot, Plus, Archive, ArrowRight, Calendar, Globe, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { ProfileMeta } from "@/api/profiles"
@@ -75,6 +76,34 @@ export function ProfileList({
             New profile
           </Button>
         </div>
+
+        {/* Legal Chatbot CTA */}
+        <Link to="/internal" className="block mb-8 group">
+          <div className="relative overflow-hidden rounded-2xl bg-slate-900 p-5 flex items-center gap-4 shadow-sm hover:shadow-lg transition-shadow">
+            {/* Subtle glow */}
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-blue-600/10 via-transparent to-transparent" />
+            <div className="flex items-center justify-center size-14 rounded-2xl bg-blue-500/15 border border-blue-500/20 shrink-0">
+              <Bot className="size-7 text-blue-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <p className="font-semibold text-white text-base">Legal Chatbot</p>
+                <span className="flex items-center gap-1 rounded-full bg-blue-500/15 border border-blue-500/20 px-2 py-0.5 text-[10px] font-medium text-blue-400">
+                  <Sparkles className="size-2.5" />
+                  Internal
+                </span>
+              </div>
+              <p className="text-sm text-slate-400">
+                Chat with the AI assistant — customize the system prompt, temperature, and knowledge base.
+              </p>
+            </div>
+            <div className="shrink-0">
+              <div className="flex items-center justify-center size-9 rounded-xl bg-blue-600 text-white group-hover:bg-blue-500 transition-colors">
+                <ArrowRight className="size-4" />
+              </div>
+            </div>
+          </div>
+        </Link>
 
         {error && (
           <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
