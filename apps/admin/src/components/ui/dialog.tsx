@@ -1,6 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react"
 import { X } from "lucide-react"
-import { cn } from "@/lib/utils"
 
 type DialogProps = {
   open: boolean
