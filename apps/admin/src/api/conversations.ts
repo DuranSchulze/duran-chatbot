@@ -1,31 +1,9 @@
 import { getAuthHeaders } from "@/lib/auth";
 
-export interface SheetsStatus {
-  connected: boolean;
-  email?: string;
-  sheetTitle?: string;
-  tabs?: string[];
-  sheetId?: string;
-  error?: string;
-}
-
-export async function checkSheetsStatus(): Promise<SheetsStatus> {
-  const res = await fetch("/api/sheets-status", { headers: getAuthHeaders() });
-  if (!res.ok && res.status !== 200) return { connected: false, error: `HTTP ${res.status}` };
-  return (await res.json()) as SheetsStatus;
-}
-
-export async function testSheetWrite(): Promise<{ success: boolean; message?: string; error?: string }> {
-  const res = await fetch("/api/sheets-status", {
-    method: "POST",
-    headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
-  });
-  return (await res.json()) as { success: boolean; message?: string; error?: string };
-}
-
 export interface ChatMessage {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "admin";
   content: string;
+  senderName?: string | null;
   timestamp: string;
 }
 
@@ -36,6 +14,7 @@ export interface ConversationSession {
   profile: string;
   firstSeen: string;
   lastActive: string;
+  adminReadAt: string | null;
   messages: ChatMessage[];
 }
 
@@ -63,4 +42,38 @@ export async function fetchConversations(
 
   const data = (await res.json()) as { sessions: ConversationSession[] };
   return data.sessions;
+}
+
+export async function sendAdminReply(
+  profile: string,
+  sessionId: string,
+  content: string,
+): Promise<ChatMessage> {
+  const res = await fetch(`/api/conversations?profile=${encodeURIComponent(profile)}`, {
+    method: "POST",
+    headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ profile, sessionId, content }),
+  });
+
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error || `Failed to send reply (${res.status})`);
+  }
+
+  const data = (await res.json()) as { message: ChatMessage };
+  return data.message;
+}
+
+export async function markConversationRead(
+  profile: string,
+  sessionId: string,
+): Promise<void> {
+  const res = await fetch(`/api/conversations?profile=${encodeURIComponent(profile)}`, {
+    method: "POST",
+    headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "markRead", profile, sessionId }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  // Non-fatal: a failed read-marker shouldn't break the UI.
 }

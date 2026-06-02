@@ -10,8 +10,9 @@
   "scripts": {
     "dev": "npm run dev --workspace=apps/admin",
     "dev:widget": "npm run dev --workspace=packages/widget",
-    "build": "npm run build --workspace=packages/config && npm run build --workspace=packages/widget && npm run build --workspace=apps/admin",
-    "lint": "eslint ."
+    "build": "npm run build --workspace=packages/database && npm run build --workspace=packages/config && npm run build --workspace=packages/widget && npm run build --workspace=apps/admin",
+    "lint": "eslint .",
+    "db:reset": "prisma db execute --schema=packages/database/prisma/schema.prisma --file=scripts/reset.sql"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
@@ -22,12 +23,10 @@
   },
   "license": "ISC",
   "dependencies": {
-    "googleapis": "^146.0.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^1.7.0",
     "nodemailer": "^8.0.5",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "redis": "^5.11.0"
+    "react-dom": "^19.2.4"
   }
 }

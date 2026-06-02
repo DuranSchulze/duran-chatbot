@@ -38,6 +38,9 @@ function ConfigEditor() {
     error: profilesError,
     create,
     archive,
+    hardDelete,
+    reactivate,
+    rename,
   } = useProfiles();
   const {
     config,
@@ -81,6 +84,7 @@ function ConfigEditor() {
     () =>
       currentConfig
         ? getConfigSections({
+            profileSlug: activeProfileSlug ?? "",
             appearance: currentConfig.appearance,
             ai: currentConfig.ai,
             persona: currentConfig.persona,
@@ -99,7 +103,7 @@ function ConfigEditor() {
             onBehaviorChange: (behavior) => updateSection("behavior", behavior),
           })
         : [],
-    [currentConfig, updateSection],
+    [currentConfig, updateSection, activeProfileSlug],
   );
 
   const currentPanel =
@@ -122,6 +126,9 @@ function ConfigEditor() {
           setEditedConfig(null);
         }}
         onArchive={archive}
+        onHardDelete={hardDelete}
+        onReactivate={reactivate}
+        onRename={rename}
       />
     );
   }

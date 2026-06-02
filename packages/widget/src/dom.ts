@@ -32,29 +32,73 @@ function escapeAttribute(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
 
-function getQuickLinksHTML(quickLinks: QuickLink[]): string {
+const menuIconMarkup = `
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <line x1="3" y1="6" x2="21" y2="6"></line>
+    <line x1="3" y1="12" x2="21" y2="12"></line>
+    <line x1="3" y1="18" x2="21" y2="18"></line>
+  </svg>
+`
+
+/** The "☰" trigger button shown in the composer (only when there are actions to show). */
+function getMenuTriggerHTML(quickLinks: QuickLink[]): string {
+  if (quickLinks.length === 0) {
+    return ''
+  }
+  return `
+    <button type="button" class="cb-menu-btn" aria-label="Open quick actions" aria-expanded="false">
+      ${menuIconMarkup}
+    </button>
+  `
+}
+
+/** The popup list of configurable action buttons, hidden until the trigger is clicked. */
+function getActionMenuHTML(quickLinks: QuickLink[]): string {
   if (quickLinks.length === 0) {
     return ''
   }
 
-  const topLinks = quickLinks.slice(0, 2)
-
   return `
-    <div class="cb-quick-links" aria-label="Quick actions">
-      ${topLinks
+    <div class="cb-action-menu cb-hidden" role="menu" aria-label="Quick actions">
+      ${quickLinks
         .map(
           (link) => `
-            <a
-              class="cb-quick-link"
-              href="${escapeAttribute(link.url)}"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              class="cb-action-item"
+              role="menuitem"
+              data-action-id="${escapeAttribute(link.id)}"
             >
               ${escapeHtml(link.label)}
-            </a>
+            </button>
           `,
         )
         .join('')}
+    </div>
+  `
+}
+
+/** A call-to-action card rendered after an AI answer (e.g. "Book a Consultation"). */
+export function getCtaCardHTML(buttons: QuickLink[], heading: string): string {
+  if (buttons.length === 0) return ''
+  return `
+    <div class="cb-cta-card" role="group" aria-label="Next steps">
+      ${heading ? `<p class="cb-cta-heading">${escapeHtml(heading)}</p>` : ''}
+      <div class="cb-cta-actions">
+        ${buttons
+          .map(
+            (b) => `
+              <button
+                type="button"
+                class="cb-cta-btn"
+                data-action-id="${escapeAttribute(b.id)}"
+              >
+                ${escapeHtml(b.label)}
+              </button>
+            `,
+          )
+          .join('')}
+      </div>
     </div>
   `
 }
@@ -111,9 +155,10 @@ export function getWidgetHTML(companyName: string, welcomeMessage: string, quick
         </form>
 
         <div class="cb-chat-inputs cb-hidden">
-          ${getQuickLinksHTML(quickLinks)}
+          ${getActionMenuHTML(quickLinks)}
 
           <form class="cb-input-form">
+            ${getMenuTriggerHTML(quickLinks)}
             <input
               type="text"
               class="cb-input"
@@ -244,6 +289,11 @@ function processInline(raw: string): string {
       let s = escapeStr(part)
       s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       s = s.replace(/\*([^*\s][^*]*)\*/g, '<em>$1</em>')
+      // Make email addresses clickable (handy for the contact fallback).
+      s = s.replace(
+        /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,
+        '<a href="mailto:$1">$1</a>',
+      )
       return s
     })
     .join('')

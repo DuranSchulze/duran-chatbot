@@ -1,22 +1,6 @@
-import { createTransport } from "nodemailer";
-import { createClient } from "redis";
-import { mergeWithDefaults } from "@duran-chatbot/config";
-
-const PROFILES_INDEX_KEY = "chatbot:profiles";
-const PROFILE_KEY = (slug) => `chatbot:profile:${slug}`;
-const DEFAULT_SLUG = "duran-schulze";
-
-const redisUrl = process.env.REDIS_URL;
-const redis = redisUrl ? createClient({ url: redisUrl }) : null;
-const redisConnection = redis ? redis.connect() : null;
+import prisma, { sendProfileEmail } from "@duran-chatbot/database";
 
 const rateLimitMap = new Map();
-
-async function getRedisClient() {
-  if (!redis || !redisConnection) return null;
-  await redisConnection;
-  return redis;
-}
 
 function isRateLimited(ip) {
   const now = Date.now();
@@ -55,20 +39,52 @@ async function readBodySafe(req) {
   return raw ? JSON.parse(raw) : {};
 }
 
-async function getProfileBehavior(profileSlug) {
+async function getProfileConfig(profileSlug) {
   try {
-    const client = await getRedisClient();
-    if (!client) return null;
-
-    const slug = profileSlug || DEFAULT_SLUG;
-    const raw = await client.get(PROFILE_KEY(slug));
-    if (!raw) return null;
-
-    const config = mergeWithDefaults(JSON.parse(raw));
-    return config.behavior;
+    return await prisma.config.findUnique({
+      where: { profileId: profileSlug || "duran-schulze" },
+    });
   } catch {
     return null;
   }
+}
+
+// Starter email addressed to the visitor, with the sales team CC'd so everyone
+// shares one thread and can reply-all to follow up.
+function buildStarterEmailHtml({ name, message, service, companyName, timestamp }) {
+  const safe = (s) =>
+    String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 0">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08)">
+        <tr>
+          <td style="background:#004a99;padding:24px 32px">
+            <p style="margin:0;color:#ffffff;font-size:18px;font-weight:700">Thanks for your request</p>
+            <p style="margin:4px 0 0;color:rgba(255,255,255,0.75);font-size:13px">${safe(companyName)}</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:32px">
+            <p style="margin:0 0 16px;font-size:15px;color:#111827">Hi ${safe(name) || "there"},</p>
+            <p style="margin:0 0 16px;font-size:14px;color:#374151;line-height:1.6">Thanks for reaching out to ${safe(companyName)}. We've received your request and a member of our team (cc'd here) will follow up shortly. Feel free to reply to this email with any extra details.</p>
+            ${service ? `<p style="margin:0 0 8px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#6b7280">What you asked about</p>
+            <p style="margin:0 0 16px;font-size:14px;color:#111827;line-height:1.6;white-space:pre-wrap">${safe(service)}</p>` : ""}
+            <p style="margin:24px 0 0;font-size:13px;color:#6b7280">Sent: ${safe(timestamp)}</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 }
 
 function buildEmailHtml({ name, email, message, service, profile, timestamp }) {
@@ -158,7 +174,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { name, email, message, service, profile, honeypot } = body;
+  const { name, email, message, service, profile, honeypot, emailVisitor } = body;
 
   if (honeypot) {
     res.status(200).json({ success: true });
@@ -181,21 +197,16 @@ export default async function handler(req, res) {
     return;
   }
 
-  const gmailUser = process.env.GMAIL_USER;
-  const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
-
-  if (!gmailUser || !gmailAppPassword) {
-    res.status(500).json({ error: "Email service is not configured" });
-    return;
-  }
-
-  const behavior = await getProfileBehavior(profile);
+  const config = await getProfileConfig(profile);
+  const behavior = config?.behavior ?? null;
+  const appearance = config?.appearance ?? null;
+  const companyName = appearance?.companyName?.trim() || profile || "Our team";
   const recipients = behavior?.quoteNotifyTo?.filter(Boolean) ?? [];
   const ccList = behavior?.quoteNotifyCC?.filter(Boolean) ?? [];
-  const subject =
-    behavior?.quoteEmailSubject?.trim() || "New Quote Request via Chatbot";
 
-  if (recipients.length === 0) {
+  // Internal-only mode still requires a sales recipient. Visitor-starter mode
+  // emails the visitor directly, so the sales list is only used for CC.
+  if (!emailVisitor && recipients.length === 0) {
     res.status(500).json({ error: "No notification recipients configured for this profile" });
     return;
   }
@@ -206,46 +217,91 @@ export default async function handler(req, res) {
     timeStyle: "short",
   });
 
-  const htmlBody = buildEmailHtml({
-    name: name.trim(),
-    email: email.trim(),
-    message: message.trim(),
-    service: service?.trim() ?? "",
-    profile: profile || "Chatbot",
-    timestamp,
-  });
-
-  const textBody = [
-    `New Quote Request — ${profile || "Chatbot"}`,
-    ``,
-    `Visitor: ${name.trim()} <${email.trim()}>`,
-    service ? `Service/Topic: ${service.trim()}` : "",
-    ``,
-    `Message:`,
-    message.trim(),
-    ``,
-    `Received: ${timestamp}`,
-  ]
-    .filter((l) => l !== undefined)
-    .join("\n");
-
-  try {
-    const transporter = createTransport({
-      service: "gmail",
-      auth: {
-        user: gmailUser,
-        pass: gmailAppPassword,
-      },
-    });
-
-    await transporter.sendMail({
-      from: `"Chatbot Notifications" <${gmailUser}>`,
+  // Build the email envelope + body depending on the mode.
+  let mailOptions;
+  if (emailVisitor) {
+    const salesCc = [...new Set([...recipients, ...ccList])];
+    const subject =
+      behavior?.quoteStarterSubject?.trim() || `Your request to ${companyName}`;
+    mailOptions = {
+      fromName: companyName,
+      to: email.trim(),
+      cc: salesCc.length > 0 ? salesCc.join(", ") : undefined,
+      replyTo: recipients[0] || undefined,
+      subject,
+      text: [
+        `Hi ${name.trim() || "there"},`,
+        ``,
+        `Thanks for reaching out to ${companyName}. We've received your request and a member of our team (cc'd here) will follow up shortly.`,
+        service ? `\nWhat you asked about:\n${service.trim()}` : "",
+        ``,
+        `Sent: ${timestamp}`,
+      ]
+        .filter((l) => l !== undefined)
+        .join("\n"),
+      html: buildStarterEmailHtml({
+        name: name.trim(),
+        message: message.trim(),
+        service: service?.trim() ?? "",
+        companyName,
+        timestamp,
+      }),
+    };
+  } else {
+    const subject =
+      behavior?.quoteEmailSubject?.trim() || "New Quote Request via Chatbot";
+    mailOptions = {
+      fromName: "Chatbot Notifications",
       to: recipients.join(", "),
       cc: ccList.length > 0 ? ccList.join(", ") : undefined,
       subject,
-      text: textBody,
-      html: htmlBody,
-    });
+      text: [
+        `New Quote Request — ${profile || "Chatbot"}`,
+        ``,
+        `Visitor: ${name.trim()} <${email.trim()}>`,
+        service ? `Service/Topic: ${service.trim()}` : "",
+        ``,
+        `Message:`,
+        message.trim(),
+        ``,
+        `Received: ${timestamp}`,
+      ]
+        .filter((l) => l !== undefined)
+        .join("\n"),
+      html: buildEmailHtml({
+        name: name.trim(),
+        email: email.trim(),
+        message: message.trim(),
+        service: service?.trim() ?? "",
+        profile: profile || "Chatbot",
+        timestamp,
+      }),
+    };
+  }
+
+  try {
+    await sendProfileEmail(profile || "duran-schulze", mailOptions);
+
+    // Persist quote request (best-effort — don't fail the response if DB write fails)
+    try {
+      const profileId = profile || "duran-schulze";
+      await prisma.profile.upsert({
+        where: { slug: profileId },
+        create: { slug: profileId, name: profileId, status: "active" },
+        update: {},
+      });
+      await prisma.quoteRequest.create({
+        data: {
+          profileId,
+          name: name.trim(),
+          email: email.trim(),
+          message: message.trim(),
+          service: service?.trim() ?? "",
+        },
+      });
+    } catch (dbErr) {
+      console.error("Failed to persist quote request to DB:", dbErr);
+    }
 
     res.status(200).json({ success: true });
   } catch (error) {

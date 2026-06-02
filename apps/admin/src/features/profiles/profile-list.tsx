@@ -1,10 +1,11 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import { Bot, Plus, Archive, ArrowRight, Calendar, Globe, Sparkles } from "lucide-react"
+import { Bot, Plus, Archive, ArrowRight, Calendar, Globe, Sparkles, Trash2, RotateCcw, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { ProfileMeta } from "@/api/profiles"
 import { ProfileCreateDialog } from "./profile-create-dialog"
+import { ProfileEditDialog } from "./profile-edit-dialog"
 
 type ProfileListProps = {
   profiles: ProfileMeta[]
@@ -13,6 +14,9 @@ type ProfileListProps = {
   onSelect: (slug: string) => void
   onCreate: (name: string, slug: string) => Promise<void>
   onArchive: (slug: string) => Promise<void>
+  onHardDelete: (slug: string) => Promise<void>
+  onReactivate: (slug: string) => Promise<void>
+  onRename: (slug: string, name: string, newSlug: string) => Promise<void>
 }
 
 export function ProfileList({
@@ -22,15 +26,21 @@ export function ProfileList({
   onSelect,
   onCreate,
   onArchive,
+  onHardDelete,
+  onReactivate,
+  onRename,
 }: ProfileListProps) {
   const [showCreate, setShowCreate] = useState(false)
+  const [editingProfile, setEditingProfile] = useState<ProfileMeta | null>(null)
   const [archiving, setArchiving] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const [reactivating, setReactivating] = useState<string | null>(null)
 
   const active = profiles.filter((p) => p.status === "active")
   const archived = profiles.filter((p) => p.status === "archived")
 
   const handleArchive = async (slug: string) => {
-    if (!confirm(`Archive the "${slug}" profile? It will no longer be editable.`)) return
+    if (!confirm(`Archive the "${slug}" profile? It can be reactivated later.`)) return
     setArchiving(slug)
     try {
       await onArchive(slug)
@@ -39,9 +49,37 @@ export function ProfileList({
     }
   }
 
+  const handleHardDelete = async (slug: string, name: string) => {
+    if (!confirm(
+      `Permanently delete "${name}"?\n\nThis will delete ALL data for this profile including:\n` +
+      `• Chatbot configuration\n• All conversation history\n• All messages\n• All quote requests\n\nThis action CANNOT be undone.`
+    )) return
+    setDeleting(slug)
+    try {
+      await onHardDelete(slug)
+    } finally {
+      setDeleting(null)
+    }
+  }
+
+  const handleReactivate = async (slug: string) => {
+    setReactivating(slug)
+    try {
+      await onReactivate(slug)
+    } finally {
+      setReactivating(null)
+    }
+  }
+
   const handleCreate = async (name: string, slug: string) => {
     await onCreate(name, slug)
     setShowCreate(false)
+  }
+
+  const handleRename = async (name: string, slug: string) => {
+    if (!editingProfile) return
+    await onRename(editingProfile.slug, name, slug)
+    setEditingProfile(null)
   }
 
   if (loading) {
@@ -80,7 +118,6 @@ export function ProfileList({
         {/* Legal Chatbot CTA */}
         <Link to="/internal" className="block mb-8 group">
           <div className="relative overflow-hidden rounded-2xl bg-slate-900 p-5 flex items-center gap-4 shadow-sm hover:shadow-lg transition-shadow">
-            {/* Subtle glow */}
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-blue-600/10 via-transparent to-transparent" />
             <div className="flex items-center justify-center size-14 rounded-2xl bg-blue-500/15 border border-blue-500/20 shrink-0">
               <Bot className="size-7 text-blue-400" />
@@ -113,52 +150,75 @@ export function ProfileList({
 
         {/* Active profiles */}
         {active.length > 0 ? (
-          <div className="space-y-3 mb-8">
-            {active.map((profile) => (
-              <div
-                key={profile.slug}
-                className="group flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:border-blue-200 hover:shadow-md transition-all"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shrink-0">
-                    <Globe className="size-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-slate-900 truncate">{profile.name}</p>
-                      <Badge variant="success">Active</Badge>
+          <div className="mb-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
+              Active ({active.length})
+            </p>
+            <div className="space-y-3 mb-8">
+              {active.map((profile) => (
+                <div
+                  key={profile.slug}
+                  className="group flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:border-blue-200 hover:shadow-md transition-all"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex size-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shrink-0">
+                      <Globe className="size-5" />
                     </div>
-                    <p className="text-xs text-slate-500 mt-0.5 font-mono">{profile.slug}</p>
-                    {profile.createdAt && (
-                      <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                        <Calendar className="size-3" />
-                        {new Date(profile.createdAt).toLocaleDateString()}
-                      </p>
-                    )}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-slate-900 truncate">{profile.name}</p>
+                        <Badge variant="success">Active</Badge>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5 font-mono">{profile.slug}</p>
+                      {profile.createdAt && (
+                        <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                          <Calendar className="size-3" />
+                          {new Date(profile.createdAt).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => setEditingProfile(profile)}
+                      title="Edit profile name and slug"
+                    >
+                      <Pencil className="size-4 text-slate-400" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => handleArchive(profile.slug)}
+                      disabled={archiving === profile.slug || active.length <= 1}
+                      title="Archive profile"
+                    >
+                      <Archive className="size-4 text-slate-400" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => handleHardDelete(profile.slug, profile.name)}
+                      disabled={deleting === profile.slug}
+                      className="hover:bg-red-50 hover:text-red-600"
+                      title="Permanently delete profile and all data"
+                    >
+                      <Trash2 className="size-4 text-slate-400 group-hover:text-red-500" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => onSelect(profile.slug)}
+                      className="gap-1.5 ml-1"
+                    >
+                      Edit
+                      <ArrowRight className="size-3.5" />
+                    </Button>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => handleArchive(profile.slug)}
-                    disabled={archiving === profile.slug || active.length <= 1}
-                    title="Archive profile"
-                  >
-                    <Archive className="size-4 text-slate-400" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => onSelect(profile.slug)}
-                    className="gap-1.5"
-                  >
-                    Edit
-                    <ArrowRight className="size-3.5" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         ) : (
           <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-10 text-center mb-8">
@@ -176,19 +236,55 @@ export function ProfileList({
         {archived.length > 0 && (
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
-              Archived
+              Archived ({archived.length})
             </p>
             <div className="space-y-2">
               {archived.map((profile) => (
                 <div
                   key={profile.slug}
-                  className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 opacity-60"
+                  className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
                 >
-                  <div>
-                    <p className="font-medium text-slate-700">{profile.name}</p>
-                    <p className="text-xs text-slate-400 font-mono">{profile.slug}</p>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex size-9 items-center justify-center rounded-lg bg-slate-200 text-slate-400 shrink-0">
+                      <Globe className="size-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-slate-600 truncate">{profile.name}</p>
+                      <p className="text-xs text-slate-400 font-mono">{profile.slug}</p>
+                    </div>
                   </div>
-                  <Badge variant="secondary">Archived</Badge>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Badge variant="secondary">Archived</Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => setEditingProfile(profile)}
+                      title="Edit profile name and slug"
+                    >
+                      <Pencil className="size-3.5 text-slate-400" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => handleReactivate(profile.slug)}
+                      disabled={reactivating === profile.slug}
+                      title="Reactivate profile"
+                      className="hover:bg-emerald-50 hover:text-emerald-600"
+                    >
+                      <RotateCcw className="size-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => handleHardDelete(profile.slug, profile.name)}
+                      disabled={deleting === profile.slug}
+                      className="hover:bg-red-50 hover:text-red-600"
+                      title="Permanently delete profile and all data"
+                    >
+                      <Trash2 className="size-4 text-slate-400" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -200,6 +296,15 @@ export function ProfileList({
         <ProfileCreateDialog
           onClose={() => setShowCreate(false)}
           onCreate={handleCreate}
+        />
+      )}
+
+      {editingProfile && (
+        <ProfileEditDialog
+          currentSlug={editingProfile.slug}
+          currentName={editingProfile.name}
+          onClose={() => setEditingProfile(null)}
+          onSave={handleRename}
         />
       )}
     </div>

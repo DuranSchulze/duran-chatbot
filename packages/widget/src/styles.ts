@@ -44,41 +44,53 @@ export const styles = `
   border: none;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
   transition: transform 0.24s ease, box-shadow 0.24s ease, background 0.24s ease;
   z-index: 10000;
   animation: cb-float 3.2s ease-in-out infinite;
 }
 
+/* Stay visible while open — the icon morphs to a close (X) instead of hiding. */
 .cb-widget-container.cb-open .cb-toggle-btn {
-  transform: scale(0);
-  opacity: 0;
-  pointer-events: none;
   animation: none;
 }
 
 .cb-toggle-btn:hover {
-  transform: scale(1.1);
+  transform: scale(1.08);
   box-shadow: 0 6px 20px rgba(0,0,0,0.2);
 }
 
+.cb-widget-container.cb-open .cb-toggle-btn:hover {
+  transform: rotate(90deg) scale(1.08);
+}
+
+/* Both icons share the same cell and cross-fade / rotate between states. */
 .cb-toggle-btn svg {
+  grid-area: 1 / 1;
   width: 28px;
   height: 28px;
+  transition: opacity 0.24s ease, transform 0.28s ease;
+}
+
+.cb-icon-message {
+  opacity: 1;
+  transform: rotate(0) scale(1);
 }
 
 .cb-icon-close {
-  display: none;
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.5);
 }
 
 .cb-widget-container.cb-open .cb-icon-message {
-  display: none;
+  opacity: 0;
+  transform: rotate(90deg) scale(0.5);
 }
 
 .cb-widget-container.cb-open .cb-icon-close {
-  display: block;
+  opacity: 1;
+  transform: rotate(0) scale(1);
 }
 
 /* Chat Window */
@@ -86,8 +98,9 @@ export const styles = `
   position: fixed;
   bottom: 90px;
   right: 20px;
-  width: 380px;
-  height: 500px;
+  width: 440px;
+  max-width: calc(100vw - 40px);
+  height: 600px;
   max-height: calc(100vh - 120px);
   background: var(--cb-bg);
   border-radius: var(--cb-radius);
@@ -192,25 +205,25 @@ export const styles = `
 .cb-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 9px;
 }
 
 .cb-message {
-  max-width: 85%;
-  padding: 12px 16px;
-  border-radius: 18px;
-  font-size: 14px;
-  line-height: 1.5;
+  max-width: 86%;
+  padding: 9px 13px;
+  border-radius: 16px;
+  font-size: 13px;
+  line-height: 1.45;
   word-wrap: break-word;
   position: relative;
   animation: cb-message-enter 0.28s ease both;
 }
 
 .cb-message p {
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
 }
 
 .cb-message p:last-child {
@@ -278,6 +291,36 @@ export const styles = `
   background: #f8d7da;
   color: #721c24;
   border-bottom-left-radius: 4px;
+}
+
+/* Friendly "we're having a problem" notice (shown instead of raw errors) */
+.cb-notice-message {
+  align-self: flex-start;
+  background: #fff7ed;
+  color: #7c2d12;
+  border: 1px solid #fed7aa;
+  border-bottom-left-radius: 4px;
+}
+
+.cb-notice-message a {
+  color: #9a3412;
+  font-weight: 600;
+}
+
+/* Admin ("middleman") reply — styled exactly like an AI message for a seamless feel */
+.cb-agent-message {
+  align-self: flex-start;
+  background: #f1f3f5;
+  color: var(--cb-text);
+  border-bottom-left-radius: 4px;
+}
+
+.cb-agent-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cb-primary);
+  margin-bottom: 4px;
 }
 
 .cb-timestamp {
@@ -390,39 +433,149 @@ export const styles = `
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
 }
 
-/* Quick links */
-.cb-quick-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px 16px 0;
-  background: white;
-  animation: cb-section-enter 0.32s ease both;
+/* Action menu (configurable task buttons) */
+.cb-chat-inputs {
+  position: relative;
 }
 
-.cb-quick-link {
-  display: inline-flex;
+.cb-menu-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #f1f3f5;
+  color: var(--cb-text);
+  border: none;
+  cursor: pointer;
+  display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 32px;
-  padding: 6px 10px;
-  background: #f8fafc;
-  border: 1px solid #dee2e6;
-  color: var(--cb-text);
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.3;
-  text-align: center;
-  text-decoration: none;
-  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  flex-shrink: 0;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
-.cb-quick-link:hover {
+.cb-menu-btn:hover,
+.cb-menu-btn[aria-expanded="true"] {
+  background: var(--cb-primary);
+  color: white;
+}
+
+.cb-menu-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.cb-action-menu {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 70px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 18px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.2);
+  max-height: 300px;
+  overflow-y: auto;
+  animation: cb-section-enter 0.18s ease both;
+}
+
+.cb-action-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 13px 16px;
+  background: #f8fafc;
+  border: 1px solid #eef1f5;
+  border-radius: 13px;
+  color: var(--cb-text);
+  font-size: clamp(13px, 3.6vw, 15px);
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+  word-break: break-word;
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.cb-action-item::before {
+  content: "";
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cb-primary);
+  opacity: 0.55;
+  transition: background 0.16s ease, opacity 0.16s ease;
+}
+
+.cb-action-item:hover {
   background: var(--cb-primary);
   border-color: var(--cb-primary);
   color: white;
   transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+}
+
+.cb-action-item:hover::before {
+  background: white;
+  opacity: 1;
+}
+
+/* Post-answer call-to-action card — tinted with the brand primary color */
+.cb-cta-card {
+  align-self: stretch;
+  margin-top: 2px;
+  padding: 9px 10px;
+  /* Fallback for browsers without color-mix, then the primary tint over it. */
+  background: rgba(15, 23, 42, 0.04);
+  background: color-mix(in srgb, var(--cb-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cb-primary) 20%, transparent);
+  border-radius: 12px;
+  animation: cb-message-enter 0.28s ease both;
+}
+
+.cb-cta-heading {
+  margin: 0 0 7px 0;
+  font-size: 12px;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--cb-text);
+}
+
+.cb-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cb-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 5px 11px;
+  background: var(--cb-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cb-cta-btn:hover {
+  background: var(--cb-accent);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.14);
 }
 
 /* Input Form */
@@ -533,7 +686,7 @@ export const styles = `
   .cb-chat-window,
   .cb-message,
   .cb-lead-form,
-  .cb-quick-links,
+  .cb-action-menu,
   .cb-input-form {
     animation: none !important;
     transition: none !important;

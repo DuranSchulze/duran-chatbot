@@ -1,88 +1,63 @@
-import fs from "node:fs";
-import path from "node:path";
-import { createClient } from "redis";
+import prisma from "@duran-chatbot/database";
 import { mergeWithDefaults } from "@duran-chatbot/config";
 
-const LEGACY_CONFIG_KEY = "chatbot:config";
-const PROFILES_INDEX_KEY = "chatbot:profiles";
-const PROFILE_KEY = (slug) => `chatbot:profile:${slug}`;
 const DEFAULT_SLUG = "duran-schulze";
-const fallbackConfigPath = path.join(process.cwd(), "data", "config.json");
-
-const redisUrl = process.env.REDIS_URL;
-const redis = redisUrl ? createClient({ url: redisUrl }) : null;
-const redisConnection = redis ? redis.connect() : null;
-
-function readFallbackConfig() {
-  const file = fs.readFileSync(fallbackConfigPath, "utf8");
-  return mergeWithDefaults(JSON.parse(file));
-}
+const DEFAULT_PROFILE_NAME = "Duran Schulze";
 
 async function readRequestBody(req) {
-  if (req.body && typeof req.body === "object") {
-    return req.body;
-  }
-
+  if (req.body && typeof req.body === "object") return req.body;
   const chunks = [];
-
   for await (const chunk of req) {
     chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
   }
-
   const rawBody = Buffer.concat(chunks).toString("utf8");
   return rawBody ? JSON.parse(rawBody) : {};
 }
 
-async function getRedisClient() {
-  if (!redis || !redisConnection) {
-    throw new Error("REDIS_URL is not configured");
-  }
-
-  await redisConnection;
-  return redis;
+function configRowToPartial(config) {
+  if (!config) return {};
+  return {
+    appearance: config.appearance ?? {},
+    ai: config.ai ?? {},
+    persona: config.persona ?? {},
+    services: config.services ?? [],
+    quickLinks: config.quickLinks ?? [],
+    dataset: config.dataset ?? [],
+    behavior: config.behavior ?? {},
+  };
 }
 
-/** Resolve the config key to read/write for a given slug, bootstrapping if needed. */
-async function resolveProfileKey(client, slug) {
-  const profileKey = PROFILE_KEY(slug);
+async function getOrBootstrapProfile(slug) {
+  let profile = await prisma.profile.findUnique({
+    where: { slug },
+    include: { config: true },
+  });
 
-  const profilesIndexRaw = await client.get(PROFILES_INDEX_KEY);
-  if (!profilesIndexRaw) {
-    const legacyRaw = await client.get(LEGACY_CONFIG_KEY);
-    const config = legacyRaw
-      ? mergeWithDefaults(JSON.parse(legacyRaw))
-      : readFallbackConfig();
-
-    const defaultProfile = {
-      slug: DEFAULT_SLUG,
-      name: "Duran Schulze",
-      status: "active",
-      createdAt: new Date().toISOString(),
-    };
-
-    await client.set(PROFILE_KEY(DEFAULT_SLUG), JSON.stringify(config));
-    await client.set(PROFILES_INDEX_KEY, JSON.stringify([defaultProfile]));
-
-    return PROFILE_KEY(slug || DEFAULT_SLUG);
+  if (!profile) {
+    const defaults = mergeWithDefaults({});
+    const { ai: { apiKey: _dropped, ...ai }, ...rest } = defaults;
+    profile = await prisma.profile.create({
+      data: {
+        slug,
+        name: slug === DEFAULT_SLUG ? DEFAULT_PROFILE_NAME : slug,
+        status: "active",
+        config: {
+          create: {
+            appearance: rest.appearance,
+            ai,
+            persona: rest.persona,
+            services: rest.services,
+            quickLinks: rest.quickLinks,
+            dataset: rest.dataset,
+            behavior: rest.behavior,
+          },
+        },
+      },
+      include: { config: true },
+    });
   }
 
-  return profileKey;
-}
-
-async function getStoredConfig(client, slug) {
-  const key = await resolveProfileKey(client, slug || DEFAULT_SLUG);
-  const rawConfig = await client.get(key);
-
-  if (!rawConfig) {
-    if (!slug || slug === DEFAULT_SLUG) {
-      const fallback = readFallbackConfig();
-      await client.set(key, JSON.stringify(fallback));
-      return fallback;
-    }
-    return readFallbackConfig();
-  }
-
-  return mergeWithDefaults(JSON.parse(rawConfig));
+  return profile;
 }
 
 export default async function handler(req, res) {
@@ -97,20 +72,15 @@ export default async function handler(req, res) {
 
   const urlParams = new URL(req.url, "http://localhost").searchParams;
   const profileSlug = req.query?.profile ?? urlParams.get("profile") ?? "";
-
+  const slug = profileSlug || DEFAULT_SLUG;
   const geminiApiKey = process.env.GEMINI_API_KEY ?? "";
 
   if (req.method === "GET") {
     try {
-      let config;
-      if (redisUrl) {
-        const client = await getRedisClient();
-        config = await getStoredConfig(client, profileSlug);
-      } else {
-        config = readFallbackConfig();
-      }
-      config = { ...config, ai: { ...config.ai, apiKey: geminiApiKey } };
-      res.status(200).json(config);
+      const profile = await getOrBootstrapProfile(slug);
+      const merged = mergeWithDefaults(configRowToPartial(profile.config));
+      merged.ai.apiKey = geminiApiKey;
+      res.status(200).json(merged);
     } catch (error) {
       res.status(500).json({
         error: "Failed to read config",
@@ -122,14 +92,30 @@ export default async function handler(req, res) {
 
   if (req.method === "POST") {
     try {
-      const client = await getRedisClient();
       const nextConfig = await readRequestBody(req);
-      const normalizedConfig = mergeWithDefaults(nextConfig);
-      const { ai: { apiKey: _dropped, ...ai }, ...rest } = normalizedConfig;
+      const normalized = mergeWithDefaults(nextConfig);
+      const { ai: { apiKey: _dropped, ...ai }, ...rest } = normalized;
+      const configData = {
+        appearance: rest.appearance,
+        ai,
+        persona: rest.persona,
+        services: rest.services,
+        quickLinks: rest.quickLinks,
+        dataset: rest.dataset,
+        behavior: rest.behavior,
+      };
 
-      const slug = profileSlug || DEFAULT_SLUG;
-      const key = await resolveProfileKey(client, slug);
-      await client.set(key, JSON.stringify({ ...rest, ai }));
+      await prisma.profile.upsert({
+        where: { slug },
+        create: { slug, name: slug === DEFAULT_SLUG ? DEFAULT_PROFILE_NAME : slug, status: "active" },
+        update: {},
+      });
+
+      await prisma.config.upsert({
+        where: { profileId: slug },
+        create: { profileId: slug, ...configData },
+        update: configData,
+      });
 
       res.status(200).json({ success: true });
     } catch (error) {

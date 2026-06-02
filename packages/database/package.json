@@ -1,0 +1,28 @@
+{
+  "name": "@duran-chatbot/database",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "prisma generate && tsc",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.0.0",
+    "nodemailer": "^8.0.5"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^8.0.0",
+    "prisma": "^6.0.0",
+    "typescript": "~5.9.3"
+  }
+}

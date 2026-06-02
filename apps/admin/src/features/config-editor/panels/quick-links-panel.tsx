@@ -1,5 +1,5 @@
-import type { QuickLink } from "@duran-chatbot/config";
-import { Link2, Plus, Trash2 } from "lucide-react";
+import type { QuickLink, QuickLinkActionType } from "@duran-chatbot/config";
+import { MousePointerClick, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -14,19 +14,30 @@ import {
 import { Input } from "@/components/ui/input";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Select } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 
 type QuickLinksPanelProps = {
   quickLinks: QuickLink[];
   onChange: (quickLinks: QuickLink[]) => void;
 };
 
-export function QuickLinksPanel({
-  quickLinks,
-  onChange,
-}: QuickLinksPanelProps) {
+const ACTION_LABELS: Record<QuickLinkActionType, string> = {
+  link: "Open a link",
+  quote: "Request a quote",
+  prompt: "Ask the AI",
+};
+
+function actionType(link: QuickLink): QuickLinkActionType {
+  return link.actionType ?? "link";
+}
+
+export function QuickLinksPanel({ quickLinks, onChange }: QuickLinksPanelProps) {
   const [draft, setDraft] = useState<Partial<QuickLink>>({
     label: "",
+    actionType: "link",
     url: "",
+    prompt: "",
     icon: "link",
   });
 
@@ -42,30 +53,47 @@ export function QuickLinksPanel({
     onChange(quickLinks.filter((link) => link.id !== id));
   };
 
+  const draftType = (draft.actionType ?? "link") as QuickLinkActionType;
+  const draftValid =
+    Boolean(draft.label) &&
+    (draftType === "quote" ||
+      (draftType === "link" && Boolean(draft.url)) ||
+      (draftType === "prompt" && Boolean(draft.prompt)));
+
   const addLink = () => {
-    if (!draft.label || !draft.url) {
-      return;
-    }
+    if (!draftValid) return;
 
     onChange([
       ...quickLinks,
       {
         id: Date.now().toString(),
-        label: draft.label,
-        url: draft.url,
+        label: draft.label!,
+        actionType: draftType,
+        url: draftType === "link" ? draft.url : undefined,
+        prompt: draftType === "prompt" ? draft.prompt : undefined,
+        showAfterAnswer: Boolean(draft.showAfterAnswer),
         icon: draft.icon ?? "link",
       },
     ]);
-    setDraft({ label: "", url: "", icon: "link" });
+    setDraft({
+      label: "",
+      actionType: "link",
+      url: "",
+      prompt: "",
+      showAfterAnswer: false,
+      icon: "link",
+    });
   };
 
   return (
     <div className="space-y-8">
       <SectionHeader
-        eyebrow="Conversion"
-        title="Quick Links"
-        description="Add shortcut actions for common visitor tasks."
-        action={<Badge variant="secondary">{quickLinks.length} links</Badge>}
+        eyebrow="Engagement"
+        title="Action Menu"
+        description="Configurable buttons shown in the widget's ☰ menu. Each can open a link, start a quote request, or ask the AI a preset question."
+        action={
+          <Badge variant="secondary">{quickLinks.length} buttons</Badge>
+        }
       />
 
       <div className="space-y-4">
@@ -73,74 +101,143 @@ export function QuickLinksPanel({
           <Card className="border-dashed bg-slate-50/70 shadow-none">
             <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-center">
               <div className="flex size-12 items-center justify-center rounded-2xl bg-slate-100 text-blue-600">
-                <Link2 className="size-5" />
+                <MousePointerClick className="size-5" />
               </div>
               <div className="space-y-1">
                 <h3 className="text-base font-semibold text-slate-900">
-                  No quick links yet
+                  No action buttons yet
                 </h3>
                 <p className="max-w-md text-sm leading-6 text-slate-500">
-                  Add booking, contact, or support shortcuts here.
+                  Add buttons like “Request a quote”, “Contact us”, or “What
+                  services do you offer?” to make the chat more engaging.
                 </p>
               </div>
             </CardContent>
           </Card>
         ) : null}
 
-        {quickLinks.map((link) => (
-          <Card key={link.id} className="border-slate-200 bg-white shadow-none">
-            <CardContent className="space-y-4 pt-5">
-              <div className="flex items-center justify-between gap-3">
-                <Badge>{link.icon ?? "link"}</Badge>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeLink(link.id)}
-                >
-                  <Trash2 className="size-4 text-rose-600" />
-                  Remove
-                </Button>
-              </div>
-              <FieldGrid>
-                <Field>
-                  <FieldLabel>Label</FieldLabel>
-                  <Input
-                    value={link.label}
-                    onChange={(event) =>
-                      updateLink(link.id, { label: event.target.value })
+        {quickLinks.map((link) => {
+          const type = actionType(link);
+          return (
+            <Card key={link.id} className="border-slate-200 bg-white shadow-none">
+              <CardContent className="space-y-4 pt-5">
+                <div className="flex items-center justify-between gap-3">
+                  <Badge>{ACTION_LABELS[type]}</Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeLink(link.id)}
+                  >
+                    <Trash2 className="size-4 text-rose-600" />
+                    Remove
+                  </Button>
+                </div>
+                <FieldGrid>
+                  <Field>
+                    <FieldLabel>Button label</FieldLabel>
+                    <Input
+                      value={link.label}
+                      onChange={(event) =>
+                        updateLink(link.id, { label: event.target.value })
+                      }
+                      placeholder="Request a quote"
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel>Action</FieldLabel>
+                    <Select
+                      value={type}
+                      onChange={(event) =>
+                        updateLink(link.id, {
+                          actionType: event.target.value as QuickLinkActionType,
+                        })
+                      }
+                    >
+                      <option value="link">Open a link</option>
+                      <option value="quote">Request a quote</option>
+                      <option value="prompt">Ask the AI</option>
+                    </Select>
+                  </Field>
+                </FieldGrid>
+
+                {type === "link" ? (
+                  <FieldGrid>
+                    <Field>
+                      <FieldLabel>Destination URL</FieldLabel>
+                      <Input
+                        type="url"
+                        value={link.url ?? ""}
+                        onChange={(event) =>
+                          updateLink(link.id, { url: event.target.value })
+                        }
+                        placeholder="https://example.com/contact"
+                      />
+                    </Field>
+                    <Field>
+                      <FieldLabel>Icon</FieldLabel>
+                      <Select
+                        value={link.icon ?? "link"}
+                        onChange={(event) =>
+                          updateLink(link.id, { icon: event.target.value })
+                        }
+                      >
+                        <option value="link">Link</option>
+                        <option value="calendar">Calendar</option>
+                        <option value="globe">Globe</option>
+                        <option value="mail">Mail</option>
+                        <option value="phone">Phone</option>
+                      </Select>
+                    </Field>
+                  </FieldGrid>
+                ) : null}
+
+                {type === "prompt" ? (
+                  <Field>
+                    <FieldLabel>Preset message sent to the AI</FieldLabel>
+                    <Textarea
+                      value={link.prompt ?? ""}
+                      onChange={(event) =>
+                        updateLink(link.id, { prompt: event.target.value })
+                      }
+                      placeholder="What services do you offer and how does pricing work?"
+                      rows={2}
+                    />
+                    <FieldDescription>
+                      When clicked, this is sent as the visitor's message so the
+                      AI answers it inline.
+                    </FieldDescription>
+                  </Field>
+                ) : null}
+
+                {type === "quote" ? (
+                  <FieldDescription>
+                    Opens the Request-a-Quote form. On submit it emails the
+                    visitor and CCs your sales recipients (configured in
+                    Behavior) so everyone shares one thread.
+                  </FieldDescription>
+                ) : null}
+
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-2.5">
+                  <div>
+                    <p className="text-sm font-medium text-slate-800">
+                      Show as CTA after answers
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Also display this button as a call-to-action card under the
+                      AI's replies.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={Boolean(link.showAfterAnswer)}
+                    onCheckedChange={(checked) =>
+                      updateLink(link.id, { showAfterAnswer: checked })
                     }
                   />
-                </Field>
-                <Field>
-                  <FieldLabel>Icon</FieldLabel>
-                  <Select
-                    value={link.icon}
-                    onChange={(event) =>
-                      updateLink(link.id, { icon: event.target.value })
-                    }
-                  >
-                    <option value="link">Link</option>
-                    <option value="calendar">Calendar</option>
-                    <option value="globe">Globe</option>
-                    <option value="mail">Mail</option>
-                    <option value="phone">Phone</option>
-                  </Select>
-                </Field>
-              </FieldGrid>
-              <Field>
-                <FieldLabel>Destination URL</FieldLabel>
-                <Input
-                  type="url"
-                  value={link.url}
-                  onChange={(event) =>
-                    updateLink(link.id, { url: event.target.value })
-                  }
-                  placeholder="https://example.com"
-                />
-              </Field>
-            </CardContent>
-          </Card>
-        ))}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       <Card className="border-dashed bg-slate-50/70 shadow-none">
@@ -151,7 +248,7 @@ export function QuickLinksPanel({
             </div>
             <div>
               <h3 className="text-base font-semibold text-slate-900">
-                Add a quick link
+                Add an action button
               </h3>
               <FieldDescription>
                 Create a new shortcut for the widget menu.
@@ -160,7 +257,7 @@ export function QuickLinksPanel({
           </div>
           <FieldGrid>
             <Field>
-              <FieldLabel>Label</FieldLabel>
+              <FieldLabel>Button label</FieldLabel>
               <Input
                 value={draft.label ?? ""}
                 onChange={(event) =>
@@ -169,42 +266,73 @@ export function QuickLinksPanel({
                     label: event.target.value,
                   }))
                 }
-                placeholder="Book a demo"
+                placeholder="Request a quote"
               />
             </Field>
             <Field>
-              <FieldLabel>Icon</FieldLabel>
+              <FieldLabel>Action</FieldLabel>
               <Select
-                value={draft.icon ?? "link"}
+                value={draftType}
                 onChange={(event) =>
                   setDraft((current) => ({
                     ...current,
-                    icon: event.target.value,
+                    actionType: event.target.value as QuickLinkActionType,
                   }))
                 }
               >
-                <option value="link">Link</option>
-                <option value="calendar">Calendar</option>
-                <option value="globe">Globe</option>
-                <option value="mail">Mail</option>
-                <option value="phone">Phone</option>
+                <option value="link">Open a link</option>
+                <option value="quote">Request a quote</option>
+                <option value="prompt">Ask the AI</option>
               </Select>
             </Field>
           </FieldGrid>
-          <Field>
-            <FieldLabel>Destination URL</FieldLabel>
-            <Input
-              type="url"
-              value={draft.url ?? ""}
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, url: event.target.value }))
+
+          {draftType === "link" ? (
+            <Field>
+              <FieldLabel>Destination URL</FieldLabel>
+              <Input
+                type="url"
+                value={draft.url ?? ""}
+                onChange={(event) =>
+                  setDraft((current) => ({ ...current, url: event.target.value }))
+                }
+                placeholder="https://example.com/contact"
+              />
+            </Field>
+          ) : null}
+
+          {draftType === "prompt" ? (
+            <Field>
+              <FieldLabel>Preset message sent to the AI</FieldLabel>
+              <Textarea
+                value={draft.prompt ?? ""}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    prompt: event.target.value,
+                  }))
+                }
+                placeholder="What services do you offer and how does pricing work?"
+                rows={2}
+              />
+            </Field>
+          ) : null}
+
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+            <p className="text-sm font-medium text-slate-800">
+              Show as CTA after answers
+            </p>
+            <Switch
+              checked={Boolean(draft.showAfterAnswer)}
+              onCheckedChange={(checked) =>
+                setDraft((current) => ({ ...current, showAfterAnswer: checked }))
               }
-              placeholder="https://example.com/demo"
             />
-          </Field>
-          <Button onClick={addLink} disabled={!draft.label || !draft.url}>
+          </div>
+
+          <Button onClick={addLink} disabled={!draftValid}>
             <Plus className="size-4" />
-            Add Link
+            Add button
           </Button>
         </CardContent>
       </Card>

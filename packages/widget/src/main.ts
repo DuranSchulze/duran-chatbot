@@ -48,6 +48,41 @@ if (typeof window !== 'undefined') {
     return container?.dataset.profile ?? ''
   }
 
+  // Cold-start "starter": ping the warmup endpoint so the serverless functions and the
+  // DB connection are already warm before the visitor's first interaction. Fire-and-forget.
+  const warmUp = () => {
+    try {
+      void fetch(`${scriptOrigin}/api/warmup`, { method: 'GET', keepalive: true }).catch(() => {})
+    } catch {
+      /* warmup is best-effort */
+    }
+  }
+
+  // Fetch config with a timeout and a couple of retries. A single cold-start hiccup must
+  // never leave the very first visitor with a key-less (broken) widget.
+  const fetchConfigWithRetry = async (
+    url: string,
+    attempts = 3,
+  ): Promise<Partial<ChatbotConfig> | null> => {
+    for (let i = 0; i < attempts; i++) {
+      try {
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), 8000)
+        const res = await fetch(url, { signal: controller.signal })
+        clearTimeout(timer)
+        if (res.ok) {
+          return (await res.json()) as Partial<ChatbotConfig>
+        }
+      } catch {
+        /* network error / timeout — retry below */
+      }
+      if (i < attempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 400 * (i + 1)))
+      }
+    }
+    return null
+  }
+
   const mountWidget = (config?: Partial<ChatbotConfig>, embedConfig?: WidgetEmbedConfig, profileSlug = '') => {
     window.__chatbotWidgetInstance?.destroy()
     const instance = new ChatbotWidget(config, embedConfig, profileSlug, scriptOrigin)
@@ -60,7 +95,9 @@ if (typeof window !== 'undefined') {
   };
 
   const boot = async () => {
-    let serverConfig: Partial<ChatbotConfig> = {}
+    // Kick off the cold-start warmup immediately, in parallel with the config fetch.
+    warmUp()
+
     const profileSlug = getProfileSlug()
     const configUrl = profileSlug
       ? `${scriptOrigin}/api/config?profile=${encodeURIComponent(profileSlug)}`
@@ -68,14 +105,8 @@ if (typeof window !== 'undefined') {
 
     // Always fetch config from the server that hosts widget.js — this delivers
     // the API key (injected server-side) regardless of which site embeds the widget.
-    try {
-      const res = await fetch(configUrl)
-      if (res.ok) {
-        serverConfig = await res.json() as Partial<ChatbotConfig>
-      }
-    } catch {
-      // Silently fall back to window.ChatbotConfig only
-    }
+    // Retried with a timeout so a cold start doesn't break the first visitor.
+    const serverConfig = (await fetchConfigWithRetry(configUrl)) ?? {}
 
     // window.ChatbotConfig overrides take priority — deep merge nested objects
     const overrides = window.ChatbotConfig ?? {}

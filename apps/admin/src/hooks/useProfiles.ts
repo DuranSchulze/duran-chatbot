@@ -3,6 +3,9 @@ import {
   archiveProfile,
   createProfile,
   fetchProfiles,
+  hardDeleteProfile,
+  reactivateProfile,
+  renameProfile,
   type ProfileMeta,
 } from "@/api/profiles"
 
@@ -41,5 +44,28 @@ export function useProfiles() {
     )
   }
 
-  return { profiles, loading, error, create, archive, reload: load }
+  const hardDelete = async (slug: string): Promise<void> => {
+    await hardDeleteProfile(slug)
+    setProfiles((prev) => prev.filter((p) => p.slug !== slug))
+  }
+
+  const reactivate = async (slug: string): Promise<void> => {
+    await reactivateProfile(slug)
+    setProfiles((prev) =>
+      prev.map((p) => (p.slug === slug ? { ...p, status: "active" as const } : p))
+    )
+  }
+
+  const rename = async (slug: string, name: string, newSlug: string): Promise<void> => {
+    await renameProfile(slug, name, newSlug)
+    setProfiles((prev) =>
+      prev.map((p) =>
+        p.slug === slug
+          ? { ...p, name, slug: newSlug }
+          : p
+      )
+    )
+  }
+
+  return { profiles, loading, error, create, archive, hardDelete, reactivate, rename, reload: load }
 }

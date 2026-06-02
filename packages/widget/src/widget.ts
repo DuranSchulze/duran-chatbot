@@ -6,6 +6,7 @@ import {
   escapeHtml,
   formatMessage,
   getCSSVariables,
+  getCtaCardHTML,
   getFocusInput,
   getLeadFormElements,
   getQuoteCardHTML,
@@ -19,8 +20,9 @@ import { styles } from './styles'
 
 interface Message {
   text: string
-  sender: 'user' | 'ai' | 'error'
+  sender: 'user' | 'ai' | 'error' | 'agent' | 'notice'
   timestamp: Date
+  senderName?: string
 }
 
 interface VisitorProfile {
@@ -50,9 +52,10 @@ function getOrCreateSessionId(email: string): string {
 }
 
 interface StoredMessage {
-  role: 'user' | 'assistant'
+  role: 'user' | 'assistant' | 'admin'
   content: string
   timestamp: number
+  senderName?: string
 }
 
 function loadChatHistory(email: string): StoredMessage[] {
@@ -100,6 +103,11 @@ export class ChatbotWidget {
   private quoteCardShown = false
   private apiOrigin: string
   private sessionId: string = generateSessionId()
+  private pollTimer: ReturnType<typeof setInterval> | null = null
+  // Identifies admin replies already rendered, so polling never duplicates them.
+  private seenAdminKeys = new Set<string>()
+  // The post-answer call-to-action card; kept so only the latest answer shows one.
+  private ctaEl: HTMLElement | null = null
 
   constructor(
     config: Partial<ChatbotConfig> = {},
@@ -121,6 +129,13 @@ export class ChatbotWidget {
     if (this.visitorProfile && this.chatHistory.length > 0) {
       this.restoreChatHistory()
     }
+    if (this.visitorProfile) {
+      this.startPollingForAgentReplies()
+    }
+  }
+
+  private adminKey(content: string, timestamp: number): string {
+    return `${timestamp}:${content}`
   }
 
   private init() {
@@ -181,6 +196,7 @@ export class ChatbotWidget {
       this.sessionId = getOrCreateSessionId(visitorProfile.email)
       this.chatHistory = loadChatHistory(visitorProfile.email)
       this.restoreChatHistory()
+      this.startPollingForAgentReplies()
       setLeadError(root, '')
       setLeadCaptureVisibility(root, visitorProfile)
       getFocusInput(root)?.focus()
@@ -197,8 +213,48 @@ export class ChatbotWidget {
       }
     })
 
+    // Action menu (configurable task buttons)
+    const menuBtn = root.querySelector<HTMLButtonElement>('.cb-menu-btn')
+    const actionMenu = root.querySelector<HTMLElement>('.cb-action-menu')
+
+    menuBtn?.addEventListener('click', (e) => {
+      e.stopPropagation()
+      this.toggleActionMenu()
+    })
+
+    actionMenu?.addEventListener('click', (e) => {
+      const item = (e.target as HTMLElement).closest<HTMLElement>('.cb-action-item')
+      if (!item) return
+      const id = item.dataset.actionId
+      const link = this.config.quickLinks.find((l) => l.id === id)
+      this.closeActionMenu()
+      if (link) this.handleActionClick(link)
+    })
+
+    // Close the popup when clicking elsewhere inside the widget.
+    root.addEventListener('click', (e) => {
+      if (!actionMenu || actionMenu.classList.contains('cb-hidden')) return
+      const target = e.target as HTMLElement
+      if (target.closest('.cb-action-menu') || target.closest('.cb-menu-btn')) return
+      this.closeActionMenu()
+    })
+
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.isOpen) {
+        if (actionMenu && !actionMenu.classList.contains('cb-hidden')) {
+          this.closeActionMenu()
+          return
+        }
+        this.close()
+      }
+    })
+
+    // Click anywhere outside the widget (page background) to close the chat.
+    // composedPath() includes the shadow host for any click inside the widget,
+    // so clicks on the toggle, chat window, menu, etc. never trigger this.
+    document.addEventListener('click', (e) => {
+      if (!this.isOpen || isMobile()) return
+      if (this.host && !e.composedPath().includes(this.host)) {
         this.close()
       }
     })
@@ -215,9 +271,14 @@ export class ChatbotWidget {
   private open() {
     const root = this.getRoot()
 
+    // Re-warm the backend the moment the user opens the chat — they're about to send a
+    // message, so this hides any remaining cold-start latency on chat-log / quote-request.
+    this.warmUpBackend()
+
     this.isOpen = true
     this.container?.classList.add('cb-open')
     this.chatWindow?.setAttribute('aria-hidden', 'false')
+    root?.querySelector('.cb-toggle-btn')?.setAttribute('aria-label', 'Close chat')
 
     if (isMobile()) {
       document.body.style.overflow = 'hidden'
@@ -234,12 +295,51 @@ export class ChatbotWidget {
     this.isOpen = false
     this.container?.classList.remove('cb-open')
     this.chatWindow?.setAttribute('aria-hidden', 'true')
+    this.getRoot()?.querySelector('.cb-toggle-btn')?.setAttribute('aria-label', 'Open chat')
     document.body.style.overflow = ''
+  }
+
+  /**
+   * Pull human contact details (email / phone) from a Dataset entry the admin
+   * tagged as contact info — used as a graceful fallback when the AI is unavailable.
+   * Matches on category, keywords, or title containing "contact".
+   */
+  private getContactInfo(): string | null {
+    const dataset = this.config.dataset ?? []
+    const entry = dataset.find((e) => {
+      const category = (e.category ?? '').toLowerCase()
+      const title = (e.title ?? '').toLowerCase()
+      const keywords = (e.keywords ?? []).map((k) => k.toLowerCase())
+      return (
+        category.includes('contact') ||
+        title.includes('contact') ||
+        keywords.some((k) => k.includes('contact'))
+      )
+    })
+    const content = entry?.content?.trim()
+    return content ? content : null
+  }
+
+  /**
+   * Friendly, non-technical message shown instead of raw errors (failed API, missing
+   * key, bad model, network issues). Includes contact details when configured.
+   */
+  private buildProblemMessage(): string {
+    const base =
+      "Sorry — I'm having trouble responding right now. We're on it!"
+    const contact = this.getContactInfo()
+    if (contact) {
+      return `${base}\n\nIn the meantime, please reach us directly and we'll be glad to help:\n\n${contact}`
+    }
+    return `${base} Please try again in a few moments.`
   }
 
   private async sendMessage(text: string) {
     if (!this.apiKey) {
-      this.addMessage('Error: API key not configured', 'error')
+      // Never surface "API key not configured" to a visitor — show a friendly notice.
+      console.error('Chatbot: API key not configured')
+      this.addMessage(text, 'user')
+      this.addMessage(this.buildProblemMessage(), 'notice')
       return
     }
 
@@ -248,20 +348,38 @@ export class ChatbotWidget {
       !this.quoteCardShown &&
       detectQuoteIntent(text)
 
+    // Capture prior turns BEFORE adding the current message so the model gets context.
+    const history = this.messages
+      .filter((m) => m.sender === 'user' || m.sender === 'ai')
+      .map((m) => ({
+        role: m.sender === 'user' ? ('user' as const) : ('assistant' as const),
+        content: m.text,
+      }))
+
+    // Drop the previous answer's CTA — it should only sit under the latest reply.
+    this.ctaEl?.remove()
+    this.ctaEl = null
+
     this.addMessage(text, 'user')
     this.setLoading(true)
 
+    const bubble = this.createStreamingBubble()
+
     try {
-      const response = await callGeminiAPI(
-        text,
-        this.config.ai,
-        this.config.persona,
-        this.apiKey,
-        this.config.services,
-        this.config.dataset,
-        this.visitorProfile ?? undefined,
-      )
-      this.addMessage(response, 'ai')
+      const response = await callGeminiAPI({
+        message: text,
+        ai: this.config.ai,
+        persona: this.config.persona,
+        apiKey: this.apiKey,
+        services: this.config.services,
+        dataset: this.config.dataset,
+        quickLinks: this.config.quickLinks,
+        history,
+        visitorProfile: this.visitorProfile ?? undefined,
+        onChunk: (fullText) => bubble.update(fullText),
+      })
+
+      bubble.finalize(response)
 
       this.persistExchange(text, response)
       this.logToServer(text, response)
@@ -269,11 +387,59 @@ export class ChatbotWidget {
       if (hasQuoteIntent) {
         this.showQuoteCard()
       }
+
+      this.renderAfterAnswerCta()
     } catch (error) {
       console.error('Chatbot API error:', error)
-      this.addMessage('Sorry, I encountered an error. Please try again.', 'error')
+      bubble.remove()
+      this.addMessage(this.buildProblemMessage(), 'notice')
     } finally {
       this.setLoading(false)
+    }
+  }
+
+  /**
+   * Create an AI message bubble that shows a typing indicator, then streams text into
+   * itself as chunks arrive and renders the final formatted markdown on completion.
+   */
+  private createStreamingBubble() {
+    const messagesContainer = this.getRoot()?.querySelector('.cb-messages')
+    const msgEl = document.createElement('div')
+    msgEl.className = 'cb-message cb-ai-message'
+    msgEl.innerHTML = '<div class="cb-spinner"></div>'
+    messagesContainer?.appendChild(msgEl)
+
+    const scrollToBottom = () => {
+      if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight
+    }
+    scrollToBottom()
+
+    return {
+      update: (fullText: string) => {
+        // Plain, escaped text while streaming — avoids re-parsing partial markdown per chunk.
+        msgEl.innerHTML = `<p>${escapeHtml(fullText)}</p>`
+        scrollToBottom()
+      },
+      finalize: (fullText: string) => {
+        const copyBtn = `<button class="cb-copy-btn" aria-label="Copy message">${copyIconMarkup}</button>`
+        msgEl.innerHTML = formatMessage(fullText) + copyBtn
+
+        const msg: Message = { text: fullText, sender: 'ai', timestamp: new Date() }
+        this.messages.push(msg)
+
+        if (this.config.behavior.showTimestamps) {
+          const time = document.createElement('time')
+          time.className = 'cb-timestamp'
+          time.textContent = msg.timestamp.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+          msgEl.appendChild(time)
+        }
+
+        msgEl.querySelector('.cb-copy-btn')?.addEventListener('click', () => this.copyToClipboard(fullText))
+        scrollToBottom()
+      },
+      remove: () => {
+        msgEl.remove()
+      },
     }
   }
 
@@ -287,11 +453,72 @@ export class ChatbotWidget {
     saveChatHistory(this.visitorProfile.email, this.chatHistory)
   }
 
+  /**
+   * Poll the server for admin/sales ("middleman") replies and render any new ones
+   * inline so the visitor sees a human response live, alongside the AI messages.
+   */
+  private startPollingForAgentReplies(): void {
+    if (this.pollTimer || !this.visitorProfile) return
+
+    // Seed the seen-set from already-rendered admin replies so we never duplicate.
+    for (const m of this.chatHistory) {
+      if (m.role === 'admin') this.seenAdminKeys.add(this.adminKey(m.content, m.timestamp))
+    }
+
+    void this.pollForAgentReplies()
+    this.pollTimer = setInterval(() => void this.pollForAgentReplies(), 12_000)
+  }
+
+  private async pollForAgentReplies(): Promise<void> {
+    if (!this.visitorProfile) return
+    const origin = this.apiOrigin || window.location.origin
+    const profile = this.profileSlug || 'default'
+    try {
+      const res = await fetch(
+        `${origin}/api/messages?profile=${encodeURIComponent(profile)}&sessionId=${encodeURIComponent(this.sessionId)}`,
+      )
+      if (!res.ok) return
+      const data = (await res.json()) as {
+        messages?: Array<{ role: string; content: string; senderName?: string | null; timestamp: string }>
+      }
+      const messages = data.messages ?? []
+      for (const m of messages) {
+        if (m.role !== 'admin') continue
+        const ts = new Date(m.timestamp).getTime()
+        const key = this.adminKey(m.content, ts)
+        if (this.seenAdminKeys.has(key)) continue
+        this.seenAdminKeys.add(key)
+        this.addMessage(m.content, 'agent', m.senderName ?? undefined)
+        if (this.visitorProfile) {
+          this.chatHistory.push({
+            role: 'admin',
+            content: m.content,
+            timestamp: ts,
+            senderName: m.senderName ?? undefined,
+          })
+          saveChatHistory(this.visitorProfile.email, this.chatHistory)
+        }
+      }
+    } catch {
+      /* polling is best-effort — network blips are fine */
+    }
+  }
+
+  private warmUpBackend(): void {
+    const origin = this.apiOrigin || window.location.origin
+    try {
+      void fetch(`${origin}/api/warmup`, { method: 'GET', keepalive: true }).catch(() => {})
+    } catch {
+      /* warmup is best-effort */
+    }
+  }
+
   private logToServer(userMessage: string, aiResponse: string): void {
     const origin = this.apiOrigin || window.location.origin
     console.log(`[Widget] Logging chat → ${origin}/api/chat-log | session=${this.sessionId} | profile=${this.profileSlug || 'default'}`)
     fetch(`${origin}/api/chat-log`, {
       method: 'POST',
+      keepalive: true,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         profile: this.profileSlug || 'default',
@@ -309,19 +536,58 @@ export class ChatbotWidget {
     const messagesContainer = this.getRoot()?.querySelector('.cb-messages')
     if (!messagesContainer) return
     for (const msg of this.chatHistory) {
-      const sender = msg.role === 'user' ? 'user' : 'ai'
-      const existing: Message = { text: msg.content, sender, timestamp: new Date(msg.timestamp) }
+      const sender: Message['sender'] =
+        msg.role === 'user' ? 'user' : msg.role === 'admin' ? 'agent' : 'ai'
+      const existing: Message = {
+        text: msg.content,
+        sender,
+        timestamp: new Date(msg.timestamp),
+        senderName: msg.senderName,
+      }
       this.messages.push(existing)
       const msgEl = document.createElement('div')
       msgEl.className = `cb-message cb-${sender}-message`
-      msgEl.innerHTML = sender === 'ai' ? formatMessage(msg.content) : `<p>${escapeHtml(msg.content)}</p>`
+      const showCopy = sender === 'ai' || sender === 'agent'
+      const copyBtn = showCopy
+        ? `<button class="cb-copy-btn" aria-label="Copy message">${copyIconMarkup}</button>`
+        : ''
+      const label =
+        sender === 'agent'
+          ? `<span class="cb-agent-label">${escapeHtml(this.getAgentDisplayName(msg.senderName))}</span>`
+          : ''
+      const formatted = sender === 'user' ? `<p>${escapeHtml(msg.content)}</p>` : formatMessage(msg.content)
+      msgEl.innerHTML = label + formatted + copyBtn
+      if (showCopy) {
+        msgEl.querySelector('.cb-copy-btn')?.addEventListener('click', () => this.copyToClipboard(msg.content))
+      }
       messagesContainer.appendChild(msgEl)
     }
     messagesContainer.scrollTop = messagesContainer.scrollHeight
+
+    // Re-show the CTA under the last reply if the conversation ended on an answer.
+    const lastRole = this.chatHistory[this.chatHistory.length - 1]?.role
+    if (lastRole === 'assistant' || lastRole === 'admin') {
+      this.renderAfterAnswerCta()
+    }
   }
 
-  private addMessage(text: string, sender: 'user' | 'ai' | 'error') {
-    const msg: Message = { text, sender, timestamp: new Date() }
+  /**
+   * Name shown on a human (admin) reply. Prefers the configured persona so the
+   * conversation reads as one consistent voice — never the admin's login.
+   */
+  private getAgentDisplayName(stored?: string): string {
+    const persona = this.config.persona
+    if (persona?.enabled && persona.personaName?.trim()) {
+      return persona.personaName.trim()
+    }
+    if (stored && stored.trim() && stored.trim().toLowerCase() !== 'admin') {
+      return stored.trim()
+    }
+    return this.config.appearance.companyName?.trim() || 'Support'
+  }
+
+  private addMessage(text: string, sender: 'user' | 'ai' | 'error' | 'agent' | 'notice', senderName?: string) {
+    const msg: Message = { text, sender, timestamp: new Date(), senderName }
     this.messages.push(msg)
 
     const messagesContainer = this.getRoot()?.querySelector('.cb-messages')
@@ -330,12 +596,20 @@ export class ChatbotWidget {
     const msgEl = document.createElement('div')
     msgEl.className = `cb-message cb-${sender}-message`
 
-    const copyBtn =
-      sender === 'ai'
-        ? `<button class="cb-copy-btn" aria-label="Copy message">${copyIconMarkup}</button>`
-        : ''
+    // AI and human (admin) replies both get a copy button.
+    const showCopy = sender === 'ai' || sender === 'agent'
+    const copyBtn = showCopy
+      ? `<button class="cb-copy-btn" aria-label="Copy message">${copyIconMarkup}</button>`
+      : ''
 
-    msgEl.innerHTML = (sender === 'ai' ? formatMessage(text) : `<p>${escapeHtml(text)}</p>`) + copyBtn
+    const label =
+      sender === 'agent'
+        ? `<span class="cb-agent-label">${escapeHtml(this.getAgentDisplayName(senderName))}</span>`
+        : ''
+    // Format (linkify / line breaks) for assistant, agent, and notice bubbles.
+    const useRichFormat = sender === 'ai' || sender === 'agent' || sender === 'notice'
+    const formatted = useRichFormat ? formatMessage(text) : `<p>${escapeHtml(text)}</p>`
+    msgEl.innerHTML = label + formatted + copyBtn
 
     if (this.config.behavior.showTimestamps) {
       const time = document.createElement('time')
@@ -347,7 +621,7 @@ export class ChatbotWidget {
     messagesContainer.appendChild(msgEl)
     messagesContainer.scrollTop = messagesContainer.scrollHeight
 
-    if (sender === 'ai') {
+    if (showCopy) {
       const btn = msgEl.querySelector('.cb-copy-btn')
       btn?.addEventListener('click', () => this.copyToClipboard(text))
     }
@@ -470,8 +744,76 @@ export class ChatbotWidget {
     window.visualViewport.addEventListener('scroll', onResize)
   }
 
-  private showQuoteCard() {
-    if (this.quoteCardShown) return
+  // ── Action menu ───────────────────────────────────────────────
+  private toggleActionMenu() {
+    const menu = this.getRoot()?.querySelector<HTMLElement>('.cb-action-menu')
+    if (!menu) return
+    menu.classList.contains('cb-hidden') ? this.openActionMenu() : this.closeActionMenu()
+  }
+
+  private openActionMenu() {
+    const root = this.getRoot()
+    root?.querySelector('.cb-action-menu')?.classList.remove('cb-hidden')
+    root?.querySelector('.cb-menu-btn')?.setAttribute('aria-expanded', 'true')
+  }
+
+  private closeActionMenu() {
+    const root = this.getRoot()
+    root?.querySelector('.cb-action-menu')?.classList.add('cb-hidden')
+    root?.querySelector('.cb-menu-btn')?.setAttribute('aria-expanded', 'false')
+  }
+
+  /**
+   * Render the post-answer call-to-action card (e.g. "Book a Consultation") under
+   * the most recent AI reply. Only one CTA exists at a time — it follows the latest answer.
+   */
+  private renderAfterAnswerCta() {
+    this.ctaEl?.remove()
+    this.ctaEl = null
+
+    const buttons = (this.config.quickLinks ?? []).filter((l) => l.showAfterAnswer)
+    if (buttons.length === 0) return
+
+    const messagesContainer = this.getRoot()?.querySelector('.cb-messages')
+    if (!messagesContainer) return
+
+    const heading = this.config.behavior.ctaHeading?.trim() || 'Ready to take the next step?'
+    const wrap = document.createElement('div')
+    wrap.innerHTML = getCtaCardHTML(buttons, heading)
+    const card = wrap.firstElementChild as HTMLElement | null
+    if (!card) return
+
+    card.addEventListener('click', (e) => {
+      const item = (e.target as HTMLElement).closest<HTMLElement>('.cb-cta-btn')
+      if (!item) return
+      const link = this.config.quickLinks.find((l) => l.id === item.dataset.actionId)
+      if (link) this.handleActionClick(link)
+    })
+
+    messagesContainer.appendChild(card)
+    messagesContainer.scrollTop = messagesContainer.scrollHeight
+    this.ctaEl = card
+  }
+
+  /** Dispatch a configurable action button by its type. */
+  private handleActionClick(link: { actionType?: string; url?: string; prompt?: string; label: string }) {
+    const type = link.actionType ?? 'link'
+    if (type === 'link') {
+      if (link.url) window.open(link.url, '_blank', 'noopener,noreferrer')
+      return
+    }
+    if (type === 'prompt') {
+      const text = (link.prompt ?? link.label).trim()
+      if (text) void this.sendMessage(text)
+      return
+    }
+    if (type === 'quote') {
+      this.showQuoteCard('starter', true)
+    }
+  }
+
+  private showQuoteCard(mode: 'internal' | 'starter' = 'internal', force = false) {
+    if (this.quoteCardShown && !force) return
     this.quoteCardShown = true
 
     const messagesContainer = this.getRoot()?.querySelector('.cb-messages')
@@ -499,11 +841,11 @@ export class ChatbotWidget {
       if (submitBtn) submitBtn.disabled = true
       if (submitBtn) submitBtn.textContent = 'Sending…'
 
-      await this.handleQuoteSubmit(service, card)
+      await this.handleQuoteSubmit(service, card, mode)
     })
   }
 
-  private async handleQuoteSubmit(service: string, card: HTMLElement) {
+  private async handleQuoteSubmit(service: string, card: HTMLElement, mode: 'internal' | 'starter' = 'internal') {
     const profile = this.visitorProfile
     const submitBtn = card.querySelector<HTMLButtonElement>('.cb-quote-submit')
     const errorEl = card.querySelector<HTMLElement>('.cb-quote-error')
@@ -519,6 +861,7 @@ export class ChatbotWidget {
           message: service,
           service,
           profile: this.profileSlug || undefined,
+          emailVisitor: mode === 'starter',
         }),
       })
 
@@ -529,7 +872,10 @@ export class ChatbotWidget {
 
       const successEl = document.createElement('div')
       successEl.className = 'cb-quote-success'
-      successEl.textContent = '✓ Request sent! Our team will be in touch shortly.'
+      successEl.textContent =
+        mode === 'starter'
+          ? '✓ Sent! Check your email — our team is included and will follow up shortly.'
+          : '✓ Request sent! Our team will be in touch shortly.'
       card.replaceWith(successEl)
 
       const messagesContainer = this.getRoot()?.querySelector<HTMLElement>('.cb-messages')
@@ -553,6 +899,10 @@ export class ChatbotWidget {
   }
 
   destroy() {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer)
+      this.pollTimer = null
+    }
     document.body.style.overflow = ''
     this.host?.remove()
     this.shadowRoot = null

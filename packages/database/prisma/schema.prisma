@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Profiles (replaces Redis chatbot:profiles + chatbot:profile:{slug})
+model Profile {
+  slug      String   @id
+  name      String
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  config           Config?
+  conversations    Conversation[]
+  quoteRequests    QuoteRequest[]
+  emailIntegration EmailIntegration?
+}
+
+// Per-profile email provider integration (Brevo, Mailtrap, Mandrill, Gmail, custom SMTP).
+// The provider secret (API key / SMTP password) is stored encrypted at rest.
+model EmailIntegration {
+  id        String  @id @default(uuid())
+  profileId String  @unique
+  profile   Profile @relation(fields: [profileId], references: [slug], onDelete: Cascade)
+
+  provider  String  @default("gmail")
+  host      String?
+  port      Int?
+  username  String?
+  /// AES-256-GCM ciphertext of the API key / SMTP password (never returned to clients)
+  secretEnc String?
+  fromEmail String?
+  fromName  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Full chatbot config (replaces Redis profile JSON)
+model Config {
+  id        String  @id @default(uuid())
+  profileId String  @unique
+  profile   Profile @relation(fields: [profileId], references: [slug], onDelete: Cascade)
+
+  appearance Json
+  ai         Json
+  persona    Json
+  services   Json
+  quickLinks Json
+  dataset    Json
+  behavior   Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Conversations (replaces Google Sheets tab data)
+model Conversation {
+  id         String   @id @default(uuid())
+  sessionId  String
+  profileId  String
+  profile    Profile  @relation(fields: [profileId], references: [slug], onDelete: Cascade)
+  userName    String    @default("")
+  userEmail   String    @default("")
+  firstSeen   DateTime  @default(now())
+  lastActive  DateTime  @default(now())
+  adminReadAt DateTime?
+
+  messages Message[]
+
+  @@unique([sessionId, profileId])
+  @@index([profileId])
+  @@index([lastActive])
+}
+
+// Individual messages (replaces Google Sheets rows)
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String
+  content        String
+  senderName     String?
+  timestamp      DateTime     @default(now())
+
+  @@index([conversationId, timestamp])
+}
+
+// Quote requests (persisted alongside email notifications)
+model QuoteRequest {
+  id        String   @id @default(uuid())
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [slug], onDelete: Cascade)
+  name      String
+  email     String
+  message   String
+  service   String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([profileId, createdAt])
+}

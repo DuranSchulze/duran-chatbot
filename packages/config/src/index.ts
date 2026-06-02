@@ -74,13 +74,27 @@ export interface PersonaConfig {
   audienceNotes: string;
 }
 
+/**
+ * What happens when a visitor clicks an action button in the widget menu.
+ * - `link`   → open a URL in a new tab (Contact Us, pricing page, …)
+ * - `quote`  → open the Request-a-Quote card (emails the visitor, CCs sales)
+ * - `prompt` → send a preset message to the AI so it answers inline
+ */
+export type QuickLinkActionType = 'link' | 'quote' | 'prompt';
+
 export interface QuickLink {
   /** Unique ID */
   id: string;
   /** Display label */
   label: string;
-  /** URL to open */
-  url: string;
+  /** Action performed on click (defaults to 'link' for backward compatibility) */
+  actionType?: QuickLinkActionType;
+  /** URL to open — used when actionType is 'link' */
+  url?: string;
+  /** Preset message sent to the AI — used when actionType is 'prompt' */
+  prompt?: string;
+  /** Also surface this button as a call-to-action card after the AI answers */
+  showAfterAnswer?: boolean;
   /** Icon name (optional, from lucide icons) */
   icon?: string;
 }
@@ -132,6 +146,10 @@ export interface BehaviorConfig {
   quoteNotifyCC: string[];
   /** Subject template for internal quote notification emails */
   quoteEmailSubject: string;
+  /** Subject template for the visitor-facing "starter" quote email (To: visitor, CC: sales) */
+  quoteStarterSubject?: string;
+  /** Heading shown above the post-answer call-to-action card */
+  ctaHeading?: string;
 }
 
 /** A chatbot profile wrapping a full config with metadata */

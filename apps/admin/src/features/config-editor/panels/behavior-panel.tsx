@@ -35,6 +35,21 @@ export function BehaviorPanel({ behavior, onChange }: BehaviorPanelProps) {
 
       <div className="space-y-5">
         <Field className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+          <FieldLabel htmlFor="ctaHeading">Call-to-action heading</FieldLabel>
+          <FieldDescription>
+            Shown above the buttons in the CTA card that appears after the AI
+            answers (toggle buttons on in the Action Menu).
+          </FieldDescription>
+          <Input
+            id="ctaHeading"
+            type="text"
+            value={behavior.ctaHeading ?? ""}
+            onChange={(event) => update("ctaHeading", event.target.value)}
+            placeholder="Ready to take the next step?"
+          />
+        </Field>
+
+        <Field className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
           <FieldRow>
             <div>
               <FieldLabel>Show timestamps</FieldLabel>
@@ -164,7 +179,9 @@ export function BehaviorPanel({ behavior, onChange }: BehaviorPanelProps) {
           </Field>
 
           <Field>
-            <FieldLabel htmlFor="quoteEmailSubject">Email subject</FieldLabel>
+            <FieldLabel htmlFor="quoteEmailSubject">
+              Internal email subject
+            </FieldLabel>
             <Input
               id="quoteEmailSubject"
               type="text"
@@ -173,6 +190,21 @@ export function BehaviorPanel({ behavior, onChange }: BehaviorPanelProps) {
                 update("quoteEmailSubject", event.target.value)
               }
               placeholder="New Quote Request via Chatbot"
+            />
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="quoteStarterSubject">
+              Visitor starter email subject
+            </FieldLabel>
+            <Input
+              id="quoteStarterSubject"
+              type="text"
+              value={behavior.quoteStarterSubject ?? ""}
+              onChange={(event) =>
+                update("quoteStarterSubject", event.target.value)
+              }
+              placeholder="Your request to {company}"
             />
           </Field>
         </div>

@@ -1,64 +1,8 @@
-import fs from "node:fs";
-import path from "node:path";
-import { createClient } from "redis";
+import prisma from "@duran-chatbot/database";
 import { mergeWithDefaults } from "@duran-chatbot/config";
 
-const PROFILES_INDEX_KEY = "chatbot:profiles";
-const PROFILE_KEY = (slug) => `chatbot:profile:${slug}`;
-const LEGACY_CONFIG_KEY = "chatbot:config";
 const DEFAULT_SLUG = "duran-schulze";
-const fallbackConfigPath = path.join(process.cwd(), "data", "config.json");
-
-const redisUrl = process.env.REDIS_URL;
-const redis = redisUrl ? createClient({ url: redisUrl }) : null;
-const redisConnection = redis ? redis.connect() : null;
-
-async function getRedisClient() {
-  if (!redis || !redisConnection) {
-    throw new Error("REDIS_URL is not configured");
-  }
-  await redisConnection;
-  return redis;
-}
-
-function readFallbackConfig() {
-  const file = fs.readFileSync(fallbackConfigPath, "utf8");
-  return mergeWithDefaults(JSON.parse(file));
-}
-
-/** Ensure the profiles index is bootstrapped. Migrates legacy config if needed. */
-async function ensureBootstrapped(client) {
-  const existingIndex = await client.get(PROFILES_INDEX_KEY);
-  if (existingIndex) return;
-
-  let config;
-  const legacyRaw = await client.get(LEGACY_CONFIG_KEY);
-  if (legacyRaw) {
-    config = mergeWithDefaults(JSON.parse(legacyRaw));
-  } else {
-    config = readFallbackConfig();
-  }
-
-  const profile = {
-    slug: DEFAULT_SLUG,
-    name: "Duran Schulze",
-    status: "active",
-    createdAt: new Date().toISOString(),
-  };
-
-  await client.set(PROFILE_KEY(DEFAULT_SLUG), JSON.stringify(config));
-  await client.set(PROFILES_INDEX_KEY, JSON.stringify([profile]));
-}
-
-async function getProfilesIndex(client) {
-  await ensureBootstrapped(client);
-  const raw = await client.get(PROFILES_INDEX_KEY);
-  return raw ? JSON.parse(raw) : [];
-}
-
-async function saveProfilesIndex(client, profiles) {
-  await client.set(PROFILES_INDEX_KEY, JSON.stringify(profiles));
-}
+const DEFAULT_PROFILE_NAME = "Duran Schulze";
 
 function slugify(name) {
   return name
@@ -68,9 +12,7 @@ function slugify(name) {
 }
 
 async function readRequestBody(req) {
-  if (req.body && typeof req.body === "object") {
-    return req.body;
-  }
+  if (req.body && typeof req.body === "object") return req.body;
   const chunks = [];
   for await (const chunk of req) {
     chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
@@ -79,37 +21,90 @@ async function readRequestBody(req) {
   return rawBody ? JSON.parse(rawBody) : {};
 }
 
+function configRowToPartial(config) {
+  if (!config) return {};
+  return {
+    appearance: config.appearance ?? {},
+    ai: config.ai ?? {},
+    persona: config.persona ?? {},
+    services: config.services ?? [],
+    quickLinks: config.quickLinks ?? [],
+    dataset: config.dataset ?? [],
+    behavior: config.behavior ?? {},
+  };
+}
+
+function buildDefaultConfigData() {
+  const defaults = mergeWithDefaults({});
+  const {
+    ai: { apiKey: _dropped, ...ai },
+    ...rest
+  } = defaults;
+  return {
+    appearance: rest.appearance,
+    ai,
+    persona: rest.persona,
+    services: rest.services,
+    quickLinks: rest.quickLinks,
+    dataset: rest.dataset,
+    behavior: rest.behavior,
+  };
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS",
+  );
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (req.method === "OPTIONS") {
     res.status(204).end();
     return;
   }
 
-  const slug = req.query?.slug ?? new URL(req.url, "http://localhost").searchParams.get("slug");
+  let slug =
+    req.query?.slug ??
+    new URL(req.url, "http://localhost").searchParams.get("slug");
 
   try {
-    const client = await getRedisClient();
-
     if (req.method === "GET") {
       if (slug) {
-        const profiles = await getProfilesIndex(client);
-        const meta = profiles.find((p) => p.slug === slug);
-        if (!meta) {
+        const profile = await prisma.profile.findUnique({
+          where: { slug },
+          include: { config: true },
+        });
+        if (!profile) {
           res.status(404).json({ error: "Profile not found" });
           return;
         }
-        const raw = await client.get(PROFILE_KEY(slug));
-        const config = raw ? mergeWithDefaults(JSON.parse(raw)) : readFallbackConfig();
-        res.status(200).json({ ...meta, config });
+        const merged = mergeWithDefaults(configRowToPartial(profile.config));
+        const {
+          ai: { apiKey: _dropped, ...ai },
+          ...rest
+        } = merged;
+        res.status(200).json({
+          slug: profile.slug,
+          name: profile.name,
+          status: profile.status,
+          createdAt: profile.createdAt.toISOString(),
+          config: { ...rest, ai },
+        });
         return;
       }
 
-      const profiles = await getProfilesIndex(client);
-      res.status(200).json({ profiles });
+      const profiles = await prisma.profile.findMany({
+        orderBy: { createdAt: "asc" },
+      });
+      res.status(200).json({
+        profiles: profiles.map((p) => ({
+          slug: p.slug,
+          name: p.name,
+          status: p.status,
+          createdAt: p.createdAt.toISOString(),
+        })),
+      });
       return;
     }
 
@@ -124,30 +119,55 @@ export default async function handler(req, res) {
       const rawSlug = body.slug ? body.slug.trim() : slugify(name);
       const finalSlug = rawSlug || slugify(name);
 
-      const profiles = await getProfilesIndex(client);
-      if (profiles.find((p) => p.slug === finalSlug)) {
-        res.status(409).json({ error: "A profile with this slug already exists" });
+      const existing = await prisma.profile.findUnique({
+        where: { slug: finalSlug },
+      });
+      if (existing) {
+        res
+          .status(409)
+          .json({ error: "A profile with this slug already exists" });
         return;
       }
 
-      const newProfile = {
-        slug: finalSlug,
-        name,
-        status: "active",
-        createdAt: new Date().toISOString(),
-      };
+      let configData = buildDefaultConfigData();
 
-      const baseConfig = body.cloneFrom
-        ? (() => {
-            const srcRaw = null;
-            return srcRaw ? mergeWithDefaults(JSON.parse(srcRaw)) : readFallbackConfig();
-          })()
-        : readFallbackConfig();
+      if (body.cloneFrom) {
+        const source = await prisma.profile.findUnique({
+          where: { slug: body.cloneFrom },
+          include: { config: true },
+        });
+        if (source?.config) {
+          const {
+            ai: { apiKey: _dropped, ...ai },
+            ...rest
+          } = mergeWithDefaults(configRowToPartial(source.config));
+          configData = {
+            appearance: rest.appearance,
+            ai,
+            persona: rest.persona,
+            services: rest.services,
+            quickLinks: rest.quickLinks,
+            dataset: rest.dataset,
+            behavior: rest.behavior,
+          };
+        }
+      }
 
-      await client.set(PROFILE_KEY(finalSlug), JSON.stringify(baseConfig));
-      await saveProfilesIndex(client, [...profiles, newProfile]);
+      const newProfile = await prisma.profile.create({
+        data: {
+          slug: finalSlug,
+          name,
+          status: "active",
+          config: { create: configData },
+        },
+      });
 
-      res.status(201).json(newProfile);
+      res.status(201).json({
+        slug: newProfile.slug,
+        name: newProfile.name,
+        status: newProfile.status,
+        createdAt: newProfile.createdAt.toISOString(),
+      });
       return;
     }
 
@@ -157,25 +177,105 @@ export default async function handler(req, res) {
         return;
       }
 
-      const profiles = await getProfilesIndex(client);
-      const idx = profiles.findIndex((p) => p.slug === slug);
-      if (idx === -1) {
+      const profile = await prisma.profile.findUnique({ where: { slug } });
+      if (!profile) {
         res.status(404).json({ error: "Profile not found" });
         return;
       }
 
       const body = await readRequestBody(req);
 
+      // Allow renaming the slug (primary key — requires updating FK references)
+      if (
+        body.slug &&
+        typeof body.slug === "string" &&
+        body.slug.trim() &&
+        body.slug !== slug
+      ) {
+        const newSlug = body.slug.trim();
+
+        // Validate slug format
+        if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(newSlug)) {
+          res.status(400).json({
+            error: "Slug must use only lowercase letters, numbers, and hyphens",
+          });
+          return;
+        }
+
+        // Check uniqueness
+        const existing = await prisma.profile.findUnique({
+          where: { slug: newSlug },
+        });
+        if (existing) {
+          res
+            .status(409)
+            .json({ error: "A profile with this slug already exists" });
+          return;
+        }
+
+        // Transaction: update slug in Profile + all FK references
+        await prisma.$transaction([
+          prisma.$executeRawUnsafe(
+            `UPDATE "Profile" SET slug = $1 WHERE slug = $2`,
+            newSlug,
+            slug,
+          ),
+          prisma.$executeRawUnsafe(
+            `UPDATE "Config" SET "profileId" = $1 WHERE "profileId" = $2`,
+            newSlug,
+            slug,
+          ),
+          prisma.$executeRawUnsafe(
+            `UPDATE "Conversation" SET "profileId" = $1 WHERE "profileId" = $2`,
+            newSlug,
+            slug,
+          ),
+          prisma.$executeRawUnsafe(
+            `UPDATE "QuoteRequest" SET "profileId" = $1 WHERE "profileId" = $2`,
+            newSlug,
+            slug,
+          ),
+        ]);
+
+        // Update the query slug so subsequent operations use the new one
+        slug = newSlug;
+      }
+
+      // Allow reactivating an archived profile
+      if (body.status && ["active", "archived"].includes(body.status)) {
+        await prisma.profile.update({
+          where: { slug },
+          data: { status: body.status },
+        });
+      }
+
       if (body.config) {
-        const geminiApiKey = process.env.GEMINI_API_KEY ?? "";
         const normalized = mergeWithDefaults(body.config);
-        const { ai: { apiKey: _dropped, ...ai }, ...rest } = normalized;
-        await client.set(PROFILE_KEY(slug), JSON.stringify({ ...rest, ai }));
+        const {
+          ai: { apiKey: _dropped, ...ai },
+          ...rest
+        } = normalized;
+        const configData = {
+          appearance: rest.appearance,
+          ai,
+          persona: rest.persona,
+          services: rest.services,
+          quickLinks: rest.quickLinks,
+          dataset: rest.dataset,
+          behavior: rest.behavior,
+        };
+        await prisma.config.upsert({
+          where: { profileId: slug },
+          create: { profileId: slug, ...configData },
+          update: configData,
+        });
       }
 
       if (body.name) {
-        profiles[idx] = { ...profiles[idx], name: body.name };
-        await saveProfilesIndex(client, profiles);
+        await prisma.profile.update({
+          where: { slug },
+          data: { name: body.name },
+        });
       }
 
       res.status(200).json({ success: true });
@@ -188,22 +288,72 @@ export default async function handler(req, res) {
         return;
       }
 
-      const profiles = await getProfilesIndex(client);
-      const idx = profiles.findIndex((p) => p.slug === slug);
-      if (idx === -1) {
+      const urlParams = new URL(req.url, "http://localhost").searchParams;
+      const mode = urlParams.get("mode") || "archive";
+
+      const profile = await prisma.profile.findUnique({ where: { slug } });
+      if (!profile) {
         res.status(404).json({ error: "Profile not found" });
         return;
       }
 
-      if (profiles.filter((p) => p.status === "active").length <= 1) {
-        res.status(400).json({ error: "Cannot archive the last active profile" });
+      if (mode === "hard") {
+        // Permanently delete the profile and ALL connected data.
+        // Delete in dependency order (children first) as a safety net
+        // on top of Prisma's onDelete: Cascade.
+        await prisma.$transaction([
+          // 1. Messages belonging to this profile's conversations
+          prisma.$executeRawUnsafe(
+            `DELETE FROM "Message" WHERE "conversationId" IN (SELECT "id" FROM "Conversation" WHERE "profileId" = $1)`,
+            slug,
+          ),
+          // 2. Conversations
+          prisma.$executeRawUnsafe(
+            `DELETE FROM "Conversation" WHERE "profileId" = $1`,
+            slug,
+          ),
+          // 3. Quote requests
+          prisma.$executeRawUnsafe(
+            `DELETE FROM "QuoteRequest" WHERE "profileId" = $1`,
+            slug,
+          ),
+          // 4. Config
+          prisma.$executeRawUnsafe(
+            `DELETE FROM "Config" WHERE "profileId" = $1`,
+            slug,
+          ),
+          // 5. Email integration
+          prisma.$executeRawUnsafe(
+            `DELETE FROM "EmailIntegration" WHERE "profileId" = $1`,
+            slug,
+          ),
+          // 6. The profile itself
+          prisma.$executeRawUnsafe(
+            `DELETE FROM "Profile" WHERE "slug" = $1`,
+            slug,
+          ),
+        ]);
+        res.status(200).json({ success: true, action: "deleted" });
         return;
       }
 
-      profiles[idx] = { ...profiles[idx], status: "archived" };
-      await saveProfilesIndex(client, profiles);
+      // Default: archive (soft delete)
+      const activeCount = await prisma.profile.count({
+        where: { status: "active" },
+      });
+      if (activeCount <= 1) {
+        res
+          .status(400)
+          .json({ error: "Cannot archive the last active profile" });
+        return;
+      }
 
-      res.status(200).json({ success: true });
+      await prisma.profile.update({
+        where: { slug },
+        data: { status: "archived" },
+      });
+
+      res.status(200).json({ success: true, action: "archived" });
       return;
     }
 

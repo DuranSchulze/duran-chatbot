@@ -76,3 +76,34 @@ export async function archiveProfile(slug: string): Promise<void> {
     throw new Error(await getErrorMessage(response, `Failed to archive profile (${response.status})`))
   }
 }
+
+export async function hardDeleteProfile(slug: string): Promise<void> {
+  const response = await fetch(`${PROFILES_PATH}?slug=${encodeURIComponent(slug)}&mode=hard`, {
+    method: "DELETE",
+  })
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, `Failed to delete profile (${response.status})`))
+  }
+}
+
+export async function reactivateProfile(slug: string): Promise<void> {
+  const response = await fetch(`${PROFILES_PATH}?slug=${encodeURIComponent(slug)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status: "active" }),
+  })
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, `Failed to reactivate profile (${response.status})`))
+  }
+}
+
+export async function renameProfile(slug: string, name: string, newSlug: string): Promise<void> {
+  const response = await fetch(`${PROFILES_PATH}?slug=${encodeURIComponent(slug)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, slug: newSlug }),
+  })
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response, `Failed to rename profile (${response.status})`))
+  }
+}

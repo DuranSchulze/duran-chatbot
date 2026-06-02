@@ -9,28 +9,59 @@ import {
   User,
   Clock,
   LogOut,
-  Sheet,
-  CheckCircle2,
-  XCircle,
-  Loader2,
-  Pencil,
+  Send,
+  AlertCircle,
+  Headset,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { getAuthHeaders } from "@/lib/auth";
 import {
   fetchConversations,
-  checkSheetsStatus,
-  testSheetWrite,
+  sendAdminReply,
+  markConversationRead,
   UnauthorizedError,
   type ConversationSession,
-  type SheetsStatus,
 } from "@/api/conversations";
 
-const PROFILES = [
-  { slug: "duran-schulze", label: "Duran Schulze" },
-  { slug: "filepino", label: "FilePino" },
-];
+/** A conversation needs a reply when the visitor sent the last message. */
+function needsReply(session: ConversationSession): boolean {
+  const last = session.messages[session.messages.length - 1];
+  return last?.role === "user";
+}
+
+/** Unread = visitor activity since the admin last opened the conversation. */
+function isUnread(session: ConversationSession): boolean {
+  if (!session.adminReadAt) return session.messages.length > 0;
+  return new Date(session.lastActive) > new Date(session.adminReadAt);
+}
+
+/** Render message text with clickable links (so pasted URLs are tappable). */
+function renderWithLinks(text: string) {
+  return text.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+    /^https?:\/\//.test(part) ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline break-all"
+      >
+        {part}
+      </a>
+    ) : (
+      part
+    ),
+  );
+}
+
+interface ProfileMeta {
+  slug: string;
+  name: string;
+  status: string;
+  createdAt: string;
+}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString("en-US", {
@@ -64,62 +95,55 @@ function exportSessionAsCSV(session: ConversationSession) {
 export function ConversationsPage() {
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const [activeProfile, setActiveProfile] = useState(PROFILES[0].slug);
+  const [profiles, setProfiles] = useState<ProfileMeta[]>([]);
+  const [activeProfile, setActiveProfile] = useState("");
   const [sessions, setSessions] = useState<ConversationSession[]>([]);
   const [selected, setSelected] = useState<ConversationSession | null>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
-
-  const [sheetsStatus, setSheetsStatus] = useState<SheetsStatus | null>(null);
-  const [statusChecking, setStatusChecking] = useState(false);
-  const [testWriting, setTestWriting] = useState(false);
-  const [testWriteResult, setTestWriteResult] = useState<{
-    ok: boolean;
-    msg: string;
-  } | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [replyError, setReplyError] = useState("");
   const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const checkStatus = useCallback(async () => {
-    setStatusChecking(true);
-    try {
-      const status = await checkSheetsStatus();
-      setSheetsStatus(status);
-    } catch {
-      setSheetsStatus({ connected: false, error: "Failed to reach server" });
-    } finally {
-      setStatusChecking(false);
-    }
-  }, []);
-
-  const handleTestWrite = useCallback(async () => {
-    setTestWriting(true);
-    setTestWriteResult(null);
-    try {
-      const result = await testSheetWrite();
-      setTestWriteResult(
-        result.success
-          ? { ok: true, msg: result.message ?? "Row written successfully" }
-          : { ok: false, msg: result.error ?? "Write failed" },
-      );
-    } catch {
-      setTestWriteResult({ ok: false, msg: "Request failed" });
-    } finally {
-      setTestWriting(false);
-      setTimeout(() => setTestWriteResult(null), 6000);
-    }
-  }, []);
+  // Load active profiles once on mount
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch("/api/profiles", { headers: getAuthHeaders() });
+        if (res.status === 401) {
+          logout();
+          navigate("/login", { replace: true });
+          return;
+        }
+        if (res.ok) {
+          const data = (await res.json()) as { profiles: ProfileMeta[] };
+          const active = data.profiles.filter((p) => p.status === "active");
+          setProfiles(active);
+          if (active.length > 0) setActiveProfile(active[0].slug);
+        }
+      } catch {
+        // silently fail — conversations will just be empty
+      }
+    })();
+  }, [logout, navigate]);
 
   const load = useCallback(
     async (showRefresh = false) => {
+      if (!activeProfile) return;
       if (showRefresh) setRefreshing(true);
       else setLoading(true);
       setError("");
       try {
         const data = await fetchConversations(activeProfile);
         setSessions(data);
-        setSelected(null);
+        // Keep the open conversation open across auto-refreshes, picking up any
+        // new messages, instead of closing it every cycle.
+        setSelected((prev) =>
+          prev ? (data.find((s) => s.sessionId === prev.sessionId) ?? null) : null,
+        );
       } catch (err) {
         if (err instanceof UnauthorizedError) {
           logout();
@@ -137,8 +161,7 @@ export function ConversationsPage() {
 
   useEffect(() => {
     void load();
-    void checkStatus();
-  }, [load, checkStatus]);
+  }, [load]);
 
   useEffect(() => {
     autoRefreshRef.current = setInterval(() => void load(true), 60_000);
@@ -156,6 +179,72 @@ export function ConversationsPage() {
   function handleLogout() {
     logout();
     navigate("/login", { replace: true });
+  }
+
+  function handleSelect(session: ConversationSession) {
+    setSelected(session);
+    setReplyText("");
+    setReplyError("");
+    // Mark as read locally + on the server so the unread badge clears.
+    if (isUnread(session)) {
+      const readAt = new Date().toISOString();
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.sessionId === session.sessionId ? { ...s, adminReadAt: readAt } : s,
+        ),
+      );
+      void markConversationRead(activeProfile, session.sessionId).catch((err) => {
+        if (err instanceof UnauthorizedError) {
+          logout();
+          navigate("/login", { replace: true });
+        }
+      });
+    }
+  }
+
+  async function handleSendReply() {
+    if (!selected) return;
+    const content = replyText.trim();
+    if (!content || sending) return;
+    setSending(true);
+    setReplyError("");
+    try {
+      const message = await sendAdminReply(activeProfile, selected.sessionId, content);
+      const nowIso = message.timestamp;
+      // Append optimistically to the open conversation and the list.
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.sessionId === selected.sessionId
+            ? {
+                ...s,
+                messages: [...s.messages, message],
+                lastActive: nowIso,
+                adminReadAt: nowIso,
+              }
+            : s,
+        ),
+      );
+      setSelected((prev) =>
+        prev
+          ? {
+              ...prev,
+              messages: [...prev.messages, message],
+              lastActive: nowIso,
+              adminReadAt: nowIso,
+            }
+          : prev,
+      );
+      setReplyText("");
+    } catch (err) {
+      if (err instanceof UnauthorizedError) {
+        logout();
+        navigate("/login", { replace: true });
+        return;
+      }
+      setReplyError(err instanceof Error ? err.message : "Failed to send reply");
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -208,26 +297,28 @@ export function ConversationsPage() {
         </div>
 
         {/* Profile tabs */}
-        <div className="flex gap-1 px-3 pt-3 pb-1">
-          {PROFILES.map((p) => (
-            <button
-              key={p.slug}
-              type="button"
-              onClick={() => {
-                setActiveProfile(p.slug);
-                setSelected(null);
-              }}
-              className={cn(
-                "flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors",
-                activeProfile === p.slug
-                  ? "bg-blue-500/20 text-blue-400"
-                  : "text-slate-400 hover:bg-slate-800 hover:text-slate-200",
-              )}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
+        {profiles.length > 0 && (
+          <div className="flex gap-1 px-3 pt-3 pb-1 flex-wrap">
+            {profiles.map((p) => (
+              <button
+                key={p.slug}
+                type="button"
+                onClick={() => {
+                  setActiveProfile(p.slug);
+                  setSelected(null);
+                }}
+                className={cn(
+                  "flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors",
+                  activeProfile === p.slug
+                    ? "bg-blue-500/20 text-blue-400"
+                    : "text-slate-400 hover:bg-slate-800 hover:text-slate-200",
+                )}
+              >
+                {p.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Search */}
         <div className="px-3 pb-2 pt-1">
@@ -260,132 +351,72 @@ export function ConversationsPage() {
                 : "No users match your search"}
             </p>
           )}
-          {filtered.map((session) => (
-            <button
-              key={session.sessionId}
-              type="button"
-              onClick={() => setSelected(session)}
-              className={cn(
-                "w-full rounded-xl px-3 py-2.5 text-left transition-colors",
-                selected?.sessionId === session.sessionId
-                  ? "bg-blue-500/15 border border-blue-500/20"
-                  : "hover:bg-slate-800/70 border border-transparent",
-              )}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="flex shrink-0 items-center justify-center size-7 rounded-full bg-slate-700 text-slate-300">
-                  <User className="size-3.5" />
+          {filtered.map((session) => {
+            const unread = isUnread(session);
+            const attention = needsReply(session);
+            return (
+              <button
+                key={session.sessionId}
+                type="button"
+                onClick={() => handleSelect(session)}
+                className={cn(
+                  "relative w-full rounded-xl px-3 py-2.5 text-left transition-colors",
+                  selected?.sessionId === session.sessionId
+                    ? "bg-blue-500/15 border border-blue-500/20"
+                    : "hover:bg-slate-800/70 border border-transparent",
+                  attention && "border-l-2 border-l-amber-400",
+                )}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="relative flex shrink-0 items-center justify-center size-7 rounded-full bg-slate-700 text-slate-300">
+                    <User className="size-3.5" />
+                    {unread && (
+                      <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-blue-500 ring-2 ring-slate-950" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className={cn(
+                        "truncate text-xs",
+                        unread
+                          ? "font-semibold text-white"
+                          : "font-medium text-white",
+                      )}
+                    >
+                      {session.userName || "Unknown"}
+                    </p>
+                    <p className="truncate text-[11px] text-slate-500">
+                      {session.userEmail || "—"}
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-medium text-white">
-                    {session.userName || "Unknown"}
-                  </p>
-                  <p className="truncate text-[11px] text-slate-500">
-                    {session.userEmail || "—"}
-                  </p>
+                <div className="mt-1.5 flex items-center gap-2 pl-9">
+                  <Clock className="size-2.5 shrink-0 text-slate-600" />
+                  <span className="text-[10px] text-slate-600 truncate">
+                    {formatDate(session.lastActive)}
+                  </span>
+                  {attention && (
+                    <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-amber-400/15 px-1.5 py-0.5 text-[9px] font-medium text-amber-400">
+                      <AlertCircle className="size-2.5" />
+                      Needs reply
+                    </span>
+                  )}
                 </div>
-              </div>
-              <div className="mt-1.5 flex items-center gap-1 pl-9">
-                <Clock className="size-2.5 shrink-0 text-slate-600" />
-                <span className="text-[10px] text-slate-600 truncate">
-                  {formatDate(session.lastActive)}
-                </span>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </aside>
 
       {/* ── Right Panel ── */}
       <main className="flex flex-1 flex-col min-w-0">
-        {/* ── Google Sheets Status Banner ── */}
-        <div
-          className={cn(
-            "flex items-center gap-2.5 px-4 py-2.5 text-xs border-b shrink-0",
-            sheetsStatus === null
-              ? "border-slate-800 bg-slate-900 text-slate-500"
-              : sheetsStatus.connected
-                ? "border-green-900/50 bg-green-950/30 text-green-400"
-                : "border-red-900/50 bg-red-950/30 text-red-400",
-          )}
-        >
-          {sheetsStatus === null || statusChecking ? (
-            <Loader2 className="size-3.5 shrink-0 animate-spin" />
-          ) : sheetsStatus.connected ? (
-            <CheckCircle2 className="size-3.5 shrink-0" />
-          ) : (
-            <XCircle className="size-3.5 shrink-0" />
-          )}
-
-          <Sheet className="size-3.5 shrink-0 opacity-70" />
-
-          <span className="flex-1 truncate">
-            {sheetsStatus === null
-              ? "Checking Google Sheets connection…"
-              : sheetsStatus.connected
-                ? `Connected · ${sheetsStatus.sheetTitle ?? "Google Sheet"} · ${sheetsStatus.email ?? ""}`
-                : `Not connected · ${sheetsStatus.error ?? "Unknown error"}`}
-          </span>
-
-          {sheetsStatus?.connected &&
-            sheetsStatus.tabs &&
-            sheetsStatus.tabs.length > 0 && (
-              <span className="hidden lg:flex items-center gap-1 shrink-0 text-green-600">
-                {sheetsStatus.tabs.map((t) => (
-                  <span
-                    key={t}
-                    className="rounded px-1.5 py-0.5 bg-green-900/40 text-green-400 font-mono text-[10px]"
-                  >
-                    {t}
-                  </span>
-                ))}
-              </span>
-            )}
-
-          <button
-            type="button"
-            onClick={() => void checkStatus()}
-            disabled={statusChecking}
-            className="shrink-0 text-[11px] underline underline-offset-2 opacity-60 hover:opacity-100"
-          >
-            Re-check
-          </button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={testWriting || !sheetsStatus?.connected}
-            onClick={() => void handleTestWrite()}
-            className="h-6 gap-1.5 px-2 text-[11px] shrink-0 border-current/30 hover:bg-current/10"
-          >
-            {testWriting ? (
-              <Loader2 className="size-3 animate-spin" />
-            ) : (
-              <Pencil className="size-3" />
-            )}
-            Test Write
-          </Button>
-
-          {testWriteResult && (
-            <span
-              className={cn(
-                "shrink-0 text-[11px] font-medium",
-                testWriteResult.ok ? "text-green-400" : "text-red-400",
-              )}
-            >
-              {testWriteResult.ok ? "✓" : "✗"} {testWriteResult.msg}
-            </span>
-          )}
-        </div>
-
         {!selected ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 text-slate-600">
             <MessageSquare className="size-10" />
             <p className="text-sm">Select a user to view their conversation</p>
             {sessions.length === 0 && !loading && !error && (
               <p className="text-xs text-slate-700 max-w-xs text-center">
-                Conversations will appear here after visitors chat with the
-                widget. Make sure the sheet tabs are created and shared.
+                Conversations will appear here after visitors chat with the widget.
               </p>
             )}
           </div>
@@ -431,13 +462,22 @@ export function ConversationsPage() {
                   <div
                     className={cn(
                       "max-w-[70%] rounded-2xl px-4 py-2.5 text-sm",
-                      msg.role === "user"
-                        ? "bg-blue-600 text-white rounded-br-md"
-                        : "bg-slate-800 text-slate-100 rounded-bl-md",
+                      msg.role === "user" &&
+                        "bg-blue-600 text-white rounded-br-md",
+                      msg.role === "assistant" &&
+                        "bg-slate-800 text-slate-100 rounded-bl-md",
+                      msg.role === "admin" &&
+                        "bg-emerald-600/20 border border-emerald-500/30 text-emerald-50 rounded-bl-md",
                     )}
                   >
+                    {msg.role === "admin" && (
+                      <p className="mb-1 flex items-center gap-1 text-[10px] font-semibold text-emerald-300">
+                        <Headset className="size-3" />
+                        {msg.senderName || "You"}
+                      </p>
+                    )}
                     <p className="whitespace-pre-wrap break-words">
-                      {msg.content}
+                      {renderWithLinks(msg.content)}
                     </p>
                     <time
                       className={cn(
@@ -452,6 +492,37 @@ export function ConversationsPage() {
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Admin reply composer — inject a human ("middleman") response */}
+            <div className="border-t border-slate-800 px-6 py-3 shrink-0">
+              {replyError && (
+                <p className="mb-2 text-xs text-red-400">{replyError}</p>
+              )}
+              <div className="flex items-end gap-2">
+                <textarea
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                      e.preventDefault();
+                      void handleSendReply();
+                    }
+                  }}
+                  rows={2}
+                  placeholder="Reply as sales… paste a link (https://…) to share. ⌘/Ctrl+Enter to send"
+                  className="flex-1 resize-none rounded-lg bg-slate-800/60 px-3 py-2 text-sm text-white placeholder:text-slate-600 outline-none focus:ring-1 focus:ring-emerald-500/40"
+                />
+                <Button
+                  size="sm"
+                  className="h-9 gap-1.5 bg-emerald-600 px-3 text-xs text-white hover:bg-emerald-500"
+                  disabled={sending || !replyText.trim()}
+                  onClick={() => void handleSendReply()}
+                >
+                  <Send className="size-3.5" />
+                  {sending ? "Sending…" : "Send"}
+                </Button>
+              </div>
             </div>
           </>
         )}

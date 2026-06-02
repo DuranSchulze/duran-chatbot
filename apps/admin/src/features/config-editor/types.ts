@@ -9,7 +9,7 @@ import type {
   ServiceEntry,
 } from "@duran-chatbot/config"
 
-export type ConfigSectionId = "appearance" | "ai" | "persona" | "links" | "services" | "dataset" | "behavior"
+export type ConfigSectionId = "appearance" | "ai" | "persona" | "links" | "services" | "dataset" | "behavior" | "email"
 
 export type SidebarItem = {
   id: string
@@ -27,6 +27,7 @@ export type ConfigSectionDefinition = {
 }
 
 export type SectionBindings = {
+  profileSlug: string
   appearance: AppearanceConfig
   ai: AIConfig
   persona: PersonaConfig

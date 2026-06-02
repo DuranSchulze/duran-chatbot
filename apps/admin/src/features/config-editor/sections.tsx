@@ -1,9 +1,10 @@
-import { Bot, BriefcaseBusiness, Database, Link2, Palette, SlidersHorizontal, UserRound } from "lucide-react";
+import { Bot, BriefcaseBusiness, Database, Link2, Mail, Palette, SlidersHorizontal, UserRound } from "lucide-react";
 
 import { AIPanel } from "@/features/config-editor/panels/ai-panel";
 import { AppearancePanel } from "@/features/config-editor/panels/appearance-panel";
 import { BehaviorPanel } from "@/features/config-editor/panels/behavior-panel";
 import { DatasetPanel } from "@/features/config-editor/panels/dataset-panel";
+import { EmailPanel } from "@/features/config-editor/panels/email-panel";
 import { PersonaPanel } from "@/features/config-editor/panels/persona-panel";
 import { QuickLinksPanel } from "@/features/config-editor/panels/quick-links-panel";
 import { ServicesPanel } from "@/features/config-editor/panels/services-panel";
@@ -47,8 +48,8 @@ export function getConfigSections(
     },
     {
       id: "links",
-      label: "Quick Links",
-      description: "Shortcut actions inside the widget.",
+      label: "Action Menu",
+      description: "Configurable task buttons inside the widget.",
       icon: Link2,
       render: () => (
         <QuickLinksPanel
@@ -92,6 +93,13 @@ export function getConfigSections(
           onChange={bindings.onBehaviorChange}
         />
       ),
+    },
+    {
+      id: "email",
+      label: "Email",
+      description: "Provider integration for outgoing emails.",
+      icon: Mail,
+      render: () => <EmailPanel profileSlug={bindings.profileSlug} />,
     },
   ];
 }
