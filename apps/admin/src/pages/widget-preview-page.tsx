@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChatbotConfig } from "@duran-chatbot/config";
 import { ExternalLink, MessageCircle, RefreshCcw, X } from "lucide-react";
 import { ChatbotWidget } from "../../../../packages/widget/src/widget";
@@ -10,6 +10,7 @@ export function WidgetPreviewPage() {
   const [config, setConfig] = useState<ChatbotConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const widgetRef = useRef<ChatbotWidget | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -51,18 +52,22 @@ export function WidgetPreviewPage() {
     }
 
     const widget = new ChatbotWidget(config);
+    widgetRef.current = widget;
+    // Start with the chat window open so the open state is what renders first.
+    widget.open();
 
     return () => {
+      widgetRef.current = null;
       widget.destroy();
     };
   }, [config]);
 
   const handleOpenChat = () => {
-    document.querySelector<HTMLButtonElement>(".cb-toggle-btn")?.click();
+    widgetRef.current?.open();
   };
 
   const handleCloseChat = () => {
-    document.querySelector<HTMLButtonElement>(".cb-close-btn")?.click();
+    widgetRef.current?.close();
   };
 
   const handleReloadSavedConfig = async () => {
@@ -91,8 +96,9 @@ export function WidgetPreviewPage() {
                 Floating chatbot preview
               </h1>
               <p className="max-w-2xl text-sm leading-6 text-slate-600">
-                This page mounts the real widget so you can inspect the floating launcher and open the chat
-                window before publishing changes.
+                This page mounts the real widget so you can review the chat window with your current config.
+                The chat opens automatically on load — use the launcher (or the buttons above) to check the
+                closed state too.
               </p>
             </div>
 
@@ -129,8 +135,9 @@ export function WidgetPreviewPage() {
                   Preview the floating experience
                 </h2>
                 <p className="text-sm leading-6 text-slate-600">
-                  The widget is mounted on this page with your current config. Use the bottom corner launcher
-                  to inspect the closed state, then open the chat to review the layout and welcome message.
+                  The widget is mounted on this page with your current config. The chat window is open so you
+                  can review the layout and welcome message right away; hit Close chat to inspect the floating
+                  launcher state.
                 </p>
               </div>
             </div>

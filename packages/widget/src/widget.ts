@@ -271,7 +271,8 @@ export class ChatbotWidget {
     this.isOpen ? this.close() : this.open()
   }
 
-  private open() {
+  /** Open the chat window (also used by hosts to start with the chat visible). */
+  open() {
     const root = this.getRoot()
 
     // Re-warm the backend the moment the user opens the chat — they're about to send a
@@ -294,7 +295,8 @@ export class ChatbotWidget {
     setTimeout(() => input?.focus(), 100)
   }
 
-  private close() {
+  /** Close the chat window back to the floating launcher. */
+  close() {
     this.isOpen = false
     this.container?.classList.remove('cb-open')
     this.chatWindow?.setAttribute('aria-hidden', 'true')
