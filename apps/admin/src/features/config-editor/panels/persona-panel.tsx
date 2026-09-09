@@ -10,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
+import { PromptTextarea } from "@/components/ui/prompt-textarea";
 
 type PersonaPanelProps = {
   persona: PersonaConfig;
@@ -86,34 +86,34 @@ export function PersonaPanel({ persona, onChange }: PersonaPanelProps) {
 
       <Field>
         <FieldLabel htmlFor="tone">Tone</FieldLabel>
-        <Textarea
+        <PromptTextarea
           id="tone"
           rows={3}
           value={persona.tone}
-          onChange={(event) => update("tone", event.target.value)}
+          onChange={(next) => update("tone", next)}
           placeholder="Warm, formal, reassuring, and calm."
         />
       </Field>
 
       <Field>
         <FieldLabel htmlFor="writingStyle">Writing style</FieldLabel>
-        <Textarea
+        <PromptTextarea
           id="writingStyle"
           rows={4}
           value={persona.writingStyle}
-          onChange={(event) => update("writingStyle", event.target.value)}
+          onChange={(next) => update("writingStyle", next)}
           placeholder="Uses short paragraphs, clear wording, and avoids slang."
         />
       </Field>
 
       <Field>
         <FieldLabel htmlFor="signaturePhrases">Signature phrases</FieldLabel>
-        <Textarea
+        <PromptTextarea
           id="signaturePhrases"
           rows={3}
           value={persona.signaturePhrases}
-          onChange={(event) =>
-            update("signaturePhrases", event.target.value)
+          onChange={(next) =>
+            update("signaturePhrases", next)
           }
           placeholder="Uses lines like 'We'd be glad to assist you.'"
         />
@@ -122,22 +122,22 @@ export function PersonaPanel({ persona, onChange }: PersonaPanelProps) {
       <FieldGrid>
         <Field>
           <FieldLabel htmlFor="dos">Do</FieldLabel>
-          <Textarea
+          <PromptTextarea
             id="dos"
             rows={4}
             value={persona.dos}
-            onChange={(event) => update("dos", event.target.value)}
+            onChange={(next) => update("dos", next)}
             placeholder="Acknowledge concerns, sound respectful, explain clearly."
           />
         </Field>
 
         <Field>
           <FieldLabel htmlFor="donts">Don&apos;t</FieldLabel>
-          <Textarea
+          <PromptTextarea
             id="donts"
             rows={4}
             value={persona.donts}
-            onChange={(event) => update("donts", event.target.value)}
+            onChange={(next) => update("donts", next)}
             placeholder="Do not sound too casual, do not use emojis, do not overpromise."
           />
         </Field>
@@ -145,11 +145,11 @@ export function PersonaPanel({ persona, onChange }: PersonaPanelProps) {
 
       <Field>
         <FieldLabel htmlFor="audienceNotes">Audience notes</FieldLabel>
-        <Textarea
+        <PromptTextarea
           id="audienceNotes"
           rows={4}
           value={persona.audienceNotes}
-          onChange={(event) => update("audienceNotes", event.target.value)}
+          onChange={(next) => update("audienceNotes", next)}
           placeholder="Write clearly for clients unfamiliar with legal terms."
         />
         <FieldDescription>

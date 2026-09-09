@@ -6,7 +6,7 @@ import { Field, FieldDescription, FieldGrid, FieldLabel } from "@/components/ui/
 import { Input } from "@/components/ui/input"
 import { SectionHeader } from "@/components/ui/section-header"
 import { Select } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
+import { PromptTextarea } from "@/components/ui/prompt-textarea"
 
 type AppearancePanelProps = {
   appearance: AppearanceConfig
@@ -124,11 +124,11 @@ export function AppearancePanel({ appearance, onChange }: AppearancePanelProps) 
 
       <Field>
         <FieldLabel htmlFor="welcomeMessage">Welcome message</FieldLabel>
-        <Textarea
+        <PromptTextarea
           id="welcomeMessage"
-          rows={5}
+          rows={7}
           value={appearance.welcomeMessage}
-          onChange={(event) => update("welcomeMessage", event.target.value)}
+          onChange={(next) => update("welcomeMessage", next)}
         />
         <FieldDescription>This opens the conversation with the right tone and context.</FieldDescription>
       </Field>

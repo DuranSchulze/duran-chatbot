@@ -1,25 +1,10 @@
-import { createTransport } from "nodemailer";
-
 import { prisma } from "./client.js";
 import { decryptSecret, encryptSecret } from "./crypto.js";
 
-export type EmailProvider = "gmail" | "brevo" | "mailtrap" | "mandrill" | "smtp";
-
-/** Known SMTP host/port presets so the admin only has to paste a key. */
-const PRESETS: Record<EmailProvider, { host?: string; port?: number }> = {
-  gmail: {},
-  brevo: { host: "smtp-relay.brevo.com", port: 587 },
-  mailtrap: { host: "live.smtp.mailtrap.io", port: 587 },
-  mandrill: { host: "smtp.mandrillapp.com", port: 587 },
-  smtp: {},
-};
+export type EmailProvider = "resend";
 
 export interface EmailIntegrationInput {
-  provider: EmailProvider;
-  host?: string | null;
-  port?: number | null;
-  username?: string | null;
-  /** Plaintext API key / SMTP password. Empty/undefined keeps the stored value. */
+  /** Plaintext Resend API key. Empty/undefined keeps the stored value. */
   secret?: string | null;
   fromEmail?: string | null;
   fromName?: string | null;
@@ -28,9 +13,6 @@ export interface EmailIntegrationInput {
 /** Safe shape returned to the admin UI — never includes the secret itself. */
 export interface EmailIntegrationPublic {
   provider: EmailProvider;
-  host: string | null;
-  port: number | null;
-  username: string | null;
   fromEmail: string | null;
   fromName: string | null;
   hasSecret: boolean;
@@ -48,15 +30,7 @@ export interface ProfileMailMessage {
   fromName?: string;
 }
 
-function isProvider(value: unknown): value is EmailProvider {
-  return (
-    value === "gmail" ||
-    value === "brevo" ||
-    value === "mailtrap" ||
-    value === "mandrill" ||
-    value === "smtp"
-  );
-}
+const RESEND_API_URL = "https://api.resend.com/emails";
 
 /** Read the per-profile integration without exposing the secret. */
 export async function getEmailIntegration(
@@ -65,39 +39,38 @@ export async function getEmailIntegration(
   const row = await prisma.emailIntegration.findUnique({ where: { profileId } });
   if (!row) return null;
   return {
-    provider: isProvider(row.provider) ? row.provider : "smtp",
-    host: row.host,
-    port: row.port,
-    username: row.username,
+    provider: "resend",
     fromEmail: row.fromEmail,
     fromName: row.fromName,
     hasSecret: Boolean(row.secretEnc),
-    configured: Boolean(row.secretEnc || row.provider === "gmail"),
+    // A profile is ready when it stores a key, or when the env fallback exists.
+    configured: Boolean(
+      row.secretEnc ||
+        process.env.RESEND_API_KEY ||
+        process.env.RESEND_FROM_EMAIL,
+    ),
   };
 }
 
-/** Create or update the integration. Only re-encrypts the secret when a new one is given. */
+/**
+ * Create or update the integration.
+ *
+ * Note: older rows may still carry SMTP-era host/port/username columns
+ * (provider was "gmail"/"brevo"/"mailtrap"/"mandrill"/"smtp"). Those columns
+ * are legacy leftovers — sending now always goes through Resend — so new saves
+ * leave them untouched.
+ */
 export async function saveEmailIntegration(
   profileId: string,
   input: EmailIntegrationInput,
 ): Promise<EmailIntegrationPublic> {
-  const provider: EmailProvider = isProvider(input.provider)
-    ? input.provider
-    : "smtp";
-
   const data: {
     provider: string;
-    host: string | null;
-    port: number | null;
-    username: string | null;
     fromEmail: string | null;
     fromName: string | null;
     secretEnc?: string;
   } = {
-    provider,
-    host: input.host?.trim() || PRESETS[provider].host || null,
-    port: input.port ?? PRESETS[provider].port ?? null,
-    username: input.username?.trim() || null,
+    provider: "resend",
     fromEmail: input.fromEmail?.trim() || null,
     fromName: input.fromName?.trim() || null,
   };
@@ -123,77 +96,93 @@ export async function saveEmailIntegration(
   return result!;
 }
 
-interface ResolvedTransport {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  transporter: any;
+interface ResolvedResend {
+  apiKey: string;
   fromEmail: string;
   defaultFromName: string;
 }
 
-/** Build a nodemailer transport for a profile, falling back to env Gmail. */
-async function resolveTransport(profileId: string): Promise<ResolvedTransport> {
-  const row = await prisma.emailIntegration.findUnique({ where: { profileId } });
+/** Split "a@x.com, b@y.com" strings into the array Resend expects. */
+function toRecipientList(value: string | undefined): string[] | undefined {
+  if (!value) return undefined;
+  const list = value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  return list.length > 0 ? list : undefined;
+}
 
-  if (row && (row.secretEnc || row.provider === "gmail")) {
-    const provider: EmailProvider = isProvider(row.provider)
-      ? row.provider
-      : "smtp";
-    const secret = decryptSecret(row.secretEnc);
-    const username = row.username ?? "";
+/** Quote/control characters are not allowed in a display name. */
+function sanitizeFromName(name: string): string {
+  return name.replace(/["\\\r\n]/g, "").trim();
+}
 
-    if (provider === "gmail") {
-      // Gmail can use a stored app password, or fall back to env credentials.
-      const user = username || process.env.GMAIL_USER || "";
-      const pass = secret || process.env.GMAIL_APP_PASSWORD || "";
-      if (!user || !pass) throw new Error("Gmail credentials are not configured");
-      return {
-        transporter: createTransport({ service: "gmail", auth: { user, pass } }),
-        fromEmail: row.fromEmail || user,
-        defaultFromName: row.fromName || "Notifications",
-      };
-    }
-
-    const host = row.host || PRESETS[provider].host;
-    const port = row.port || PRESETS[provider].port || 587;
-    if (!host) throw new Error(`SMTP host is not configured for ${provider}`);
-    return {
-      transporter: createTransport({
-        host,
-        port,
-        secure: port === 465,
-        auth: { user: username, pass: secret },
-      }),
-      fromEmail: row.fromEmail || username,
-      defaultFromName: row.fromName || "Notifications",
-    };
+/** Resolve the Resend key + sender for a profile, falling back to env vars. */
+async function resolveResend(profileId: string): Promise<ResolvedResend> {
+  const row = await prisma.emailIntegration.findUnique({
+    where: { profileId },
+  });
+  const storedKey = row?.secretEnc ? decryptSecret(row.secretEnc) : "";
+  const apiKey = storedKey || process.env.RESEND_API_KEY || "";
+  if (!apiKey) {
+    throw new Error(
+      "Resend is not configured. Add your Resend API key in Email settings, or set the RESEND_API_KEY environment variable.",
+    );
   }
-
-  // Fallback: legacy env Gmail (keeps existing deployments working).
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_APP_PASSWORD;
-  if (!user || !pass) throw new Error("Email service is not configured");
+  const fromEmail =
+    row?.fromEmail?.trim() || process.env.RESEND_FROM_EMAIL?.trim() || "";
+  if (!fromEmail) {
+    throw new Error(
+      "A verified sender address is required. Set the From email in Email settings, or the RESEND_FROM_EMAIL environment variable.",
+    );
+  }
   return {
-    transporter: createTransport({ service: "gmail", auth: { user, pass } }),
-    fromEmail: user,
-    defaultFromName: "Notifications",
+    apiKey,
+    fromEmail,
+    defaultFromName:
+      row?.fromName?.trim() ||
+      process.env.RESEND_FROM_NAME?.trim() ||
+      "Notifications",
   };
 }
 
-/** Send an email for a profile using its configured provider (or env Gmail fallback). */
+/** Send an email for a profile through the Resend API (per-profile key or env fallback). */
 export async function sendProfileEmail(
   profileId: string,
   message: ProfileMailMessage,
 ): Promise<void> {
-  const { transporter, fromEmail, defaultFromName } =
-    await resolveTransport(profileId);
-  const fromName = message.fromName || defaultFromName;
-  await transporter.sendMail({
-    from: `"${fromName}" <${fromEmail}>`,
-    to: message.to,
-    cc: message.cc,
-    replyTo: message.replyTo,
+  const { apiKey, fromEmail, defaultFromName } =
+    await resolveResend(profileId);
+  const fromName = sanitizeFromName(message.fromName || defaultFromName);
+  const from = fromName ? `"${fromName}" <${fromEmail}>` : fromEmail;
+
+  const payload: Record<string, unknown> = {
+    from,
+    to: toRecipientList(message.to),
+    cc: toRecipientList(message.cc),
+    reply_to: message.replyTo?.trim() || undefined,
     subject: message.subject,
-    text: message.text,
-    html: message.html,
+  };
+  if (message.text) payload.text = message.text;
+  if (message.html) payload.html = message.html;
+
+  const res = await fetch(RESEND_API_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
   });
+
+  if (!res.ok) {
+    let detail = `Resend request failed (${res.status})`;
+    try {
+      const data = (await res.json()) as { message?: string };
+      if (data?.message) detail = data.message;
+    } catch {
+      /* keep fallback message */
+    }
+    throw new Error(detail);
+  }
 }

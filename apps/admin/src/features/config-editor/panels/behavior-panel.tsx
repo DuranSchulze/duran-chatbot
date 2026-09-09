@@ -94,7 +94,7 @@ export function BehaviorPanel({ behavior, onChange }: BehaviorPanelProps) {
               </div>
               <FieldDescription>
                 Offer a quote-request path when the conversation needs human
-                follow-up.
+                follow-up. Who gets emailed is configured in the Email tab.
               </FieldDescription>
             </div>
             <Switch
@@ -127,88 +127,6 @@ export function BehaviorPanel({ behavior, onChange }: BehaviorPanelProps) {
           Set to 0 to disable automatic widget opening.
         </FieldDescription>
       </Field>
-
-      {behavior.enableQuoteRequest ? (
-        <div className="space-y-4 rounded-2xl border border-blue-100 bg-blue-50/40 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">
-            Email Notifications
-          </p>
-
-          <Field>
-            <FieldLabel htmlFor="quoteNotifyTo">Notify recipients</FieldLabel>
-            <Input
-              id="quoteNotifyTo"
-              type="text"
-              value={(behavior.quoteNotifyTo ?? []).join(", ")}
-              onChange={(event) =>
-                update(
-                  "quoteNotifyTo",
-                  event.target.value
-                    .split(",")
-                    .map((e) => e.trim())
-                    .filter(Boolean),
-                )
-              }
-              placeholder="sales@example.com, team@example.com"
-            />
-            <FieldDescription>
-              Comma-separated list of internal email addresses that receive
-              quote requests.
-            </FieldDescription>
-          </Field>
-
-          <Field>
-            <FieldLabel htmlFor="quoteNotifyCC">
-              CC recipients (optional)
-            </FieldLabel>
-            <Input
-              id="quoteNotifyCC"
-              type="text"
-              value={(behavior.quoteNotifyCC ?? []).join(", ")}
-              onChange={(event) =>
-                update(
-                  "quoteNotifyCC",
-                  event.target.value
-                    .split(",")
-                    .map((e) => e.trim())
-                    .filter(Boolean),
-                )
-              }
-              placeholder="manager@example.com"
-            />
-          </Field>
-
-          <Field>
-            <FieldLabel htmlFor="quoteEmailSubject">
-              Internal email subject
-            </FieldLabel>
-            <Input
-              id="quoteEmailSubject"
-              type="text"
-              value={behavior.quoteEmailSubject ?? ""}
-              onChange={(event) =>
-                update("quoteEmailSubject", event.target.value)
-              }
-              placeholder="New Quote Request via Chatbot"
-            />
-          </Field>
-
-          <Field>
-            <FieldLabel htmlFor="quoteStarterSubject">
-              Visitor starter email subject
-            </FieldLabel>
-            <Input
-              id="quoteStarterSubject"
-              type="text"
-              value={behavior.quoteStarterSubject ?? ""}
-              onChange={(event) =>
-                update("quoteStarterSubject", event.target.value)
-              }
-              placeholder="Your request to {company}"
-            />
-          </Field>
-        </div>
-      ) : null}
     </div>
   );
 }

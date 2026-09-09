@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
+import { PromptTextarea } from "@/components/ui/prompt-textarea";
 
 type QuickLinksPanelProps = {
   quickLinks: QuickLink[];
@@ -194,10 +194,10 @@ export function QuickLinksPanel({ quickLinks, onChange }: QuickLinksPanelProps) 
                 {type === "prompt" ? (
                   <Field>
                     <FieldLabel>Preset message sent to the AI</FieldLabel>
-                    <Textarea
+                    <PromptTextarea
                       value={link.prompt ?? ""}
-                      onChange={(event) =>
-                        updateLink(link.id, { prompt: event.target.value })
+                      onChange={(next) =>
+                        updateLink(link.id, { prompt: next })
                       }
                       placeholder="What services do you offer and how does pricing work?"
                       rows={2}
@@ -304,12 +304,12 @@ export function QuickLinksPanel({ quickLinks, onChange }: QuickLinksPanelProps) 
           {draftType === "prompt" ? (
             <Field>
               <FieldLabel>Preset message sent to the AI</FieldLabel>
-              <Textarea
+              <PromptTextarea
                 value={draft.prompt ?? ""}
-                onChange={(event) =>
+                onChange={(next) =>
                   setDraft((current) => ({
                     ...current,
-                    prompt: event.target.value,
+                    prompt: next,
                   }))
                 }
                 placeholder="What services do you offer and how does pricing work?"

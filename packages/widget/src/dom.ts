@@ -1,4 +1,5 @@
 import type { AppearanceConfig } from '@duran-chatbot/config'
+import { formatRichMessage } from '@duran-chatbot/config'
 import type { QuickLink } from '@duran-chatbot/config'
 
 interface VisitorProfile {
@@ -127,7 +128,7 @@ export function getWidgetHTML(companyName: string, welcomeMessage: string, quick
 
       <div class="cb-messages" role="log" aria-live="polite">
         <div class="cb-message cb-ai-message">
-          <p>${welcomeMessage}</p>
+          ${formatRichMessage(welcomeMessage)}
         </div>
       </div>
 
@@ -269,74 +270,4 @@ export function escapeHtml(text: string): string {
   return div.innerHTML
 }
 
-function escapeStr(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
-
-function processInline(raw: string): string {
-  const urlRegex = /(https?:\/\/[^\s]+)/g
-  const parts = raw.split(urlRegex)
-  return parts
-    .map((part, i) => {
-      if (i % 2 === 1) {
-        const safe = escapeStr(part)
-        return `<a href="${safe}" target="_blank" rel="noopener noreferrer">${safe}</a>`
-      }
-      let s = escapeStr(part)
-      s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      s = s.replace(/\*([^*\s][^*]*)\*/g, '<em>$1</em>')
-      // Make email addresses clickable (handy for the contact fallback).
-      s = s.replace(
-        /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,
-        '<a href="mailto:$1">$1</a>',
-      )
-      return s
-    })
-    .join('')
-}
-
-export function formatMessage(text: string): string {
-  const lines = text.split('\n')
-  const html: string[] = []
-  let inUl = false
-  let inOl = false
-
-  const closeUl = () => { if (inUl) { html.push('</ul>'); inUl = false } }
-  const closeOl = () => { if (inOl) { html.push('</ol>'); inOl = false } }
-  const closeLists = () => { closeUl(); closeOl() }
-
-  for (const line of lines) {
-    const trimmed = line.trim()
-
-    if (!trimmed) {
-      closeLists()
-      continue
-    }
-
-    const bulletMatch = trimmed.match(/^[-*]\s+(.+)$/)
-    if (bulletMatch) {
-      closeOl()
-      if (!inUl) { html.push('<ul>'); inUl = true }
-      html.push(`<li>${processInline(bulletMatch[1])}</li>`)
-      continue
-    }
-
-    const numberedMatch = trimmed.match(/^\d+\.\s+(.+)$/)
-    if (numberedMatch) {
-      closeUl()
-      if (!inOl) { html.push('<ol>'); inOl = true }
-      html.push(`<li>${processInline(numberedMatch[1])}</li>`)
-      continue
-    }
-
-    closeLists()
-    html.push(`<p>${processInline(trimmed)}</p>`)
-  }
-
-  closeLists()
-  return html.join('')
-}
+export { formatRichMessage as formatMessage } from '@duran-chatbot/config';

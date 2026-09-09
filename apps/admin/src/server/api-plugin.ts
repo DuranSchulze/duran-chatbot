@@ -742,10 +742,7 @@ export function apiPlugin(): PluginOption {
           const profile = url.searchParams.get("profile") ?? "default";
 
           const EMPTY = {
-            provider: "gmail",
-            host: null,
-            port: null,
-            username: null,
+            provider: "resend",
             fromEmail: null,
             fromName: null,
             hasSecret: false,
@@ -761,21 +758,11 @@ export function apiPlugin(): PluginOption {
 
             if (req.method === "PUT") {
               const body = (await readRequestBody(req)) as {
-                provider?: string;
-                host?: string;
-                port?: number | string;
-                username?: string;
                 secret?: string;
                 fromEmail?: string;
                 fromName?: string;
               };
               const integration = await saveEmailIntegration(profile, {
-                provider: (body.provider ?? "smtp") as Parameters<
-                  typeof saveEmailIntegration
-                >[1]["provider"],
-                host: body.host ?? null,
-                port: body.port ? Number(body.port) : null,
-                username: body.username ?? null,
                 secret: body.secret ?? null,
                 fromEmail: body.fromEmail ?? null,
                 fromName: body.fromName ?? null,
@@ -990,6 +977,14 @@ export function apiPlugin(): PluginOption {
           try {
             if (req.method === "GET") {
               if (slug) {
+                if (url.searchParams.get("metadata") === "1") {
+                  const profile = await prisma.profile.findUnique({
+                    where: { slug },
+                    select: { slug: true, name: true, status: true, createdAt: true },
+                  });
+                  jsonRes(res, profile ? 200 : 404, profile ?? { error: "Profile not found" });
+                  return;
+                }
                 const profile = await prisma.profile.findUnique({
                   where: { slug },
                   include: { config: true },

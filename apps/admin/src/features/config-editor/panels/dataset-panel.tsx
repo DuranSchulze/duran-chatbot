@@ -12,8 +12,8 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { PromptTextarea } from "@/components/ui/prompt-textarea";
 import { SectionHeader } from "@/components/ui/section-header";
-import { Textarea } from "@/components/ui/textarea";
 
 type DatasetPanelProps = {
   dataset: DatasetEntry[];
@@ -218,17 +218,22 @@ export function DatasetPanel({ dataset, onChange }: DatasetPanelProps) {
 
           <Field>
             <FieldLabel>Content</FieldLabel>
-            <Textarea
+            <PromptTextarea
               rows={6}
+              label="Dataset content"
               value={draft.content ?? ""}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  content: event.target.value,
-                }))
+              onChange={(next) =>
+                setDraft((current) => ({ ...current, content: next }))
               }
               placeholder="Detailed response, policy text, product explanation, or knowledge snippet."
             />
+            <FieldDescription>
+              Contact variables like{" "}
+              <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-blue-700 ring-1 ring-slate-200">
+                {`{{address}}`}
+              </code>{" "}
+              are allowed and fill with the current Contact &amp; Location values.
+            </FieldDescription>
           </Field>
 
           <Button

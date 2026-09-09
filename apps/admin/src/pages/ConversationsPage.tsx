@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   MessageSquare,
   Search,
   Download,
+  FileText,
   RefreshCw,
   ChevronLeft,
   User,
@@ -14,6 +15,8 @@ import {
   Headset,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toaster";
+import { formatMessage } from "@/lib/format-message";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
@@ -37,24 +40,6 @@ function isUnread(session: ConversationSession): boolean {
   return new Date(session.lastActive) > new Date(session.adminReadAt);
 }
 
-/** Render message text with clickable links (so pasted URLs are tappable). */
-function renderWithLinks(text: string) {
-  return text.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
-    /^https?:\/\//.test(part) ? (
-      <a
-        key={i}
-        href={part}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="underline break-all"
-      >
-        {part}
-      </a>
-    ) : (
-      part
-    ),
-  );
-}
 
 interface ProfileMeta {
   slug: string;
@@ -92,11 +77,131 @@ function exportSessionAsCSV(session: ConversationSession) {
   URL.revokeObjectURL(url);
 }
 
+/** Print a clean, chat-style transcript of one conversation → “Save as PDF”. */
+function exportSessionAsPDF(session: ConversationSession) {
+  const win = window.open("", "_blank", "width=860,height=1000");
+  if (!win) {
+    alert("Please allow pop-ups to export the PDF.");
+    return;
+  }
+
+  const esc = (s: string) =>
+    s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+
+  const roleName = (role: string, senderName?: string | null) => {
+    if (role === "user") return "Visitor";
+    if (role === "assistant") return "AI assistant";
+    return senderName || "You";
+  };
+
+  const visitorName = session.userName || "Unknown user";
+  const visitorEmail = session.userEmail || "—";
+  const exportedAt = new Date().toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  const messagesHtml = session.messages
+    .map((m) => {
+      const side =
+        m.role === "user"
+          ? "visitor"
+          : m.role === "admin"
+            ? "admin"
+            : "ai";
+      return `
+        <div class="msg ${side}">
+          <div class="bubble">
+            <div class="who">${esc(roleName(m.role, m.senderName))} · ${esc(formatDate(m.timestamp))}</div>
+            <div class="content">${formatMessage(m.content)}</div>
+          </div>
+        </div>`;
+    })
+    .join("");
+
+  const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Conversation — ${esc(visitorName)}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; }
+  .sheet { max-width: 760px; margin: 0 auto; padding: 40px 44px; }
+  h1 { font-size: 20px; margin: 0 0 2px; }
+  .sub { font-size: 13px; color: #334155; margin: 0 0 6px; }
+  .meta { font-size: 11px; color: #64748b; display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 10px; }
+  hr { border: 0; border-top: 1px solid #e2e8f0; margin: 18px 0 22px; }
+  .msg { display: flex; margin: 0 0 16px; }
+  .msg .bubble { max-width: 82%; border: 1px solid #e2e8f0; border-radius: 14px; padding: 10px 14px; }
+  .msg.visitor { justify-content: flex-start; }
+  .msg.visitor .bubble { background: #eff6ff; border-color: #bfdbfe; }
+  .msg.ai { justify-content: flex-end; }
+  .msg.ai .bubble { background: #f8fafc; border-color: #cbd5e1; }
+  .msg.admin { justify-content: flex-end; }
+  .msg.admin .bubble { background: #ecfdf5; border-color: #6ee7b7; }
+  .who { font-size: 10px; font-weight: 600; color: #64748b; margin-bottom: 5px; }
+  .msg.visitor .who { color: #1d4ed8; }
+  .msg.admin .who { color: #047857; }
+  .content { font-size: 13px; line-height: 1.55; }
+  .content p { margin: 0 0 8px; }
+  .content p:last-child { margin-bottom: 0; }
+  .content ul, .content ol { margin: 6px 0 10px; padding-left: 20px; }
+  .content ul:last-child, .content ol:last-child { margin-bottom: 0; }
+  .content li { margin-bottom: 4px; }
+  .content a { color: #2563eb; word-break: break-all; }
+  .content pre { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 10px; overflow-x: auto; }
+  .content code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  .footer { margin-top: 28px; font-size: 10px; color: #94a3b8; text-align: center; }
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <h1>Conversation transcript</h1>
+    <p class="sub">${esc(visitorName)}${visitorEmail !== "—" ? ` · ${esc(visitorEmail)}` : ""}</p>
+    <div class="meta">
+      <span>Profile: ${esc(session.profile || "default")}</span>
+      <span>First seen: ${esc(formatDate(session.firstSeen))}</span>
+      <span>Messages: ${session.messages.length}</span>
+      <span>Exported: ${esc(exportedAt)}</span>
+    </div>
+    <hr />
+    ${messagesHtml}
+    <p class="footer">Exported from the chatbot dashboard.</p>
+  </div>
+</body>
+</html>`;
+
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  win.onafterprint = () => win.close();
+  win.print();
+}
+
 export function ConversationsPage() {
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const [profiles, setProfiles] = useState<ProfileMeta[]>([]);
-  const [activeProfile, setActiveProfile] = useState("");
+  const { toast } = useToast();
+  const [profile, setProfile] = useState<ProfileMeta | null>(null);
+  const [searchParams] = useSearchParams();
+  const requestedProfile = searchParams.get("profile");
+  const activeProfile = profile?.slug === requestedProfile && profile.status === "active"
+    ? profile.slug : "";
+  const currentProfileRef = useRef(activeProfile);
+  currentProfileRef.current = activeProfile;
   const [sessions, setSessions] = useState<ConversationSession[]>([]);
   const [selected, setSelected] = useState<ConversationSession | null>(null);
   const [search, setSearch] = useState("");
@@ -108,27 +213,39 @@ export function ConversationsPage() {
   const [replyError, setReplyError] = useState("");
   const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Load active profiles once on mount
+  // Fetch only the originating profile's lightweight metadata.
   useEffect(() => {
+    const controller = new AbortController();
+    setProfile(null);
+    if (!requestedProfile) {
+      setError("Open Conversations from a chatbot profile to view its inbox.");
+      return;
+    }
+    setLoading(true);
+    setError("");
     void (async () => {
       try {
-        const res = await fetch("/api/profiles", { headers: getAuthHeaders() });
+        const res = await fetch(`/api/profiles?slug=${encodeURIComponent(requestedProfile)}&metadata=1`, {
+          headers: getAuthHeaders(), signal: controller.signal,
+        });
         if (res.status === 401) {
           logout();
           navigate("/login", { replace: true });
           return;
         }
-        if (res.ok) {
-          const data = (await res.json()) as { profiles: ProfileMeta[] };
-          const active = data.profiles.filter((p) => p.status === "active");
-          setProfiles(active);
-          if (active.length > 0) setActiveProfile(active[0].slug);
-        }
+        if (!res.ok) throw new Error("This chatbot profile is unavailable.");
+        const data = (await res.json()) as ProfileMeta;
+        if (data.status !== "active") throw new Error("This chatbot profile is inactive.");
+        if (!controller.signal.aborted) setProfile(data);
       } catch {
-        // silently fail — conversations will just be empty
+        if (!controller.signal.aborted) {
+          setError("Unable to load this chatbot profile. Return to Config and select an active profile.");
+          setLoading(false);
+        }
       }
     })();
-  }, [logout, navigate]);
+    return () => controller.abort();
+  }, [logout, navigate, requestedProfile]);
 
   const load = useCallback(
     async (showRefresh = false) => {
@@ -138,6 +255,7 @@ export function ConversationsPage() {
       setError("");
       try {
         const data = await fetchConversations(activeProfile);
+        if (currentProfileRef.current !== activeProfile) return;
         setSessions(data);
         // Keep the open conversation open across auto-refreshes, picking up any
         // new messages, instead of closing it every cycle.
@@ -145,6 +263,7 @@ export function ConversationsPage() {
           prev ? (data.find((s) => s.sessionId === prev.sessionId) ?? null) : null,
         );
       } catch (err) {
+        if (currentProfileRef.current !== activeProfile) return;
         if (err instanceof UnauthorizedError) {
           logout();
           navigate("/login", { replace: true });
@@ -152,16 +271,24 @@ export function ConversationsPage() {
         }
         setError(err instanceof Error ? err.message : "Failed to load");
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (currentProfileRef.current === activeProfile) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     },
     [activeProfile, logout, navigate],
   );
 
   useEffect(() => {
+    setSessions([]);
+    setSelected(null);
+    setReplyText("");
+    setReplyError("");
+    setSearch("");
+    if (!activeProfile) return;
     void load();
-  }, [load]);
+  }, [load, activeProfile, requestedProfile]);
 
   useEffect(() => {
     autoRefreshRef.current = setInterval(() => void load(true), 60_000);
@@ -235,6 +362,7 @@ export function ConversationsPage() {
           : prev,
       );
       setReplyText("");
+      toast({ title: "Reply sent", description: "The visitor will see it next time the widget checks in.", tone: "success" });
     } catch (err) {
       if (err instanceof UnauthorizedError) {
         logout();
@@ -242,6 +370,11 @@ export function ConversationsPage() {
         return;
       }
       setReplyError(err instanceof Error ? err.message : "Failed to send reply");
+      toast({
+        title: "Failed to send reply",
+        description: err instanceof Error ? err.message : undefined,
+        tone: "error",
+      });
     } finally {
       setSending(false);
     }
@@ -296,27 +429,11 @@ export function ConversationsPage() {
           </button>
         </div>
 
-        {/* Profile tabs */}
-        {profiles.length > 0 && (
-          <div className="flex gap-1 px-3 pt-3 pb-1 flex-wrap">
-            {profiles.map((p) => (
-              <button
-                key={p.slug}
-                type="button"
-                onClick={() => {
-                  setActiveProfile(p.slug);
-                  setSelected(null);
-                }}
-                className={cn(
-                  "flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors",
-                  activeProfile === p.slug
-                    ? "bg-blue-500/20 text-blue-400"
-                    : "text-slate-400 hover:bg-slate-800 hover:text-slate-200",
-                )}
-              >
-                {p.name}
-              </button>
-            ))}
+        {/* Current profile */}
+        {activeProfile && (
+          <div className="mx-3 my-3 min-w-0 border border-blue-500/20 bg-blue-500/10 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-400">Chatbot profile</p>
+            <p className="mt-1 break-words text-sm font-medium text-slate-100">{profile?.name}</p>
           </div>
         )}
 
@@ -442,6 +559,16 @@ export function ConversationsPage() {
                 variant="outline"
                 size="sm"
                 className="h-8 gap-1.5 px-3 text-xs border-slate-700 text-slate-300 hover:text-white"
+                onClick={() => exportSessionAsPDF(selected)}
+                title="Print / save this conversation as a PDF"
+              >
+                <FileText className="size-3.5" />
+                Export PDF
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 px-3 text-xs border-slate-700 text-slate-300 hover:text-white"
                 onClick={() => exportSessionAsCSV(selected)}
               >
                 <Download className="size-3.5" />
@@ -455,19 +582,29 @@ export function ConversationsPage() {
                 <div
                   key={i}
                   className={cn(
-                    "flex",
-                    msg.role === "user" ? "justify-end" : "justify-start",
+                    "flex items-start gap-2",
+                    msg.role === "user" ? "justify-start" : "justify-end",
                   )}
                 >
+                  {msg.role === "user" && (
+                    <span
+                      className="mt-0.5 flex size-8 shrink-0 items-center justify-center border border-blue-500/20 bg-blue-500/15 text-blue-400"
+                      title={selected.userName || "Client"}
+                      role="img"
+                      aria-label={selected.userName || "Client"}
+                    >
+                      <User className="size-4" aria-hidden="true" />
+                    </span>
+                  )}
                   <div
                     className={cn(
-                      "max-w-[70%] rounded-2xl px-4 py-2.5 text-sm",
+                      "min-w-0 max-w-[85%] sm:max-w-[70%] rounded-2xl px-4 py-2.5 text-sm",
                       msg.role === "user" &&
-                        "bg-blue-600 text-white rounded-br-md",
+                        "bg-blue-600 text-white rounded-bl-md",
                       msg.role === "assistant" &&
-                        "bg-slate-800 text-slate-100 rounded-bl-md",
+                        "bg-slate-800 text-slate-100 rounded-br-md",
                       msg.role === "admin" &&
-                        "bg-emerald-600/20 border border-emerald-500/30 text-emerald-50 rounded-bl-md",
+                        "bg-emerald-600/20 border border-emerald-500/30 text-emerald-50 rounded-br-md",
                     )}
                   >
                     {msg.role === "admin" && (
@@ -476,9 +613,7 @@ export function ConversationsPage() {
                         {msg.senderName || "You"}
                       </p>
                     )}
-                    <p className="whitespace-pre-wrap break-words">
-                      {renderWithLinks(msg.content)}
-                    </p>
+                    <div className="chat-rich-text min-w-0 break-words" dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }} />
                     <time
                       className={cn(
                         "mt-1 block text-[10px]",

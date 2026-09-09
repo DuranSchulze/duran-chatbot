@@ -1,11 +1,131 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-import { Bot, Plus, Archive, ArrowRight, Calendar, Globe, Sparkles, Trash2, RotateCcw, Pencil } from "lucide-react"
+import { useToast } from "@/components/ui/toaster"
+import {
+  Bot,
+  Plus,
+  ArrowRight,
+  Calendar,
+  Globe,
+  MessageSquare,
+  Sparkles,
+  Trash2,
+  RotateCcw,
+  Pencil,
+  Archive,
+  ChevronDown,
+  type LucideIcon,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 import type { ProfileMeta } from "@/api/profiles"
 import { ProfileCreateDialog } from "./profile-create-dialog"
 import { ProfileEditDialog } from "./profile-edit-dialog"
+
+type RowAction = {
+  label: string
+  icon: LucideIcon
+  /** Navigate instead of calling a handler */
+  href?: string
+  onClick?: () => void
+  disabled?: boolean
+  tone?: "default" | "danger" | "success"
+  /** Draw a thin separator above this action */
+  divider?: boolean
+  title?: string
+}
+
+/** Compact “Actions ▾” dropdown that lists what a user can do to a row. */
+function RowActionsMenu({ items }: { items: RowAction[] }) {
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false)
+    }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [open])
+
+  const close = () => setOpen(false)
+
+  return (
+    <div className="relative shrink-0">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setOpen((value) => !value)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title="More actions"
+        className={cn("gap-1.5", open && "bg-slate-50")}
+      >
+        Actions
+        <ChevronDown className={cn("size-3.5 transition-transform", open && "rotate-180")} />
+      </Button>
+
+      {open && (
+        <>
+          {/* Click-away catcher */}
+          <div className="fixed inset-0 z-10" onClick={close} aria-hidden="true" />
+          <div
+            role="menu"
+            className="absolute right-0 top-full z-20 mt-1.5 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+          >
+            {items.map((action) => (
+              <div key={action.label}>
+                {action.divider && <div className="my-1 h-px bg-slate-100" />}
+                {action.href ? (
+                  <Link
+                    to={action.href}
+                    role="menuitem"
+                    onClick={close}
+                    title={action.title}
+                    className={cn(
+                      "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                      action.tone === "danger"
+                        ? "text-red-600 hover:bg-red-50"
+                        : action.tone === "success"
+                          ? "text-emerald-700 hover:bg-emerald-50"
+                          : "text-slate-700 hover:bg-slate-100",
+                    )}
+                  >
+                    <action.icon className="size-4 shrink-0" />
+                    {action.label}
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      close()
+                      action.onClick?.()
+                    }}
+                    disabled={action.disabled}
+                    title={action.title}
+                    className={cn(
+                      "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-40",
+                      action.tone === "danger"
+                        ? "text-red-600 hover:bg-red-50"
+                        : action.tone === "success"
+                          ? "text-emerald-700 hover:bg-emerald-50"
+                          : "text-slate-700 hover:bg-slate-100",
+                    )}
+                  >
+                    <action.icon className="size-4 shrink-0" />
+                    {action.label}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
 
 type ProfileListProps = {
   profiles: ProfileMeta[]
@@ -35,6 +155,7 @@ export function ProfileList({
   const [archiving, setArchiving] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [reactivating, setReactivating] = useState<string | null>(null)
+  const { toast } = useToast()
 
   const active = profiles.filter((p) => p.status === "active")
   const archived = profiles.filter((p) => p.status === "archived")
@@ -44,6 +165,9 @@ export function ProfileList({
     setArchiving(slug)
     try {
       await onArchive(slug)
+      toast({ title: "Profile archived", description: `"${slug}" can be reactivated later.`, tone: "success" })
+    } catch (err) {
+      toast({ title: "Failed to archive profile", description: err instanceof Error ? err.message : undefined, tone: "error" })
     } finally {
       setArchiving(null)
     }
@@ -57,6 +181,9 @@ export function ProfileList({
     setDeleting(slug)
     try {
       await onHardDelete(slug)
+      toast({ title: "Profile deleted", description: `"${name}" and all of its data were permanently removed.`, tone: "success" })
+    } catch (err) {
+      toast({ title: "Failed to delete profile", description: err instanceof Error ? err.message : undefined, tone: "error" })
     } finally {
       setDeleting(null)
     }
@@ -66,20 +193,33 @@ export function ProfileList({
     setReactivating(slug)
     try {
       await onReactivate(slug)
+      toast({ title: "Profile reactivated", description: `"${slug}" is active again.`, tone: "success" })
+    } catch (err) {
+      toast({ title: "Failed to reactivate profile", description: err instanceof Error ? err.message : undefined, tone: "error" })
     } finally {
       setReactivating(null)
     }
   }
 
   const handleCreate = async (name: string, slug: string) => {
-    await onCreate(name, slug)
-    setShowCreate(false)
+    try {
+      await onCreate(name, slug)
+      setShowCreate(false)
+      toast({ title: "Profile created", description: `"${name}" is ready to configure.`, tone: "success" })
+    } catch (err) {
+      toast({ title: "Failed to create profile", description: err instanceof Error ? err.message : undefined, tone: "error" })
+    }
   }
 
   const handleRename = async (name: string, slug: string) => {
     if (!editingProfile) return
-    await onRename(editingProfile.slug, name, slug)
-    setEditingProfile(null)
+    try {
+      await onRename(editingProfile.slug, name, slug)
+      setEditingProfile(null)
+      toast({ title: "Profile renamed", description: `Now known as "${name}".`, tone: "success" })
+    } catch (err) {
+      toast({ title: "Failed to rename profile", description: err instanceof Error ? err.message : undefined, tone: "error" })
+    }
   }
 
   if (loading) {
@@ -142,6 +282,39 @@ export function ProfileList({
           </div>
         </Link>
 
+        {/* Kairo chatbot — external workspace */}
+        <a
+          href="https://kairo.buildvault.live/login"
+          className="group relative mb-8 block overflow-hidden border border-blue-200 bg-blue-50 p-5 shadow-sm hover:border-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-4 sm:p-6"
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 320 200"
+            fill="none"
+            className="pointer-events-none absolute -right-8 -top-3 h-56 w-80 text-blue-600 opacity-[0.08]"
+          >
+            <path d="M40 24h200v80H96l-32 28v-28H40z" stroke="currentColor" strokeWidth="2" />
+            <path d="M112 120h176v56h-24v20l-28-20H112z" stroke="currentColor" strokeWidth="2" />
+            <path d="M72 52h128M72 72h88M136 144h112M136 160h72" stroke="currentColor" strokeWidth="4" />
+          </svg>
+          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
+            <div className="flex min-w-0 flex-1 items-start gap-4">
+              <div className="flex size-12 shrink-0 items-center justify-center border border-blue-200 bg-white text-blue-600">
+                <MessageSquare className="size-6" aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-600">Another place to chat</p>
+                <h2 className="text-lg font-semibold tracking-tight text-slate-900">Meet Kairo</h2>
+                <p className="mt-1 max-w-sm text-sm leading-6 text-slate-600">Open the Kairo chatbot and sign in to start a conversation.</p>
+              </div>
+            </div>
+            <span className="flex min-h-10 shrink-0 items-center justify-center gap-2 bg-blue-600 px-4 py-2 text-sm font-medium text-white group-hover:bg-blue-700">
+              Open Kairo
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </span>
+          </div>
+        </a>
+
         {error && (
           <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
             <p className="text-sm text-rose-700">{error}</p>
@@ -179,42 +352,47 @@ export function ProfileList({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => setEditingProfile(profile)}
-                      title="Edit profile name and slug"
-                    >
-                      <Pencil className="size-4 text-slate-400" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => handleArchive(profile.slug)}
-                      disabled={archiving === profile.slug || active.length <= 1}
-                      title="Archive profile"
-                    >
-                      <Archive className="size-4 text-slate-400" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => handleHardDelete(profile.slug, profile.name)}
-                      disabled={deleting === profile.slug}
-                      className="hover:bg-red-50 hover:text-red-600"
-                      title="Permanently delete profile and all data"
-                    >
-                      <Trash2 className="size-4 text-slate-400 group-hover:text-red-500" />
-                    </Button>
+                  <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
                     <Button
                       size="sm"
                       onClick={() => onSelect(profile.slug)}
-                      className="gap-1.5 ml-1"
+                      className="gap-1.5"
                     >
                       Edit
                       <ArrowRight className="size-3.5" />
                     </Button>
+                    <RowActionsMenu
+                      items={[
+                        {
+                          label: "Open conversations",
+                          icon: MessageSquare,
+                          href: `/conversations?profile=${profile.slug}`,
+                          title: "View conversations for this profile",
+                        },
+                        {
+                          label: "Rename profile",
+                          icon: Pencil,
+                          onClick: () => setEditingProfile(profile),
+                          title: "Edit profile name and slug",
+                        },
+                        {
+                          label: "Archive profile",
+                          icon: Archive,
+                          onClick: () => handleArchive(profile.slug),
+                          disabled: archiving === profile.slug || active.length <= 1,
+                          title: archiving === profile.slug ? "Archiving…" : "Archive this profile (can be reactivated later)",
+                        },
+                        {
+                          label: "Delete profile",
+                          icon: Trash2,
+                          onClick: () => handleHardDelete(profile.slug, profile.name),
+                          disabled: deleting === profile.slug,
+                          tone: "danger",
+                          divider: true,
+                          title: deleting === profile.slug ? "Deleting…" : "Permanently delete profile and all data",
+                        },
+                      ]}
+                    />
                   </div>
                 </div>
               ))}
@@ -254,36 +432,35 @@ export function ProfileList({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
                     <Badge variant="secondary">Archived</Badge>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => setEditingProfile(profile)}
-                      title="Edit profile name and slug"
-                    >
-                      <Pencil className="size-3.5 text-slate-400" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => handleReactivate(profile.slug)}
-                      disabled={reactivating === profile.slug}
-                      title="Reactivate profile"
-                      className="hover:bg-emerald-50 hover:text-emerald-600"
-                    >
-                      <RotateCcw className="size-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => handleHardDelete(profile.slug, profile.name)}
-                      disabled={deleting === profile.slug}
-                      className="hover:bg-red-50 hover:text-red-600"
-                      title="Permanently delete profile and all data"
-                    >
-                      <Trash2 className="size-4 text-slate-400" />
-                    </Button>
+                    <RowActionsMenu
+                      items={[
+                        {
+                          label: "Rename profile",
+                          icon: Pencil,
+                          onClick: () => setEditingProfile(profile),
+                          title: "Edit profile name and slug",
+                        },
+                        {
+                          label: "Reactivate profile",
+                          icon: RotateCcw,
+                          onClick: () => handleReactivate(profile.slug),
+                          disabled: reactivating === profile.slug,
+                          tone: "success",
+                          title: reactivating === profile.slug ? "Reactivating…" : "Reactivate this profile",
+                        },
+                        {
+                          label: "Delete profile",
+                          icon: Trash2,
+                          onClick: () => handleHardDelete(profile.slug, profile.name),
+                          disabled: deleting === profile.slug,
+                          tone: "danger",
+                          divider: true,
+                          title: deleting === profile.slug ? "Deleting…" : "Permanently delete profile and all data",
+                        },
+                      ]}
+                    />
                   </div>
                 </div>
               ))}

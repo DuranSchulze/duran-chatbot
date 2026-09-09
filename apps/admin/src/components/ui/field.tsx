@@ -3,7 +3,7 @@ import type { HTMLAttributes, LabelHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 export function Field({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("space-y-2.5", className)} {...props} />;
+  return <div className={cn("min-w-0 space-y-2.5", className)} {...props} />;
 }
 
 export function FieldGrid({

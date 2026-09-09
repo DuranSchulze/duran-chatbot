@@ -79,3 +79,28 @@ code {
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     monospace;
 }
+.chat-rich-text { overflow-wrap: anywhere; min-width: 0; }
+.chat-rich-text p { margin: 0 0 0.75rem; }
+.chat-rich-text > :last-child { margin-bottom: 0; }
+.chat-rich-text strong { font-weight: 700; }
+.chat-rich-text em { font-style: italic; }
+.chat-rich-text u { text-decoration: underline; }
+.chat-rich-text del { text-decoration: line-through; }
+.chat-rich-text h1, .chat-rich-text h2, .chat-rich-text h3,
+.chat-rich-text h4, .chat-rich-text h5, .chat-rich-text h6 {
+  font-weight: 600; margin: 1rem 0 0.5rem; line-height: 1.5;
+}
+.chat-rich-text h1 { font-size: 1.25rem; }
+.chat-rich-text h2 { font-size: 1.125rem; }
+.chat-rich-text h3 { font-size: 1rem; }
+.chat-rich-text > :first-child { margin-top: 0; }
+.chat-rich-text ul { list-style: disc; padding-left: 1.25rem; margin: 0.75rem 0; }
+.chat-rich-text ol { list-style: decimal; padding-left: 1.25rem; margin: 0.75rem 0; }
+.chat-rich-text li { margin: 0.25rem 0; }
+.chat-rich-text blockquote { border-left: 2px solid currentColor; padding-left: 1rem; margin: 1rem 0; }
+.chat-rich-text a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.chat-rich-text pre { max-width: 100%; overflow-x: auto; padding: 1rem; background: #02061766; margin: 1rem 0; }
+.chat-rich-text code { font-family: monospace; }
+.chat-rich-text hr { border-color: #64748b; margin: 1rem 0; }
+.chat-rich-text table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; }
+.chat-rich-text th, .chat-rich-text td { border: 1px solid #64748b; padding: 0.5rem; }

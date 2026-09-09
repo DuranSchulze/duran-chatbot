@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { SectionHeader } from "@/components/ui/section-header";
-import { Textarea } from "@/components/ui/textarea";
+import { PromptTextarea } from "@/components/ui/prompt-textarea";
 
 type ServicesPanelProps = {
   services: ServiceEntry[];
@@ -108,10 +108,13 @@ export function ServicesPanel({ services, onChange }: ServicesPanelProps) {
               </div>
               <div className="space-y-1">
                 <h3 className="text-base font-semibold text-slate-900">
-                  No services yet
+                  No services yet — that's okay
                 </h3>
                 <p className="max-w-md text-sm leading-6 text-slate-500">
-                  Add your service offers, pricing guidance, and next steps here.
+                  The chatbot still provides general legal guidance based on its
+                  system prompt. Entries you add here make it more precise:
+                  it quotes your pricing, process, and next steps instead of
+                  staying general. It never invents prices either way.
                 </p>
               </div>
             </CardContent>
@@ -258,13 +261,13 @@ export function ServicesPanel({ services, onChange }: ServicesPanelProps) {
 
           <Field>
             <FieldLabel>Process</FieldLabel>
-            <Textarea
+            <PromptTextarea
               rows={5}
               value={draft.process ?? ""}
-              onChange={(event) =>
+              onChange={(next) =>
                 setDraft((current) => ({
                   ...current,
-                  process: event.target.value,
+                  process: next,
                 }))
               }
               placeholder="Describe how the service works and what the client can expect."
@@ -276,13 +279,13 @@ export function ServicesPanel({ services, onChange }: ServicesPanelProps) {
 
           <Field>
             <FieldLabel>Notes</FieldLabel>
-            <Textarea
+            <PromptTextarea
               rows={4}
               value={draft.notes ?? ""}
-              onChange={(event) =>
+              onChange={(next) =>
                 setDraft((current) => ({
                   ...current,
-                  notes: event.target.value,
+                  notes: next,
                 }))
               }
               placeholder="Add caveats, inclusions, exclusions, or important sales qualifiers."
@@ -294,13 +297,13 @@ export function ServicesPanel({ services, onChange }: ServicesPanelProps) {
 
           <Field>
             <FieldLabel>CTA / next step</FieldLabel>
-            <Textarea
+            <PromptTextarea
               rows={3}
               value={draft.cta ?? ""}
-              onChange={(event) =>
+              onChange={(next) =>
                 setDraft((current) => ({
                   ...current,
-                  cta: event.target.value,
+                  cta: next,
                 }))
               }
               placeholder="Invite the user to book a consultation or send details for a formal quote."

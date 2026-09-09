@@ -38,6 +38,18 @@ export interface AppearanceConfig {
   welcomeMessage: string;
   /** Avatar URL (optional) */
   avatarUrl?: string;
+  /** Street address of the company shown to visitors (e.g. for the AI to answer location questions) */
+  companyAddress?: string;
+  /** Public phone number(s) visitors can call */
+  companyPhone?: string;
+  /** Public support/inquiry email shown to visitors */
+  companyEmail?: string;
+  /** Office hours description (e.g. "Mon–Fri, 9:00 AM – 6:00 PM") */
+  officeHours?: string;
+  /** Website / contact-form URL to point visitors to for more details */
+  contactUrl?: string;
+  /** Google Maps / directions link to the office */
+  mapUrl?: string;
 }
 
 export interface AIConfig {
@@ -194,6 +206,12 @@ export const defaultConfig: ChatbotConfig = {
     borderRadius: 12,
     companyName: 'AI Assistant',
     welcomeMessage: 'Hello! How can I help you today?',
+    companyAddress: '',
+    companyPhone: '',
+    companyEmail: '',
+    officeHours: '',
+    contactUrl: '',
+    mapUrl: '',
   },
   ai: {
     systemPrompt: 'You are a helpful AI assistant. Provide clear, accurate, and helpful responses.',
@@ -243,3 +261,49 @@ export function mergeWithDefaults(partial: Partial<ChatbotConfig>): ChatbotConfi
     },
   };
 }
+
+// ─── Contact template variables ─────────────────────────────────────────────
+// The Contact & Location tab is the single source of truth for company details.
+// Anywhere these values are needed (AI system prompt, dataset entries, response
+// footers, welcome message) they can be referenced as {{token}} and are replaced
+// with the current Contact & Location values when the chatbot runs.
+
+export interface TemplateVariable {
+  /** The token usable in text, without braces (e.g. "address" → {{address}}) */
+  token: string;
+  /** Human-readable label shown in the admin UI */
+  label: string;
+  /** The AppearanceConfig field the value comes from */
+  source: keyof AppearanceConfig;
+}
+
+export const CONTACT_TEMPLATE_VARIABLES: TemplateVariable[] = [
+  { token: 'companyName', label: 'Company name', source: 'companyName' },
+  { token: 'address', label: 'Office address', source: 'companyAddress' },
+  { token: 'phone', label: 'Phone number(s)', source: 'companyPhone' },
+  { token: 'email', label: 'Contact email', source: 'companyEmail' },
+  { token: 'officeHours', label: 'Office hours', source: 'officeHours' },
+  { token: 'contactUrl', label: 'Website / contact page', source: 'contactUrl' },
+  { token: 'mapUrl', label: 'Map / directions link', source: 'mapUrl' },
+];
+
+/**
+ * Replace {{token}} references with the matching Contact & Location values.
+ * Whitespace inside the braces is tolerated ({{ address }}), unknown tokens are
+ * left untouched, and tokens whose field is empty resolve to an empty string.
+ */
+export function interpolateTemplateVariables(
+  text: string,
+  appearance?: Partial<AppearanceConfig> | null,
+): string {
+  if (!text || !appearance) return text ?? '';
+  return text.replace(/\{\{\s*([a-zA-Z]+)\s*\}\}/g, (match, token: string) => {
+    const variable = CONTACT_TEMPLATE_VARIABLES.find(
+      (v) => v.token === token,
+    );
+    if (!variable) return match;
+    const value = appearance[variable.source];
+    return typeof value === 'string' ? value : '';
+  });
+}
+export { formatRichMessage } from './format-message.js';

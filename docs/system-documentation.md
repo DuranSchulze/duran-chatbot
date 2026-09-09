@@ -74,7 +74,7 @@ graph TB
 
     subgraph "External Services"
         GEMINI[Google Gemini API]
-        GMAIL[Gmail SMTP]
+        RESEND[Resend API]
     end
 
     subgraph "Database"
@@ -91,7 +91,7 @@ graph TB
     ADMIN -->|manage profiles| API
 
     API -->|read/write| NEON
-    API -->|send email| GMAIL
+    API -->|send email| RESEND
 
     DEV_SERVER -->|same routes| NEON
 
@@ -417,7 +417,7 @@ Handles a quote request from the widget. Validates input, sends email to configu
 **Behavior:**
 1. Rate-limited (5 requests per 10 minutes per IP)
 2. Honeypot check (if filled, silently accepts as spam)
-3. Email sent via Nodemailer (Gmail SMTP) to recipients configured in profile's `BehaviorConfig.quoteNotifyTo`
+3. Email sent via the Resend API to recipients configured in profile's `BehaviorConfig.quoteNotifyTo` (per-profile key from Email settings, or the `RESEND_API_KEY` env fallback)
 4. `QuoteRequest` record persisted to database
 
 **Response:** `{ success: true }`  
@@ -709,7 +709,7 @@ sequenceDiagram
     participant Widget as Chatbot Widget
     participant API as POST /api/quote-request
     participant DB as Neon PostgreSQL
-    participant Email as Gmail SMTP
+    participant Email as Resend API
 
     Widget->>API: { name, email, message, service, profile }
     API->>API: Rate limit check (5/10min per IP)
@@ -717,7 +717,7 @@ sequenceDiagram
     API->>API: Validate fields
     API->>DB: prisma.config.findUnique({ profileId })
     DB-->>API: behavior (quoteNotifyTo, quoteNotifyCC, quoteEmailSubject)
-    API->>Email: sendMail({ to, cc, subject, html })
+    API->>Email: POST api.resend.com/emails ({ from, to, cc, reply_to, subject, html })
     Email-->>API: sent
     API->>DB: prisma.quoteRequest.create({ data })
     DB-->>API: created
@@ -765,8 +765,10 @@ This runs in order:
 |---|---|---|
 | `DATABASE_URL` | Neon PostgreSQL | Prisma (all API endpoints) |
 | `GEMINI_API_KEY` | Google AI Studio | `/api/models`, config delivery, widget |
-| `GMAIL_USER` | Gmail account | `/api/quote-request` |
-| `GMAIL_APP_PASSWORD` | Gmail app password | `/api/quote-request` |
+| `RESEND_API_KEY` | Resend dashboard | `/api/email-integration`, `/api/quote-request` |
+| `RESEND_FROM_EMAIL` (optional) | Verified sender in Resend | Email fallback sender |
+| `RESEND_FROM_NAME` (optional) | Brand name | Default From display name |
+| `EMAIL_ENCRYPTION_KEY` (recommended) | Generate via crypto | Encrypts stored Resend keys (falls back to `AUTH_JWT_SECRET`) |
 | `AUTH_USERNAME` | Admin-defined | `/api/auth` |
 | `AUTH_PASSWORD` | Admin-defined | `/api/auth` |
 | `AUTH_JWT_SECRET` | Generate via crypto | `/api/auth`, `/api/conversations` |

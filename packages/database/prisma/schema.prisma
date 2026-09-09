@@ -21,18 +21,20 @@ model Profile {
   emailIntegration EmailIntegration?
 }
 
-// Per-profile email provider integration (Brevo, Mailtrap, Mandrill, Gmail, custom SMTP).
-// The provider secret (API key / SMTP password) is stored encrypted at rest.
+// Per-profile email provider integration (Resend).
+// The API key is stored encrypted at rest (secretEnc).
+// host/port/username are legacy SMTP columns kept so existing rows survive a
+// live `prisma db push` untouched — new code never reads them.
 model EmailIntegration {
   id        String  @id @default(uuid())
   profileId String  @unique
   profile   Profile @relation(fields: [profileId], references: [slug], onDelete: Cascade)
 
-  provider  String  @default("gmail")
+  provider  String  @default("resend")
   host      String?
   port      Int?
   username  String?
-  /// AES-256-GCM ciphertext of the API key / SMTP password (never returned to clients)
+  /// AES-256-GCM ciphertext of the Resend API key (never returned to clients)
   secretEnc String?
   fromEmail String?
   fromName  String?

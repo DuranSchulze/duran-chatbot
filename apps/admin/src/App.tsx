@@ -20,9 +20,11 @@ import { ConversationsPage } from "@/pages/ConversationsPage";
 import { InternalChatPage } from "@/pages/InternalChatPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toaster";
 import { ChevronLeft } from "lucide-react";
 
 function ConfigEditor() {
+  const { toast } = useToast();
   const [activeProfileSlug, setActiveProfileSlug] = useState<string | null>(
     null,
   );
@@ -69,6 +71,17 @@ function ConfigEditor() {
       setSaveStatus("Saved successfully");
       setEditedConfig(null);
       window.setTimeout(() => setSaveStatus(""), 3000);
+      toast({
+        title: "Configuration saved",
+        description: `Changes to ${activeProfileMeta?.name ?? "this profile"} are live for the chatbot.`,
+        tone: "success",
+      });
+    } else {
+      toast({
+        title: "Failed to save configuration",
+        description: configError ?? "The server rejected the save. Check your connection and try again.",
+        tone: "error",
+      });
     }
   };
 
@@ -183,6 +196,7 @@ function ConfigEditor() {
           onMenuClick={() => setSidebarOpen(true)}
           activeLabel={currentPanel.label}
           profileName={activeProfileMeta?.name}
+          profileSlug={activeProfileSlug}
           onBackToProfiles={() => {
             setActiveProfileSlug(null);
             setEditedConfig(null);

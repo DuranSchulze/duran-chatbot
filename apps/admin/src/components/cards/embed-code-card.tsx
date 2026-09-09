@@ -1,17 +1,29 @@
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 
+import { useToast } from "@/components/ui/toaster";
+
 type EmbedCodeCardProps = {
   code: string;
 };
 
 export function EmbedCodeCard({ code }: EmbedCodeCardProps) {
   const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(code);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+      toast({ title: "Embed code copied to clipboard", tone: "success" });
+    } catch {
+      toast({
+        title: "Failed to copy embed code",
+        description: "Your browser blocked clipboard access — select the code and copy manually.",
+        tone: "error",
+      });
+    }
   };
 
   return (

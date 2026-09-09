@@ -1,5 +1,5 @@
 import type { ChatbotConfig, WidgetEmbedConfig } from '@duran-chatbot/config'
-import { mergeWithDefaults } from '@duran-chatbot/config'
+import { interpolateTemplateVariables, mergeWithDefaults } from '@duran-chatbot/config'
 import { callGeminiAPI } from './api'
 import {
   copyIconMarkup,
@@ -159,7 +159,10 @@ export class ChatbotWidget {
     this.container.dataset.position = this.embedConfig.position || this.config.appearance.position
     this.container.innerHTML = getWidgetHTML(
       this.config.appearance.companyName,
-      this.config.appearance.welcomeMessage,
+      interpolateTemplateVariables(
+        this.config.appearance.welcomeMessage,
+        this.config.appearance,
+      ),
       this.config.quickLinks,
     )
 
@@ -373,6 +376,7 @@ export class ChatbotWidget {
         apiKey: this.apiKey,
         services: this.config.services,
         dataset: this.config.dataset,
+        appearance: this.config.appearance,
         quickLinks: this.config.quickLinks,
         history,
         visitorProfile: this.visitorProfile ?? undefined,
@@ -555,7 +559,7 @@ export class ChatbotWidget {
         sender === 'agent'
           ? `<span class="cb-agent-label">${escapeHtml(this.getAgentDisplayName(msg.senderName))}</span>`
           : ''
-      const formatted = sender === 'user' ? `<p>${escapeHtml(msg.content)}</p>` : formatMessage(msg.content)
+      const formatted = formatMessage(msg.content)
       msgEl.innerHTML = label + formatted + copyBtn
       if (showCopy) {
         msgEl.querySelector('.cb-copy-btn')?.addEventListener('click', () => this.copyToClipboard(msg.content))
@@ -607,7 +611,7 @@ export class ChatbotWidget {
         ? `<span class="cb-agent-label">${escapeHtml(this.getAgentDisplayName(senderName))}</span>`
         : ''
     // Format (linkify / line breaks) for assistant, agent, and notice bubbles.
-    const useRichFormat = sender === 'ai' || sender === 'agent' || sender === 'notice'
+    const useRichFormat = sender !== 'error'
     const formatted = useRichFormat ? formatMessage(text) : `<p>${escapeHtml(text)}</p>`
     msgEl.innerHTML = label + formatted + copyBtn
 

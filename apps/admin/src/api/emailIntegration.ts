@@ -1,12 +1,9 @@
 import { getAuthHeaders } from "@/lib/auth";
 
-export type EmailProvider = "gmail" | "brevo" | "mailtrap" | "mandrill" | "smtp";
+export type EmailProvider = "resend";
 
 export interface EmailIntegration {
   provider: EmailProvider;
-  host: string | null;
-  port: number | null;
-  username: string | null;
   fromEmail: string | null;
   fromName: string | null;
   hasSecret: boolean;
@@ -14,10 +11,6 @@ export interface EmailIntegration {
 }
 
 export interface EmailIntegrationInput {
-  provider: EmailProvider;
-  host?: string | null;
-  port?: number | null;
-  username?: string | null;
   /** Leave empty to keep the stored key. */
   secret?: string | null;
   fromEmail?: string | null;

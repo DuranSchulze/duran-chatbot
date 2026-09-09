@@ -21,6 +21,7 @@ type TopBarProps = {
   onMenuClick: () => void;
   activeLabel?: string;
   profileName?: string;
+  profileSlug?: string;
   onBackToProfiles?: () => void;
 };
 
@@ -33,6 +34,7 @@ export function TopBar({
   onMenuClick,
   activeLabel,
   profileName,
+  profileSlug,
   onBackToProfiles,
 }: TopBarProps) {
   const { logout } = useAuth();
@@ -115,7 +117,7 @@ export function TopBar({
         </Button>
 
         <Link
-          to="/conversations"
+          to={profileSlug ? `/conversations?profile=${encodeURIComponent(profileSlug)}` : "/conversations"}
           className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
         >
           <MessageSquare className="size-3.5" />

@@ -9,10 +9,10 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { PromptTextarea } from "@/components/ui/prompt-textarea";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Select } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Textarea } from "@/components/ui/textarea";
 
 type AIPanelProps = {
   ai: AIConfig;
@@ -137,16 +137,17 @@ export function AIPanel({ ai, onChange }: AIPanelProps) {
 
       <Field>
         <FieldLabel htmlFor="systemPrompt">System prompt</FieldLabel>
-        <Textarea
+        <PromptTextarea
           id="systemPrompt"
           rows={12}
           value={ai.systemPrompt}
-          onChange={(event) => update("systemPrompt", event.target.value)}
-          className="font-mono text-[13px] leading-6"
+          onChange={(next) => update("systemPrompt", next)}
         />
         <FieldDescription>
           Use this as the single source of truth for personality, guardrails,
-          and domain expertise.
+          and domain expertise. Click a variable to insert it — highlighted
+          tokens fill with the current Contact &amp; Location values when the
+          chatbot runs; amber tokens are unrecognized and stay literal.
         </FieldDescription>
       </Field>
     </div>

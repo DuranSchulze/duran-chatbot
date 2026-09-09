@@ -268,6 +268,23 @@ export const styles = `
   font-weight: 600;
 }
 
+.cb-message { min-width: 0; overflow-wrap: anywhere; }
+.cb-message u { text-decoration: underline; }
+.cb-message del { text-decoration: line-through; }
+.cb-message h1, .cb-message h2, .cb-message h3,
+.cb-message h4, .cb-message h5, .cb-message h6 {
+  font-weight: 700; line-height: 1.5; margin: 12px 0 6px;
+}
+.cb-message h1 { font-size: 18px; }
+.cb-message h2 { font-size: 16px; }
+.cb-message h3 { font-size: 14px; }
+.cb-message blockquote { border-left: 2px solid currentColor; padding-left: 10px; margin: 10px 0; }
+.cb-message pre { max-width: 100%; overflow-x: auto; padding: 10px; background: #0000000a; }
+.cb-message code { font-family: monospace; }
+.cb-message hr { margin: 12px 0; border: 0; border-top: 1px solid currentColor; opacity: .3; }
+.cb-message table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; }
+.cb-message th, .cb-message td { border: 1px solid currentColor; padding: 5px; }
+
 .cb-message em {
   font-style: italic;
 }

@@ -1,8 +1,9 @@
-import { Bot, BriefcaseBusiness, Database, Link2, Mail, Palette, SlidersHorizontal, UserRound } from "lucide-react";
+import { Bot, BriefcaseBusiness, Database, Link2, Mail, MapPin, Palette, SlidersHorizontal, UserRound } from "lucide-react";
 
 import { AIPanel } from "@/features/config-editor/panels/ai-panel";
 import { AppearancePanel } from "@/features/config-editor/panels/appearance-panel";
 import { BehaviorPanel } from "@/features/config-editor/panels/behavior-panel";
+import { ContactPanel } from "@/features/config-editor/panels/contact-panel";
 import { DatasetPanel } from "@/features/config-editor/panels/dataset-panel";
 import { EmailPanel } from "@/features/config-editor/panels/email-panel";
 import { PersonaPanel } from "@/features/config-editor/panels/persona-panel";
@@ -61,7 +62,8 @@ export function getConfigSections(
     {
       id: "services",
       label: "Services",
-      description: "Service offers, process, and pricing guidance.",
+      description:
+        "Service offers the chatbot quotes for pricing, process, and next-step questions.",
       icon: BriefcaseBusiness,
       render: () => (
         <ServicesPanel
@@ -73,7 +75,8 @@ export function getConfigSections(
     {
       id: "dataset",
       label: "Dataset",
-      description: "Knowledge entries and response context.",
+      description:
+        "Reference knowledge injected into the chatbot's prompt (guides, FAQs, policies).",
       icon: Database,
       render: () => (
         <DatasetPanel
@@ -95,11 +98,30 @@ export function getConfigSections(
       ),
     },
     {
+      id: "contact",
+      label: "Contact & Location",
+      description:
+        "Single source of truth for address, phone, and hours — referenced by the AI everywhere.",
+      icon: MapPin,
+      render: () => (
+        <ContactPanel
+          appearance={bindings.appearance}
+          onChange={bindings.onAppearanceChange}
+        />
+      ),
+    },
+    {
       id: "email",
       label: "Email",
-      description: "Provider integration for outgoing emails.",
+      description: "Provider connection and notification emails in one place.",
       icon: Mail,
-      render: () => <EmailPanel profileSlug={bindings.profileSlug} />,
+      render: () => (
+        <EmailPanel
+          profileSlug={bindings.profileSlug}
+          behavior={bindings.behavior}
+          onBehaviorChange={bindings.onBehaviorChange}
+        />
+      ),
     },
   ];
 }

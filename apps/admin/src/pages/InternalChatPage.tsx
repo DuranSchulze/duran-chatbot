@@ -5,6 +5,7 @@ import {
   Check,
   ChevronDown,
   ChevronLeft,
+  ChevronRight,
   Copy,
   Loader2,
   LogOut,
@@ -17,22 +18,35 @@ import {
   Trash2,
   X,
 } from "lucide-react"
-import type { DatasetEntry } from "@duran-chatbot/config"
-import { defaultConfig } from "@duran-chatbot/config"
+import type { AppearanceConfig, DatasetEntry } from "@duran-chatbot/config"
+import { defaultConfig, interpolateTemplateVariables } from "@duran-chatbot/config"
 import { Button } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
+import { PromptTextarea } from "@/components/ui/prompt-textarea"
+import { useToast } from "@/components/ui/toaster"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/AuthContext"
 import { callGemini } from "@/api/gemini"
 import { fetchModels, type GeminiModelOption } from "@/api/models"
 import { formatMessage } from "@/lib/format-message"
+import { copyFormattedMessage } from "@/lib/copy-message"
+import { ThinkingSummary } from "@/components/thinking-summary"
+import { ChatReferences, type ReferenceGroup } from "@/components/chat-references"
+import type { GroundedSource } from "@/api/grounding"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Message {
+  thinkingSummary?: string
+  incomplete?: boolean
+  displayContent?: string
+  sources?: GroundedSource[]
   role: "user" | "assistant" | "error"
   content: string
   timestamp: Date
+  sourceCount?: number
+  searchSuggestions?: string
+  searched?: boolean
 }
 
 interface InternalDatasetEntry {
@@ -41,7 +55,24 @@ interface InternalDatasetEntry {
   content: string
 }
 
+type ResponseLength = "short" | "normal" | "long"
+
+const RESPONSE_LENGTHS: { value: ResponseLength; label: string; description: string }[] = [
+  { value: "short", label: "Short", description: "Direct answer and key points" },
+  { value: "normal", label: "Normal", description: "Balanced explanation and next steps" },
+  { value: "long", label: "Long", description: "Detailed explanation and relevant examples" },
+]
+
+const RESPONSE_LENGTH_INSTRUCTIONS: Record<ResponseLength, string> = {
+  short: "Keep this reply brief: give the direct answer in a short paragraph or a few bullets. Omit background, repetition, and optional sections. Include only essential reasoning and next steps.",
+  normal: "Give a balanced reply: lead with the answer, then explain the key reasoning and practical next steps. Match detail to the question without unnecessary background.",
+  long: "Give a thorough, well-structured reply: lead with a short summary, then explain relevant reasoning, context, alternatives, and practical next steps. Include examples when useful, without padding or repetition.",
+}
+
 interface InternalSettings {
+  responseLength: ResponseLength
+  webSearch: boolean
+  fastResponses: boolean
   systemPrompt: string
   model: string
   temperature: number
@@ -57,32 +88,65 @@ const FALLBACK_MODELS: GeminiModelOption[] = [
   { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
   { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
   { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
+  { id: "gemini-flash-latest", label: "Gemini Flash (latest)" },
 ]
 
 // ─── Defaults & persistence ───────────────────────────────────────────────────
 
+const LAWYER_SYSTEM_PROMPT = `You are the internal legal AI assistant of Duran & Duran-Schulze Law, used by the firm's staff. You assist with legal research, case strategy, drafting, and internal processes. Unlike the public chatbot, you may provide detailed, specific guidance and discuss case-sensitive information.
+
+ANSWER LIKE AN EXPERIENCED LAWYER ADVISING A CLIENT. Every substantive answer should follow this structure:
+
+1. **Short answer** — State your bottom-line conclusion first, in one to three sentences, the way counsel opens a client briefing.
+2. **Legal basis** — Cite the governing Philippine statutes, rules, regulations, or jurisprudence (with case names and G.R. numbers where you are confident of them). NEVER fabricate or guess a citation — if you are not certain a case or provision exists, say so explicitly and describe the doctrine generally.
+3. **Analysis** — Apply the law to the facts the user gave. Reason through the elements, tests, or procedural steps, and state your assumptions clearly when facts are missing.
+4. **Recommendation & next steps** — Give practical, actionable advice: options ranked with their risks, costs, and timelines, and the concrete next step you would take.
+5. **Clarifying questions** — If material facts are missing, ask targeted questions before or alongside your advice rather than guessing.
+
+STYLE RULES:
+- Professional, measured, and candid — the tone of a senior partner who respects the listener's intelligence.
+- Explain legal terms in plain language on first use.
+- Flag prescriptive periods, jurisdictional deadlines, and filing requirements prominently whenever relevant.
+- Distinguish clearly between what is settled law, what is debatable, and what is your professional assessment.
+- Never overpromise outcomes; note risks and contrary authority honestly.
+- Keep answers as concise as the question allows — short questions get short answers, complex questions get full briefs.`
+
 const DEFAULT_SETTINGS: InternalSettings = {
-  systemPrompt:
-    "You are a helpful internal AI assistant for Duran & Duran-Schulze Law. You assist the firm's staff with legal research, case strategies, and internal processes. Unlike the public chatbot, you may provide detailed and specific guidance and discuss case-specific information. Be thorough, precise, and cite relevant Philippine laws and jurisprudence where applicable.",
+  responseLength: "normal",
+  webSearch: true,
+  fastResponses: true,
+  systemPrompt: LAWYER_SYSTEM_PROMPT,
   model: "gemini-2.5-flash",
   temperature: 0.7,
   maxTokens: 4096,
   dataset: [],
+  // {{tokens}} pull the live values from the profile's Contact & Location tab
+  // (fetched from /api/config) so office details are edited in one place only.
   responseFooter:
-    `---\n\n*This response is for **internal use only** and does not constitute legal advice. For formal guidance, consult with the appropriate attorney at Duran & Duran-Schulze Law.*\n\n[ ⚖️ Duran & Duran-Schulze Law](https://duranschulze.com/contact)\n\nIf a user asks about our office location, address, or how to find us, you must respond by stating that our office details are the following:\n- Address: 1210 High Street South Corporate Plaza Tower 2, 26th Street, Bonifacio Global City, Taguig, Metro Manila, Philippines\n- Email: info@duranschulze.com\n- Phone Numbers: (+632) 8478 5826, (+63) 917 194 0482\n- Contact Form Link: https://duranschulze.com/contact/`,
+    `---\n\n*This response is for **internal use only** and does not constitute legal advice. For formal guidance, consult with the appropriate attorney at {{companyName}}.*\n\n[ ⚖️ {{companyName}}]({{contactUrl}})\n\nIf a user asks about our office location, address, or how to find us, you must respond by stating that our office details are the following:\n- Address: {{address}}\n- Email: {{email}}\n- Phone Numbers: {{phone}}\n- Contact Form Link: {{contactUrl}}`,
 }
 
 const SETTINGS_STORAGE_KEY = "internal-chat-settings"
+/** Bumped when the default system prompt changes so saved settings pick up the
+ * new prompt while keeping custom model/temperature/dataset choices. */
+const PROMPT_VERSION = 2
 
 function loadSettings(): InternalSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_STORAGE_KEY)
     if (!raw) return DEFAULT_SETTINGS
-    const parsed = JSON.parse(raw) as Partial<InternalSettings>
+    const parsed = JSON.parse(raw) as Partial<InternalSettings> & { promptVersion?: number }
     return {
       ...DEFAULT_SETTINGS,
       ...parsed,
+      responseLength: RESPONSE_LENGTHS.some((option) => option.value === parsed.responseLength)
+        ? parsed.responseLength!
+        : "normal",
       dataset: Array.isArray(parsed.dataset) ? parsed.dataset : [],
+      systemPrompt:
+        parsed.promptVersion === PROMPT_VERSION && parsed.systemPrompt
+          ? parsed.systemPrompt
+          : DEFAULT_SETTINGS.systemPrompt,
     }
   } catch {
     return DEFAULT_SETTINGS
@@ -91,7 +155,7 @@ function loadSettings(): InternalSettings {
 
 function persistSettings(s: InternalSettings) {
   try {
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(s))
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({ ...s, promptVersion: PROMPT_VERSION }))
   } catch {}
 }
 
@@ -103,19 +167,42 @@ function generateSessionId() {
   return `internal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
+/** Remove the appended response footer from a stored assistant message so the
+ * model doesn't learn to repeat it when the conversation is replayed as history. */
+function stripFooter(content: string, footer: string | undefined): string {
+  const f = footer?.trim()
+  if (!f) return content
+  const idx = content.lastIndexOf(f)
+  if (idx !== -1 && content.slice(idx).trim() === f) {
+    return content.slice(0, idx).trimEnd()
+  }
+  return content
+}
+
 function formatTime(d: Date) {
   return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
 }
+
+/** Order of the paginated steps inside the Chat Settings dialog. */
+const SETTINGS_PAGES = [
+  { id: "behavior", label: "Behavior" },
+  { id: "prompt", label: "Instructions" },
+  { id: "model", label: "Model & responses" },
+  { id: "knowledge", label: "Knowledge base" },
+] as const
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function InternalChatPage() {
   const navigate = useNavigate()
   const { logout } = useAuth()
+  const { toast: showToast } = useToast()
 
-  // API key — always fetched from server so it's the same key as the rest of the system
+  // API key — always fetched from server so it's the same key as the rest of the system.
+  // The profile's Contact & Location details come along and back the {{variables}}.
   const [apiKey, setApiKey] = useState("")
   const [apiKeyLoading, setApiKeyLoading] = useState(true)
+  const [appearance, setAppearance] = useState<AppearanceConfig | null>(null)
 
   // Models — fetched from the same API used by the public config editor
   const [models, setModels] = useState<GeminiModelOption[]>([])
@@ -126,25 +213,47 @@ export function InternalChatPage() {
   // Draft settings edited in the drawer, only applied on "Save"
   const [draft, setDraft] = useState<InternalSettings>(loadSettings)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [referencesOpen, setReferencesOpen] = useState(false)
   const [modelDialogOpen, setModelDialogOpen] = useState(false)
   const [savedFlash, setSavedFlash] = useState(false)
+  const [settingsPage, setSettingsPage] = useState(0)
 
   // Chat state
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [sending, setSending] = useState(false)
+  const [pending, setPending] = useState({ text: "", summary: "", restarted: false })
+  const activeRequest = useRef<AbortController | null>(null)
+  const streamTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const followBottom = useRef(true)
+  const cancelRequest = useCallback(() => {
+    activeRequest.current?.abort()
+    activeRequest.current = null
+    if (streamTimer.current) clearTimeout(streamTimer.current)
+  }, [])
+  useEffect(() => cancelRequest, [cancelRequest])
   const [sessionId, setSessionId] = useState(generateSessionId)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  const [fallbackNotice, setFallbackNotice] = useState<string | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const settingsBodyRef = useRef<HTMLDivElement>(null)
+
+  // Reset scroll when paging through the settings dialog
+  useEffect(() => {
+    settingsBodyRef.current?.scrollTo({ top: 0 })
+  }, [settingsPage])
 
   // ── Fetch API key and models on mount ──
   useEffect(() => {
     fetch("/api/config")
       .then((r) => r.json())
-      .then((cfg: { ai?: { apiKey?: string } }) => setApiKey(cfg?.ai?.apiKey ?? ""))
+      .then((cfg: { ai?: { apiKey?: string }; appearance?: AppearanceConfig }) => {
+        setApiKey(cfg?.ai?.apiKey ?? "")
+        setAppearance(cfg?.appearance ?? null)
+      })
       .catch(() => {})
       .finally(() => setApiKeyLoading(false))
   }, [])
@@ -174,13 +283,14 @@ export function InternalChatPage() {
 
   // ── Auto-scroll ──
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, sending])
+    if (followBottom.current) messagesEndRef.current?.scrollIntoView({ behavior: "auto" })
+  }, [messages, sending, pending])
 
   // ── Settings drawer ──
   const openDrawer = useCallback(() => {
     setDraft(settings)
     setSavedFlash(false)
+    setSettingsPage(0)
     setDrawerOpen(true)
   }, [settings])
 
@@ -189,7 +299,8 @@ export function InternalChatPage() {
     persistSettings(draft)
     setSavedFlash(true)
     setTimeout(() => setSavedFlash(false), 2000)
-  }, [draft])
+    showToast({ title: "Chat settings saved", tone: "success" })
+  }, [draft, showToast])
 
   const resetDraft = useCallback(() => setDraft(DEFAULT_SETTINGS), [])
 
@@ -218,7 +329,13 @@ export function InternalChatPage() {
   // ── Send message ──
   const sendMessage = useCallback(async () => {
     const text = input.trim()
-    if (!text || sending || !apiKey) return
+    if (!text || sending || activeRequest.current || !apiKey) return
+    const request = new AbortController()
+    activeRequest.current = request
+    followBottom.current = true
+    let live = { text: "", summary: "", restarted: false }
+    let attempts = 0
+    setPending(live)
 
     setInput("")
 
@@ -241,6 +358,22 @@ export function InternalChatPage() {
     }
 
     setSending(true)
+    setFallbackNotice(null)
+
+    // {{variables}} in the prompt/footer/dataset resolve against the profile's
+    // Contact & Location details so office info is edited in one place only.
+    const footer = interpolateTemplateVariables(settings.responseFooter ?? "", appearance).trim()
+
+    // Prior turns give the model memory of this conversation. When editing an
+    // earlier message, only the turns before it still apply. The current message
+    // is appended by callGemini itself.
+    const baseMessages = isEditing ? messages.slice(0, editingIndex) : messages
+    const history = baseMessages
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.role === "assistant" ? stripFooter(m.content, footer) : m.content,
+      }))
 
     try {
       const dataset: DatasetEntry[] = settings.dataset
@@ -249,14 +382,14 @@ export function InternalChatPage() {
           id: e.id,
           keywords: [],
           title: e.title,
-          content: e.content,
+          content: interpolateTemplateVariables(e.content, appearance),
           category: "internal",
         }))
 
-      const response = await callGemini(
+      const result = await callGemini(
         text,
         {
-          systemPrompt: settings.systemPrompt,
+          systemPrompt: `${interpolateTemplateVariables(settings.systemPrompt, appearance)}\n\nRESPONSE LENGTH PREFERENCE FOR THIS REPLY: ${settings.responseLength.toUpperCase()}\n${RESPONSE_LENGTH_INSTRUCTIONS[settings.responseLength]}\nThis preference overrides default formatting and detail requirements, not accuracy or safety. Preserve important caveats, deadlines, and source citations in every mode. If the latest question explicitly requests a different length or format, follow that request.`,
           model: settings.model,
           temperature: settings.temperature,
           maxTokens: settings.maxTokens,
@@ -265,16 +398,42 @@ export function InternalChatPage() {
         defaultConfig.persona,
         [],
         dataset,
+        history,
+        { webSearch: settings.webSearch, fast: settings.fastResponses, includeThoughts: true, signal: request.signal,
+          onUpdate: (update) => {
+            if (activeRequest.current !== request) return
+            if (update.type === "attempt-reset") {
+              if (streamTimer.current) clearTimeout(streamTimer.current)
+              streamTimer.current = null
+              live = { text: "", summary: "", restarted: attempts++ > 0 }
+              setPending(live)
+              return
+            }
+            live = { ...live, ...(update.type === "summary-update" ? { summary: update.text } : { text: update.text }) }
+            if (!streamTimer.current) streamTimer.current = setTimeout(() => {
+              streamTimer.current = null
+              if (activeRequest.current === request) setPending(live)
+            }, 50)
+          },
+        },
       )
+      if (activeRequest.current !== request) return
 
-      const footer = settings.responseFooter?.trim()
-      const finalContent = footer ? `${response}
+      const finalContent = footer ? `${result.text}
 
-${footer}` : response
+${footer}` : result.text
+
+      if (result.fallbackUsed) {
+        const label = (m: string) =>
+          (models.length > 0 ? models : FALLBACK_MODELS).find((x) => x.id === m)?.label ?? m
+        setFallbackNotice(
+          `"${label(settings.model)}" was unavailable — answered with "${label(result.model)}" instead.`,
+        )
+      }
 
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: finalContent, timestamp: new Date() },
+        { role: "assistant", thinkingSummary: result.thinkingSummary, incomplete: result.incomplete, content: finalContent, displayContent: result.answerText ? `${result.answerText}${footer ? `\n\n${footer}` : ""}` : undefined, sources: result.sources, timestamp: new Date(), sourceCount: result.sourceCount, searchSuggestions: result.searchSuggestions, searched: settings.webSearch },
       ])
 
       // Log the original response (without footer)
@@ -284,7 +443,7 @@ ${footer}` : response
         userName: "Internal User",
         userEmail: "internal@admin",
         userMessage: text,
-        aiResponse: response,
+        aiResponse: result.text,
       })
 
       fetch("/api/chat-log", {
@@ -293,6 +452,7 @@ ${footer}` : response
         body: logBody,
       }).catch(() => {})
     } catch (err) {
+      if (activeRequest.current !== request || request.signal.aborted) return
       setMessages((prev) => [
         ...prev,
         {
@@ -302,14 +462,20 @@ ${footer}` : response
         },
       ])
     } finally {
-      setSending(false)
-      setTimeout(() => inputRef.current?.focus(), 50)
+      if (activeRequest.current === request) {
+        if (streamTimer.current) clearTimeout(streamTimer.current)
+        streamTimer.current = null
+        activeRequest.current = null
+        setPending({ text: "", summary: "", restarted: false })
+        setSending(false)
+        inputRef.current?.focus()
+      }
     }
-  }, [input, sending, apiKey, settings, sessionId])
+  }, [input, sending, apiKey, settings, sessionId, models, messages, appearance, editingIndex])
 
   async function handleCopy(content: string, index: number) {
     try {
-      await navigator.clipboard.writeText(content)
+      await copyFormattedMessage(content)
       setCopiedIndex(index)
       setTimeout(() => setCopiedIndex(null), 2000)
     } catch {}
@@ -329,6 +495,11 @@ ${footer}` : response
   }
 
   function startNewSession() {
+    cancelRequest()
+    streamTimer.current = null
+    setSending(false)
+    setPending({ text: "", summary: "", restarted: false })
+    followBottom.current = true
     setMessages([])
     setEditingIndex(null)
     setSessionId(generateSessionId())
@@ -336,338 +507,524 @@ ${footer}` : response
   }
 
   function handleLogout() {
+    cancelRequest()
     logout()
     navigate("/login", { replace: true })
   }
 
   const isReady = !apiKeyLoading && Boolean(apiKey)
+  const activeModelLabel =
+    (models.length > 0 ? models : FALLBACK_MODELS).find((m) => m.id === settings.model)
+      ?.label ?? settings.model
+  const connectionStatus = apiKeyLoading
+    ? "Connecting…"
+    : !apiKey
+      ? "API key required"
+      : sending
+        ? "Preparing response…"
+        : "AI connected"
+
+  const referenceGroups: ReferenceGroup[] = []
+  let latestQuestion = "Assistant response"
+  messages.forEach((message, messageIndex) => {
+    if (message.role === "user") latestQuestion = message.content
+    if (message.role === "assistant" && (message.sources?.length || message.searchSuggestions)) {
+      referenceGroups.push({ messageIndex, question: latestQuestion, sources: message.sources ?? [], searchSuggestions: message.searchSuggestions })
+    }
+  })
 
   return (
-    <div className="flex h-screen bg-slate-950 text-white overflow-hidden">
-      {/* Backdrop for drawer */}
+    <div className="flex h-[100dvh] min-h-[100dvh] overflow-hidden bg-slate-950 text-white">
+      {/* Settings dialog backdrop */}
       {drawerOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[1px]"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
           onClick={() => setDrawerOpen(false)}
         />
       )}
 
       {/* ── Chat panel ────────────────────────────────────────────────────── */}
-      <div className="flex flex-1 flex-col min-w-0">
+      <div className="flex min-w-0 flex-1 flex-col">
         {/* Top bar */}
-        <header className="flex items-center gap-2.5 border-b border-slate-800 px-4 py-3 shrink-0">
-          <div className="flex items-center justify-center size-8 rounded-full bg-blue-500/15 shrink-0">
-            <Bot className="size-4 text-blue-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-sm font-semibold text-white leading-none">
-              Internal Legal Chat
-            </h1>
-            <p className="text-[11px] text-slate-500 mt-0.5 font-mono">
-                {(models.length > 0 ? models : FALLBACK_MODELS).find((m) => m.id === settings.model)?.label ?? settings.model}
+        <header className="shrink-0 border-b border-slate-800 bg-slate-950">
+          <div className="mx-auto flex w-full max-w-4xl items-center gap-2.5 px-3 py-3 sm:px-6 lg:px-8">
+            <div className="flex size-8 shrink-0 items-center justify-center border border-blue-500/20 bg-blue-500/15">
+              <Bot className="size-4 text-blue-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate text-sm font-semibold leading-none text-white">
+                Internal Legal Chat
+              </h1>
+              <p className="mt-1 truncate font-mono text-[10px] text-slate-500">
+                {activeModelLabel}
               </p>
-          </div>
+            </div>
 
-          {messages.length > 0 && (
+            <button type="button" onClick={() => setReferencesOpen(true)} aria-haspopup="dialog" className="h-8 px-2 text-xs text-blue-300 hover:bg-blue-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 xl:hidden">
+              References ({referenceGroups.length})
+            </button>
+            {messages.length > 0 && (
+              <button
+                type="button"
+                onClick={startNewSession}
+                title="New session"
+                aria-label="Start a new session"
+                className="flex size-8 items-center justify-center text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+              >
+                <RotateCcw className="size-3.5" />
+              </button>
+            )}
+
             <button
               type="button"
-              onClick={startNewSession}
-              title="New session"
-              className="flex items-center justify-center size-8 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+              onClick={() => navigate("/")}
+              className="flex h-8 items-center gap-1 px-2.5 text-xs text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
             >
-              <RotateCcw className="size-3.5" />
+              <ChevronLeft className="size-3.5" />
+              <span className="hidden sm:inline">Admin</span>
             </button>
-          )}
 
-          <button
-            type="button"
-            onClick={openDrawer}
-            title="Settings"
-            className={cn(
-              "flex items-center justify-center size-8 rounded-lg transition-colors",
-              drawerOpen
-                ? "bg-blue-500/20 text-blue-400"
-                : "text-slate-500 hover:text-slate-200 hover:bg-slate-800",
-            )}
-          >
-            <Settings className="size-3.5" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className="flex items-center gap-1 h-8 px-2.5 rounded-lg text-xs text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition-colors"
-          >
-            <ChevronLeft className="size-3.5" />
-            <span className="hidden sm:inline">Admin</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            title="Logout"
-            className="flex items-center justify-center size-8 rounded-lg text-slate-500 hover:text-red-400 hover:bg-slate-800 transition-colors"
-          >
-            <LogOut className="size-3.5" />
-          </button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              title="Logout"
+              aria-label="Log out"
+              className="flex size-8 items-center justify-center text-slate-500 transition-colors hover:bg-slate-800 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60"
+            >
+              <LogOut className="size-3.5" />
+            </button>
+          </div>
         </header>
 
+        {/* Fallback notice — shown when the primary model failed and another answered */}
+        {fallbackNotice && (
+          <div className="shrink-0 border-b border-amber-500/20 bg-amber-500/10" role="status">
+            <div className="mx-auto flex w-full max-w-4xl items-center gap-2 px-4 py-2 sm:px-6 lg:px-8">
+              <Shield className="size-3 shrink-0 text-amber-400" />
+              <span className="flex-1 text-[11px] leading-snug text-amber-300">
+                {fallbackNotice}
+              </span>
+              <button
+                type="button"
+                onClick={() => setFallbackNotice(null)}
+                title="Dismiss"
+                aria-label="Dismiss model fallback notice"
+                className="flex size-6 items-center justify-center text-amber-400/70 transition-colors hover:bg-amber-500/10 hover:text-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+              >
+                <X className="size-3" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-6">
+        <main className="min-h-0 flex-1 overflow-y-auto" onScroll={(event) => { const el = event.currentTarget; followBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 100 }}>
+          <div
+            className="mx-auto flex min-h-full w-full max-w-4xl flex-col px-4 sm:px-6 lg:px-8"
+            role="log"
+            aria-live="polite"
+            aria-relevant="additions"
+            aria-busy={sending}
+          >
           {/* Empty state */}
           {messages.length === 0 && !sending && (
-            <div className="flex flex-col items-center justify-center h-full gap-5 text-center py-16 max-w-md mx-auto">
-              <div className="flex items-center justify-center size-16 rounded-2xl bg-blue-500/10 border border-blue-500/20">
-                <Bot className="size-8 text-blue-400" />
+            <section className="my-auto w-full py-10 sm:py-16" aria-labelledby="internal-chat-intro">
+              <div className="border-l-2 border-blue-500 bg-slate-900/40">
+                <div className="flex items-start gap-4 px-5 py-6 sm:gap-5 sm:px-7 sm:py-8">
+                  <div className="flex size-11 shrink-0 items-center justify-center border border-blue-500/20 bg-blue-500/15 sm:size-12">
+                    <Bot className="size-5 text-blue-400 sm:size-6" />
+                  </div>
+                  <div className="min-w-0 max-w-xl">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-400">
+                      Internal legal assistant
+                    </p>
+                    <h2 id="internal-chat-intro" className="mt-2 text-xl font-semibold tracking-tight text-white sm:text-2xl">
+                      Start a legal briefing
+                    </h2>
+                    <p className="mt-2 text-sm leading-6 text-slate-400">
+                      Research Philippine law, work through case strategy, or draft internal material. Adjust the{" "}
+                      <button
+                        type="button"
+                        onClick={openDrawer}
+                        className="text-blue-400 underline underline-offset-4 transition-colors hover:text-blue-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                      >
+                        chat settings
+                      </button>{" "}
+                      when the matter needs different instructions or reference material.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 border-t border-amber-500/20 bg-amber-500/10 px-5 py-3 sm:px-7">
+                  <Shield className="mt-0.5 size-3.5 shrink-0 text-amber-400" />
+                  <div>
+                    <p className="text-xs font-medium text-amber-300">Internal use only</p>
+                    <p className="mt-0.5 text-[11px] leading-5 text-amber-400/80">
+                      Do not send generated responses to clients without attorney review.
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <h2 className="text-base font-semibold text-white mb-1.5">
-                  Ask our Legal Chatbot
-                </h2>
-                <p className="text-sm text-slate-500 leading-relaxed">
-                  Your internal AI assistant. Use the{" "}
-                  <button
-                    type="button"
-                    onClick={openDrawer}
-                    className="text-blue-400 hover:text-blue-300 underline transition-colors"
-                  >
-                    settings panel
-                  </button>{" "}
-                  to customize the system prompt, temperature, and knowledge base.
-                </p>
-              </div>
-              <div className="flex items-center gap-2 rounded-full bg-amber-500/10 border border-amber-500/20 px-3 py-1.5">
-                <Shield className="size-3 text-amber-400 shrink-0" />
-                <span className="text-xs text-amber-400">
-                  Not for client responses — internal use only
-                </span>
-              </div>
+
               {apiKeyLoading && (
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <Loader2 className="size-3.5 animate-spin" />
+                <div className="flex items-center gap-2 border-x border-b border-slate-800 px-5 py-3 text-xs text-slate-500 sm:px-7" role="status">
+                  <Loader2 className="size-3.5 animate-spin motion-reduce:animate-none" />
                   Connecting to AI…
                 </div>
               )}
               {!apiKeyLoading && !apiKey && (
-                <p className="text-xs text-red-400">
+                <p className="border-x border-b border-red-900/50 bg-red-950/40 px-5 py-3 text-xs text-red-300 sm:px-7" role="alert">
                   API key not configured — set GEMINI_API_KEY on the server.
                 </p>
               )}
-            </div>
+            </section>
           )}
 
-          {/* Message bubbles */}
-          <div className="space-y-4 max-w-3xl mx-auto">
-            {messages.map((msg, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "flex gap-2.5",
-                  msg.role === "user" ? "justify-end" : "justify-start",
-                )}
-              >
-                {msg.role !== "user" && (
-                  <div
-                    className={cn(
-                      "flex shrink-0 items-center justify-center size-7 rounded-full mt-0.5",
-                      msg.role === "error" ? "bg-red-500/20" : "bg-blue-500/15",
-                    )}
-                  >
-                    <Bot
-                      className={cn(
-                        "size-3.5",
-                        msg.role === "error" ? "text-red-400" : "text-blue-400",
-                      )}
-                    />
-                  </div>
-                )}
-                <div className="group relative">
-                  <div
-                    className={cn(
-                      "max-w-[72%] rounded-2xl px-4 py-2.5 text-sm",
-                      msg.role === "user"
-                        ? "bg-blue-600 text-white rounded-br-md"
-                        : msg.role === "error"
-                          ? "bg-red-950/60 border border-red-800/40 text-red-300 rounded-bl-md"
-                          : "bg-slate-800 text-slate-100 rounded-bl-md",
-                    )}
-                  >
-                    {msg.role === "assistant" ? (
-                      <div
-                        className="[&_a]:underline [&_a]:text-blue-400 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:my-1 [&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:my-1 [&_p]:mb-1 [&_p:last-child]:mb-0 [&_pre]:my-2 [&_code]:text-sm [&_blockquote]:my-2 [&_hr]:my-4 leading-relaxed"
-                        dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }}
-                      />
-                    ) : (
-                      <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                    )}
-                    <time
-                      className={cn(
-                        "mt-1.5 block text-[10px]",
-                        msg.role === "user" ? "text-blue-200" : "text-slate-500",
-                      )}
-                    >
-                      {formatTime(msg.timestamp)}
-                    </time>
-                  </div>
+          {/* Conversation stream */}
+          <div className="flex flex-col gap-7 py-6 sm:py-8">
+            {messages.map((msg, i) => {
+              const isUser = msg.role === "user"
+              const isError = msg.role === "error"
 
-                  {/* Hover toolbar */}
-                  <div className="absolute -top-2 right-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(msg.content, i)}
-                      title="Copy message"
+              if (isUser) {
+                return (
+                  <article key={i} className="group flex w-full justify-end">
+                    <div className="min-w-0 max-w-[88%] sm:max-w-[78%]">
+                      <div className="bg-blue-600 px-4 py-3 text-sm leading-6 text-white shadow-sm">
+                        <div className="chat-rich-text" dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }} />
+                      </div>
+                      <div className="mt-2 flex items-center justify-end gap-1.5">
+                        <time className="mr-1 text-[10px] text-slate-400">
+                          {formatTime(msg.timestamp)}
+                        </time>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(msg.content, i)}
+                          title="Copy message"
+                          aria-label="Copy your message"
+                          className={cn(
+                            "flex size-7 items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100",
+                            copiedIndex === i
+                              ? "bg-emerald-500/20 text-emerald-400"
+                              : "bg-slate-900 text-slate-500 hover:bg-slate-800 hover:text-slate-200",
+                          )}
+                        >
+                          {copiedIndex === i ? <Check className="size-3" /> : <Copy className="size-3" />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(i, msg.content)}
+                          title="Edit message"
+                          aria-label="Edit your message"
+                          className="flex size-7 items-center justify-center bg-slate-900 text-slate-500 transition-all hover:bg-slate-800 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                        >
+                          <Pencil className="size-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                )
+              }
+
+              return (
+                <article key={i} className="group grid grid-cols-[2rem_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[2.25rem_minmax(0,1fr)] sm:gap-4">
+                  <div
+                    className={cn(
+                      "flex size-8 items-center justify-center border sm:size-9",
+                      isError
+                        ? "border-red-500/20 bg-red-500/15"
+                        : "border-blue-500/20 bg-blue-500/15",
+                    )}
+                  >
+                    <Bot className={cn("size-4", isError ? "text-red-400" : "text-blue-400")} />
+                  </div>
+                  <div className="min-w-0">
+                    <div
                       className={cn(
-                        "flex items-center justify-center size-6 rounded-md text-[10px] transition-colors",
-                        copiedIndex === i
-                          ? "bg-emerald-500/20 text-emerald-400"
-                          : "bg-slate-800 text-slate-500 hover:text-slate-200 hover:bg-slate-700",
+                        "border px-4 py-4 sm:px-5 sm:py-5",
+                        isError
+                          ? "border-red-700/60 bg-red-900/40 text-red-100"
+                          : "border-slate-700 bg-slate-800 text-slate-50",
                       )}
                     >
-                      {copiedIndex === i ? (
-                        <Check className="size-3" />
+                      <p className={cn("mb-3 text-[10px] font-semibold uppercase tracking-[0.18em]", isError ? "text-red-400" : "text-blue-400")}>
+                        {isError ? "Response error" : "Legal assistant"}
+                      </p>
+                      {msg.role === "assistant" ? (
+                        <>
+                        <ThinkingSummary text={msg.thinkingSummary ?? ""} />
+                        {msg.incomplete && <p className="mb-3 text-xs text-amber-300">This answer is incomplete because the response limit was reached.</p>}
+                        <div
+                          className="chat-rich-text min-w-0 break-words text-sm leading-7"
+                          dangerouslySetInnerHTML={{ __html: formatMessage(msg.displayContent ?? msg.content) }}
+                        />
+                        {msg.searched && (
+                          <p className="mt-4 text-xs text-slate-400">
+                            {msg.sourceCount ? `${msg.sourceCount} web sources · numbered links identify supported passages.` : "No web sources returned for this answer."}
+                          </p>
+                        )}
+                        </>
                       ) : (
-                        <Copy className="size-3" />
+                        <p className="whitespace-pre-wrap break-words text-sm leading-6">{msg.content}</p>
                       )}
-                    </button>
-                    {msg.role === "user" && (
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <time className="text-[10px] text-slate-400">
+                        {formatTime(msg.timestamp)}
+                      </time>
                       <button
                         type="button"
-                        onClick={() => handleEdit(i, msg.content)}
-                        title="Edit message"
-                        className="flex items-center justify-center size-6 rounded-md bg-slate-800 text-slate-500 hover:text-slate-200 hover:bg-slate-700 transition-colors"
+                        onClick={() => handleCopy(msg.content, i)}
+                        title="Copy message"
+                        aria-label={isError ? "Copy error message" : "Copy assistant response"}
+                        className={cn(
+                          "flex size-7 items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100",
+                          copiedIndex === i
+                            ? "bg-emerald-500/20 text-emerald-400"
+                            : "bg-slate-900 text-slate-500 hover:bg-slate-800 hover:text-slate-200",
+                        )}
                       >
-                        <Pencil className="size-3" />
+                        {copiedIndex === i ? <Check className="size-3" /> : <Copy className="size-3" />}
                       </button>
-                    )}
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                </article>
+              )
+            })}
 
             {/* Typing indicator */}
             {sending && (
-              <div className="flex gap-2.5 justify-start">
-                <div className="flex shrink-0 items-center justify-center size-7 rounded-full bg-blue-500/15 mt-0.5">
-                  <Bot className="size-3.5 text-blue-400" />
+              <div
+                className="grid grid-cols-[2rem_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[2.25rem_minmax(0,1fr)] sm:gap-4"
+                aria-label="Legal assistant is preparing a response"
+              >
+                <div className="flex size-8 items-center justify-center border border-blue-500/20 bg-blue-500/15 sm:size-9">
+                  <Bot className="size-4 text-blue-400" />
                 </div>
-                <div className="rounded-2xl rounded-bl-md bg-slate-800 px-4 py-3">
-                  <div className="flex gap-1 items-center h-4">
-                    <span className="size-1.5 rounded-full bg-slate-500 animate-bounce [animation-delay:0ms]" />
-                    <span className="size-1.5 rounded-full bg-slate-500 animate-bounce [animation-delay:150ms]" />
-                    <span className="size-1.5 rounded-full bg-slate-500 animate-bounce [animation-delay:300ms]" />
-                  </div>
+                <div className="min-w-0 border border-slate-700 bg-slate-800 px-4 py-3">
+                  <p role="status" className="mb-3 text-xs text-blue-300">{pending.text ? "Writing response…" : pending.summary ? "Thinking summary arriving…" : pending.restarted ? "Restarting response…" : "Preparing response…"}</p>
+                  <ThinkingSummary text={pending.summary} pending />
+                  <div aria-live="off" className="chat-rich-text min-w-0 break-words text-sm leading-7" dangerouslySetInnerHTML={{ __html: formatMessage(pending.text) }} />
                 </div>
               </div>
             )}
 
             <div ref={messagesEndRef} />
           </div>
-        </div>
+          </div>
+        </main>
 
         {/* Input area */}
-        <div className="border-t border-slate-800 px-4 py-4 shrink-0">
+        <div className="shrink-0 border-t border-slate-800 bg-slate-950 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
           <form
             onSubmit={(e) => {
               e.preventDefault()
               void sendMessage()
             }}
-            className="max-w-3xl mx-auto"
+            className="mx-auto max-w-4xl"
           >
-            {editingIndex !== null && (
-              <div className="flex items-center gap-2 mb-2">
-                <div className="h-1 w-1 rounded-full bg-amber-400" />
-                <span className="text-[11px] text-amber-400">Editing message</span>
+            <div className="border border-slate-700 bg-slate-900 shadow-sm transition-colors focus-within:border-blue-500/70 focus-within:ring-1 focus-within:ring-blue-500/30">
+              {editingIndex !== null && (
+                <div className="flex items-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-3 py-2">
+                  <Pencil className="size-3 shrink-0 text-amber-400" />
+                  <span className="text-[11px] font-medium text-amber-300">Editing your message</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingIndex(null)
+                      setInput("")
+                    }}
+                    className="ml-auto text-[11px] text-amber-400 underline underline-offset-4 transition-colors hover:text-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-slate-800 px-3 py-2">
+                <span id="response-length-label" className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">Response length</span>
+                <div role="group" aria-labelledby="response-length-label" className="flex border border-slate-700">
+                  {RESPONSE_LENGTHS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={settings.responseLength === option.value}
+                      title={option.description}
+                      disabled={sending}
+                      onClick={() => {
+                        const next = { ...settings, responseLength: option.value }
+                        setSettings(next)
+                        setDraft((previous) => ({ ...previous, responseLength: option.value }))
+                        persistSettings(next)
+                      }}
+                      className={cn(
+                        "min-h-7 px-2 text-[10px] font-medium focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:cursor-not-allowed disabled:opacity-50",
+                        settings.responseLength === option.value
+                          ? "bg-blue-500/20 text-blue-300"
+                          : "text-slate-400 hover:bg-slate-800 hover:text-slate-100",
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[9px] text-slate-500">Applies to your next reply</span>
+              </div>
+              <div className="flex items-end gap-2 px-3 py-3 sm:gap-3">
                 <button
                   type="button"
-                  onClick={() => {
-                    setEditingIndex(null)
-                    setInput("")
-                  }}
-                  className="text-[11px] text-slate-500 hover:text-slate-300 underline transition-colors"
+                  onClick={openDrawer}
+                  title="Chat settings"
+                  aria-label="Open chat settings"
+                  aria-haspopup="dialog"
+                  aria-expanded={drawerOpen}
+                  aria-controls="internal-chat-settings"
+                  className={cn(
+                    "flex h-[42px] w-[42px] shrink-0 items-center justify-center transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60",
+                    drawerOpen
+                      ? "bg-blue-500/20 text-blue-300"
+                      : "text-slate-400 hover:bg-slate-800 hover:text-slate-100",
+                  )}
                 >
-                  Cancel
+                  <Settings className="size-5" />
                 </button>
+                <textarea
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={
+                    apiKeyLoading
+                      ? "Connecting…"
+                      : !apiKey
+                        ? "API key not configured"
+                        : editingIndex !== null
+                          ? "Revise your legal question…"
+                          : "Ask a legal question…"
+                  }
+                  disabled={!isReady || sending}
+                  rows={1}
+                  aria-label={editingIndex !== null ? "Edit your legal question" : "Legal question"}
+                  className="min-h-[42px] max-h-40 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-1 py-2 text-xs leading-relaxed text-white outline-none placeholder:text-slate-600 disabled:cursor-not-allowed disabled:text-slate-500"
+                  style={{ fieldSizing: "content" } as React.CSSProperties}
+                />
+                <Button
+                  type="submit"
+                  disabled={!isReady || sending || !input.trim()}
+                  aria-label={sending ? "Preparing response" : editingIndex !== null ? "Send revised question" : "Send question"}
+                  className="h-[42px] w-[42px] shrink-0 p-0 focus-visible:ring-offset-slate-900"
+                >
+                  {sending ? (
+                    <Loader2 className="size-4 animate-spin motion-reduce:animate-none" />
+                  ) : (
+                    <Send className="size-4" />
+                  )}
+                </Button>
               </div>
-            )}
-            <div className="flex items-end gap-3">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={
-                  apiKeyLoading
-                    ? "Connecting…"
-                    : !apiKey
-                      ? "API key not configured"
-                      : editingIndex !== null
-                        ? "Edit your message…"
-                        : "Ask anything… (Enter to send, Shift+Enter for new line)"
-                }
-                disabled={!isReady || sending}
-                rows={1}
-                className="flex-1 resize-none rounded-xl bg-slate-800 border border-slate-700 px-4 py-2.5 text-sm text-white placeholder:text-slate-600 outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-40 disabled:cursor-not-allowed min-h-[42px] max-h-40 overflow-y-auto leading-relaxed"
-                style={{ fieldSizing: "content" } as React.CSSProperties}
-              />
-              <Button
-                type="submit"
-                disabled={!isReady || sending || !input.trim()}
-                className="h-[42px] w-[42px] rounded-xl p-0 shrink-0"
-              >
-                {sending ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Send className="size-4" />
-                )}
-              </Button>
+              <div className="flex items-center justify-between gap-3 border-t border-slate-800 px-3 py-2 text-[10px] text-slate-500">
+                <span>
+                  Enter to send
+                  <span className="hidden sm:inline"> · Shift+Enter for a new line</span>
+                </span>
+                <span
+                  className={cn(
+                    "shrink-0 font-medium",
+                    !apiKeyLoading && !apiKey
+                      ? "text-red-400"
+                      : isReady && !sending
+                        ? "text-emerald-400"
+                        : "text-slate-500",
+                  )}
+                  role="status"
+                >
+                  {connectionStatus}
+                </span>
+              </div>
             </div>
           </form>
         </div>
       </div>
 
-      {/* ── Settings drawer ────────────────────────────────────────────────── */}
+      <ChatReferences groups={referenceGroups} open={referencesOpen} onClose={() => setReferencesOpen(false)} />
+
+      {/* ── Settings dialog ────────────────────────────────────────────────── */}
+      {drawerOpen && (
       <div
-        className={cn(
-          "fixed right-0 top-0 bottom-0 z-50 flex flex-col w-full sm:w-[420px] bg-slate-900 border-l border-slate-800 shadow-2xl transition-transform duration-300 ease-in-out",
-          drawerOpen ? "translate-x-0" : "translate-x-full",
-        )}
+        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6"
+        onClick={(event) => {
+          if (event.target === event.currentTarget) setDrawerOpen(false)
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && !modelDialogOpen) {
+            event.stopPropagation()
+            setDrawerOpen(false)
+          }
+        }}
       >
-        {/* Drawer header */}
+      <div
+        id="internal-chat-settings"
+        className="flex h-[90dvh] min-h-0 w-[90vw] max-w-none flex-col overflow-hidden border border-slate-700 bg-slate-900 shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="chat-settings-title"
+        aria-hidden={!drawerOpen}
+        inert={!drawerOpen}
+      >
+        {/* Dialog header */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-800 shrink-0">
           <Settings className="size-4 text-slate-400" />
-          <h2 className="text-sm font-semibold text-white flex-1">Chat Settings</h2>
+          <h2 id="chat-settings-title" className="text-sm font-semibold text-white flex-1">Chat Settings</h2>
           <button
             type="button"
             onClick={() => setDrawerOpen(false)}
-            className="flex items-center justify-center size-7 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+            title="Close settings"
+            aria-label="Close chat settings"
+            className="flex items-center justify-center size-7 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
           >
             <X className="size-4" />
           </button>
         </div>
 
-        {/* Drawer body */}
-        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-7">
+        {/* Dialog body */}
+        <div
+          ref={settingsBodyRef}
+          className="min-h-0 flex-1 overflow-y-auto px-5 py-5 space-y-7 sm:px-6"
+        >
+          <section className={cn("space-y-3 border-b border-slate-800 pb-5", settingsPage !== 0 && "hidden")}>
+            <label className="flex items-center justify-between gap-4 text-sm text-slate-200">
+              Web search and citations
+              <input type="checkbox" checked={draft.webSearch} onChange={(event) => setDraft((prev) => ({ ...prev, webSearch: event.target.checked }))} className="size-4 accent-blue-600" />
+            </label>
+            <p className="text-xs leading-5 text-slate-400">Use Google Search for current information and linked sources. Search queries may incur additional Gemini usage charges.</p>
+            <label className="flex items-center justify-between gap-4 text-sm text-slate-200">
+              Faster responses
+              <input type="checkbox" checked={draft.fastResponses} onChange={(event) => setDraft((prev) => ({ ...prev, fastResponses: event.target.checked }))} className="size-4 accent-blue-600" />
+            </label>
+            <p className="text-xs leading-5 text-slate-400">Limits retries and reduces reasoning time on Gemini 2.5 Flash. Turn off for more deliberate analysis.</p>
+          </section>
           {/* System prompt */}
-          <section className="space-y-2">
+          <section className={cn("space-y-2", settingsPage !== 1 && "hidden")}>
             <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
               System Prompt
             </label>
-            <textarea
+            <PromptTextarea
+              label="System prompt"
               value={draft.systemPrompt}
-              onChange={(e) =>
-                setDraft((prev) => ({ ...prev, systemPrompt: e.target.value }))
+              onChange={(next) =>
+                setDraft((prev) => ({ ...prev, systemPrompt: next }))
               }
               rows={9}
+              variant="dark"
               placeholder="Describe how the AI should behave…"
-              className="w-full resize-none rounded-lg bg-slate-800 border border-slate-700 px-3 py-2.5 text-sm text-white placeholder:text-slate-600 outline-none focus:ring-1 focus:ring-blue-500 leading-relaxed"
             />
-            <p className="text-[11px] text-slate-600">
-              Saved separately from the public chatbot config.
+            <p className="text-xs leading-5 text-slate-400">
+              Set the assistant’s role, tone, and instructions. Blue variables use
+              your Contact &amp; Location details; amber variables are unrecognized.
+              These settings apply only to internal chat.
             </p>
           </section>
 
           {/* Model settings */}
-          <section className="space-y-5">
+          <section className={cn("space-y-5", settingsPage !== 2 && "hidden")}>
             <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
               Model Settings
             </p>
@@ -826,26 +1183,28 @@ ${footer}` : response
           </section>
 
           {/* Response footer */}
-          <section className="space-y-2">
+          <section className={cn("space-y-2", settingsPage !== 1 && "hidden")}>
             <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
               Response Footer
             </p>
-            <textarea
+            <PromptTextarea
+              label="Response footer"
               value={draft.responseFooter}
-              onChange={(e) =>
-                setDraft((prev) => ({ ...prev, responseFooter: e.target.value }))
+              onChange={(next) =>
+                setDraft((prev) => ({ ...prev, responseFooter: next }))
               }
               rows={3}
+              variant="dark"
               placeholder="e.g. — This response is for internal use only and does not constitute legal advice."
-              className="w-full resize-none rounded-lg bg-slate-800 border border-slate-700 px-3 py-2.5 text-sm text-white placeholder:text-slate-600 outline-none focus:ring-1 focus:ring-blue-500 leading-relaxed"
             />
             <p className="text-[11px] text-slate-600">
-              Appended to every AI response. Supports markdown formatting.
+              Appended to every AI response. Supports markdown formatting and
+              contact variables.
             </p>
           </section>
 
           {/* Dataset */}
-          <section className="space-y-3">
+          <section className={cn("space-y-3", settingsPage !== 3 && "hidden")}>
             <div className="flex items-center justify-between">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
                 Knowledge Base
@@ -879,6 +1238,8 @@ ${footer}` : response
                       <button
                         type="button"
                         onClick={() => removeEntry(entry.id)}
+                        title={`Remove entry ${idx + 1}`}
+                        aria-label={`Remove knowledge base entry ${idx + 1}`}
                         className="flex items-center justify-center size-5 rounded text-slate-600 hover:text-red-400 transition-colors"
                       >
                         <Trash2 className="size-3.5" />
@@ -891,14 +1252,15 @@ ${footer}` : response
                       placeholder="Title"
                       className="w-full rounded-md bg-slate-800 border border-slate-700 px-2.5 py-1.5 text-xs text-white placeholder:text-slate-600 outline-none focus:ring-1 focus:ring-blue-500"
                     />
-                    <textarea
+                    <PromptTextarea
                       value={entry.content}
-                      onChange={(e) =>
-                        updateEntry(entry.id, "content", e.target.value)
+                      onChange={(next) =>
+                        updateEntry(entry.id, "content", next)
                       }
                       placeholder="Content…"
                       rows={3}
-                      className="w-full resize-none rounded-md bg-slate-800 border border-slate-700 px-2.5 py-1.5 text-xs text-white placeholder:text-slate-600 outline-none focus:ring-1 focus:ring-blue-500 leading-relaxed"
+                      label="Knowledge base content"
+                      variant="dark"
                     />
                   </div>
                 ))}
@@ -907,8 +1269,8 @@ ${footer}` : response
           </section>
         </div>
 
-        {/* Drawer footer */}
-        <div className="flex items-center gap-3 px-5 py-4 border-t border-slate-800 shrink-0">
+        {/* Dialog footer */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-4 border-t border-slate-800 shrink-0">
           <button
             type="button"
             onClick={resetDraft}
@@ -916,15 +1278,46 @@ ${footer}` : response
           >
             Reset to defaults
           </button>
+
           <div className="flex-1" />
-          {savedFlash && (
-            <span className="text-xs text-emerald-400 font-medium">Saved ✓</span>
-          )}
-          <Button onClick={saveDrawer} size="sm" className="h-8 px-4 text-xs">
-            Save settings
-          </Button>
+
+          {/* Pagination */}
+          <nav aria-label="Settings pages" className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setSettingsPage((page) => Math.max(0, page - 1))}
+              disabled={settingsPage === 0}
+              className="flex h-8 items-center gap-1 rounded-md px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-40 text-slate-300 hover:bg-slate-800"
+            >
+              <ChevronLeft className="size-3.5" />
+              Back
+            </button>
+            <span className="whitespace-nowrap px-2 text-[11px] tabular-nums text-slate-500" aria-live="polite">
+              Step {settingsPage + 1} of {SETTINGS_PAGES.length} · {SETTINGS_PAGES[settingsPage].label}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSettingsPage((page) => Math.min(SETTINGS_PAGES.length - 1, page + 1))}
+              disabled={settingsPage === SETTINGS_PAGES.length - 1}
+              className="flex h-8 items-center gap-1 rounded-md px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-40 text-slate-300 hover:bg-slate-800"
+            >
+              Next
+              <ChevronRight className="size-3.5" />
+            </button>
+          </nav>
+
+          <div className="flex items-center gap-3">
+            {savedFlash && (
+              <span className="text-xs text-emerald-400 font-medium">Saved ✓</span>
+            )}
+            <Button onClick={saveDrawer} size="sm" className="h-8 px-4 text-xs">
+              Save settings
+            </Button>
+          </div>
         </div>
       </div>
+      </div>
+      )}
     </div>
   )
 }
