@@ -17,6 +17,8 @@ export interface ChatbotConfig {
   dataset: DatasetEntry[];
   /** Widget behavior settings */
   behavior: BehaviorConfig;
+  /** Third-party messaging integrations */
+  integrations: IntegrationsConfig;
 }
 
 export interface AppearanceConfig {
@@ -164,6 +166,25 @@ export interface BehaviorConfig {
   ctaHeading?: string;
 }
 
+/** Per-channel settings for a messaging integration */
+export interface IntegrationChannelConfig {
+  /** Master toggle — when off, this channel receives no notifications */
+  enabled: boolean;
+}
+
+/**
+ * Third-party messaging integrations. Credentials are NOT stored here —
+ * they live in the server environment (.env) and are read at runtime.
+ */
+export interface IntegrationsConfig {
+  /** Viber bot — admin notifications when a visitor shares name/email */
+  viber: IntegrationChannelConfig;
+  /** WhatsApp (Meta Cloud API) — admin notifications when a visitor shares name/email */
+  whatsapp: IntegrationChannelConfig;
+  /** Telegram bot — admin notifications when a visitor shares name/email */
+  telegram: IntegrationChannelConfig;
+}
+
 /** A chatbot profile wrapping a full config with metadata */
 export interface ChatbotProfile {
   /** URL-safe slug used as the profile identifier */
@@ -242,6 +263,11 @@ export const defaultConfig: ChatbotConfig = {
     quoteNotifyCC: [],
     quoteEmailSubject: 'New Quote Request via Chatbot',
   },
+  integrations: {
+    viber: { enabled: false },
+    whatsapp: { enabled: false },
+    telegram: { enabled: false },
+  },
 };
 
 /** Validate partial config and merge with defaults */
@@ -258,6 +284,11 @@ export function mergeWithDefaults(partial: Partial<ChatbotConfig>): ChatbotConfi
       ...partial.behavior,
       quoteNotifyTo: partial.behavior?.quoteNotifyTo ?? defaultConfig.behavior.quoteNotifyTo,
       quoteNotifyCC: partial.behavior?.quoteNotifyCC ?? defaultConfig.behavior.quoteNotifyCC,
+    },
+    integrations: {
+      viber: { enabled: partial.integrations?.viber?.enabled === true },
+      whatsapp: { enabled: partial.integrations?.whatsapp?.enabled === true },
+      telegram: { enabled: partial.integrations?.telegram?.enabled === true },
     },
   };
 }

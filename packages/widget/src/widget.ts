@@ -368,6 +368,8 @@ export class ChatbotWidget {
     this.addMessage(text, 'user')
     this.setLoading(true)
 
+    const inquiryId = crypto.randomUUID()
+    this.logToServer(text, '', inquiryId)
     const bubble = this.createStreamingBubble()
 
     try {
@@ -388,7 +390,7 @@ export class ChatbotWidget {
       bubble.finalize(response)
 
       this.persistExchange(text, response)
-      this.logToServer(text, response)
+      this.logToServer(text, response, inquiryId)
 
       if (hasQuoteIntent) {
         this.showQuoteCard()
@@ -478,7 +480,7 @@ export class ChatbotWidget {
   private async pollForAgentReplies(): Promise<void> {
     if (!this.visitorProfile) return
     const origin = this.apiOrigin || window.location.origin
-    const profile = this.profileSlug || 'default'
+    const profile = this.profileSlug || 'duran-schulze'
     try {
       const res = await fetch(
         `${origin}/api/messages?profile=${encodeURIComponent(profile)}&sessionId=${encodeURIComponent(this.sessionId)}`,
@@ -519,22 +521,37 @@ export class ChatbotWidget {
     }
   }
 
-  private logToServer(userMessage: string, aiResponse: string): void {
+  private logToServer(userMessage: string, aiResponse: string, requestId: string): void {
     const origin = this.apiOrigin || window.location.origin
-    console.log(`[Widget] Logging chat → ${origin}/api/chat-log | session=${this.sessionId} | profile=${this.profileSlug || 'default'}`)
-    fetch(`${origin}/api/chat-log`, {
-      method: 'POST',
-      keepalive: true,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        profile: this.profileSlug || 'default',
-        sessionId: this.sessionId,
-        userName: this.visitorProfile?.name ?? '',
-        userEmail: this.visitorProfile?.email ?? '',
-        userMessage,
-        aiResponse,
-      }),
-    }).catch((err) => console.warn('Chat log failed:', err))
+    // Reuse the same id/body on transport retries to prevent duplicate alerts.
+    const body = JSON.stringify({
+      profile: this.profileSlug || 'duran-schulze',
+      requestId,
+      sessionId: this.sessionId,
+      userName: this.visitorProfile?.name ?? '',
+      userEmail: this.visitorProfile?.email ?? '',
+      userMessage,
+      aiResponse,
+    })
+    const submit = async () => {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const response = await fetch(`${origin}/api/chat-log`, {
+            method: 'POST',
+            // Browsers cap outstanding keepalive bodies at roughly 64 KiB.
+            keepalive: new TextEncoder().encode(body).byteLength < 60000,
+            headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(30000),
+            body,
+          })
+          if (response.ok) return
+          if (response.status < 500) { console.warn('Chat log rejected:', response.status); return }
+        } catch { /* Transient transport failure: retry the same inquiry id. */ }
+        if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 1000 * 2 ** attempt))
+      }
+      console.warn('Chat log unavailable after retries')
+    }
+    void submit()
   }
 
   private restoreChatHistory(): void {

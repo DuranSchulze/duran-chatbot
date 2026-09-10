@@ -1,3 +1,4 @@
+import { getAuthHeaders } from "@/lib/auth"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import {
@@ -448,7 +449,7 @@ ${footer}` : result.text
 
       fetch("/api/chat-log", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: logBody,
       }).catch(() => {})
     } catch (err) {

@@ -2,12 +2,23 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Connect, PluginOption, ViteDevServer } from "vite";
 import { mergeWithDefaults, type ServiceEntry, type QuickLink, type DatasetEntry } from "@duran-chatbot/config";
 import prisma, {
+  getNotificationStatus,
+  retryFailedNotifications,
+  logChat,
+  ChatLogError,
+  dispatchNotifications,
   getEmailIntegration,
   saveEmailIntegration,
   sendProfileEmail,
 } from "@duran-chatbot/database";
 import { Prisma } from "@prisma/client";
 import jwt from "jsonwebtoken";
+
+function isAdminRequest(req: IncomingMessage): boolean {
+  const auth = req.headers.authorization || "";
+  if (!auth.startsWith("Bearer ") || !process.env.AUTH_JWT_SECRET) return false;
+  try { jwt.verify(auth.slice(7), process.env.AUTH_JWT_SECRET, { algorithms: ["HS256"] }); return true; } catch { return false; }
+}
 
 const GEMINI_MODELS_URL =
   "https://generativelanguage.googleapis.com/v1beta/models";
@@ -108,6 +119,7 @@ function configRowToPartial(
     quickLinks: unknown;
     dataset: unknown;
     behavior: unknown;
+    integrations: unknown;
   } | null,
 ): Partial<import("@duran-chatbot/config").ChatbotConfig> {
   if (!config) return {};
@@ -118,6 +130,7 @@ function configRowToPartial(
     services: config.services as ServiceEntry[] | undefined,
     quickLinks: config.quickLinks as QuickLink[] | undefined,
     dataset: config.dataset as DatasetEntry[] | undefined,
+    integrations: config.integrations as Partial<import("@duran-chatbot/config").ChatbotConfig>["integrations"],
     behavior: config.behavior as Partial<import("@duran-chatbot/config").ChatbotConfig>["behavior"],
   };
 }
@@ -145,6 +158,7 @@ async function getOrBootstrapProfile(slug: string) {
             quickLinks: asJson(rest.quickLinks),
             dataset: asJson(rest.dataset),
             behavior: asJson(rest.behavior),
+            integrations: asJson(rest.integrations),
           },
         },
       },
@@ -352,13 +366,32 @@ export function apiPlugin(): PluginOption {
         },
       );
 
+      server.middlewares.use("/api/notification-status", async (req, res) => {
+        res.setHeader("Cache-Control", "no-store");
+        if (req.method !== "GET" && req.method !== "POST") { jsonRes(res, 405, { error: "Method not allowed" }); return; }
+        if (!isAdminRequest(req)) { jsonRes(res, 401, { error: "Unauthorized" }); return; }
+        const profile = new URL(req.url || "/", "http://localhost").searchParams.get("profile") || DEFAULT_SLUG;
+        try { jsonRes(res, 200, await (req.method === "POST" ? retryFailedNotifications(profile) : getNotificationStatus(profile))); }
+        catch { jsonRes(res, 500, { error: "Unable to read notification status" }); }
+      });
+
+      let dispatching = false;
+      const notificationTimer = setInterval(async () => {
+        if (dispatching) return;
+        dispatching = true;
+        try { await dispatchNotifications(); } catch { /* Database may not be migrated yet. */ }
+        finally { dispatching = false; }
+      }, 60000);
+      notificationTimer.unref();
+      server.httpServer?.once("close", () => clearInterval(notificationTimer));
+
       // ── /api/chat-log ─────────────────────────────────────────────
       server.middlewares.use(
         "/api/chat-log",
         async (req: IncomingMessage, res: ServerResponse) => {
           res.setHeader("Access-Control-Allow-Origin", "*");
           res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-          res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+          res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
           if (req.method === "OPTIONS") {
             res.statusCode = 204;
@@ -370,98 +403,19 @@ export function apiPlugin(): PluginOption {
             return;
           }
 
-          let body: {
-            profile?: string;
-            sessionId?: string;
-            userName?: string;
-            userEmail?: string;
-            userMessage?: string;
-            aiResponse?: string;
-          };
           try {
-            body = (await readRequestBody(req)) as typeof body;
-          } catch {
-            jsonRes(res, 400, { error: "Invalid request body" });
-            return;
-          }
-
-          const {
-            profile,
-            sessionId,
-            userName,
-            userEmail,
-            userMessage,
-            aiResponse,
-          } = body;
-          if (!userMessage || !aiResponse) {
-            jsonRes(res, 400, {
-              error: "userMessage and aiResponse are required",
-            });
-            return;
-          }
-
-          const profileId = profile || DEFAULT_SLUG;
-          const now = new Date();
-
-          try {
-            // Ensure profile exists before logging
-            await prisma.profile.upsert({
-              where: { slug: profileId },
-              create: {
-                slug: profileId,
-                name: profileId,
-                status: "active",
-              },
-              update: {},
-            });
-
-            const conversation = await prisma.conversation.upsert({
-              where: {
-                sessionId_profileId: {
-                  sessionId: sessionId || "",
-                  profileId,
-                },
-              },
-              create: {
-                sessionId: sessionId || "",
-                profileId,
-                userName: userName || "",
-                userEmail: userEmail || "",
-                firstSeen: now,
-                lastActive: now,
-              },
-              update: {
-                lastActive: now,
-                userName: userName || "",
-                userEmail: userEmail || "",
-              },
-            });
-
-            await prisma.message.createMany({
-              data: [
-                {
-                  conversationId: conversation.id,
-                  role: "user",
-                  content: userMessage,
-                  timestamp: now,
-                },
-                {
-                  conversationId: conversation.id,
-                  role: "assistant",
-                  content: aiResponse,
-                  timestamp: now,
-                },
-              ],
-            });
-
-            jsonRes(res, 200, { success: true });
+            let raw = "";
+            for await (const chunk of req) {
+              raw += chunk.toString();
+              if (Buffer.byteLength(raw) > 150000) { jsonRes(res, 413, { error: "Request too large" }); return; }
+            }
+            let body: unknown;
+            try { body = JSON.parse(raw); } catch { jsonRes(res, 400, { error: "Invalid request body" }); return; }
+            jsonRes(res, 200, await logChat(body, { allowInternal: isAdminRequest(req) }));
           } catch (error) {
-            console.error("chat-log error:", error);
-            jsonRes(res, 500, {
-              error: "Failed to log conversation",
-              details:
-                error instanceof Error ? error.message : "Unknown error",
-            });
+            const status = error instanceof ChatLogError ? error.status : 500;
+            if (status === 429) res.setHeader("Retry-After", "60");
+            jsonRes(res, status, { error: error instanceof ChatLogError ? error.message : "Failed to log conversation" });
           }
         },
       );
@@ -862,11 +816,16 @@ export function apiPlugin(): PluginOption {
         ) => {
           res.setHeader("Access-Control-Allow-Origin", "*");
           res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-          res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+          res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
           if (req.method === "OPTIONS") {
             res.statusCode = 204;
             res.end();
+            return;
+          }
+
+          if (req.method !== "GET" && !isAdminRequest(req)) {
+            jsonRes(res, 401, { error: "Unauthorized" });
             return;
           }
 
@@ -912,6 +871,7 @@ export function apiPlugin(): PluginOption {
                 quickLinks: asJson(rest.quickLinks),
                 dataset: asJson(rest.dataset),
                 behavior: asJson(rest.behavior),
+                integrations: asJson(rest.integrations),
               };
 
               await prisma.profile.upsert({
@@ -962,12 +922,17 @@ export function apiPlugin(): PluginOption {
           );
           res.setHeader(
             "Access-Control-Allow-Headers",
-            "Content-Type",
+            "Content-Type, Authorization",
           );
 
           if (req.method === "OPTIONS") {
             res.statusCode = 204;
             res.end();
+            return;
+          }
+
+          if (req.method !== "GET" && !isAdminRequest(req)) {
+            jsonRes(res, 401, { error: "Unauthorized" });
             return;
           }
 
@@ -1062,6 +1027,7 @@ export function apiPlugin(): PluginOption {
                 quickLinks: Prisma.InputJsonValue;
                 dataset: Prisma.InputJsonValue;
                 behavior: Prisma.InputJsonValue;
+                integrations: Prisma.InputJsonValue;
               };
 
               if (body.cloneFrom) {
@@ -1085,6 +1051,7 @@ export function apiPlugin(): PluginOption {
                     quickLinks: asJson(rest.quickLinks),
                     dataset: asJson(rest.dataset),
                     behavior: asJson(rest.behavior),
+                    integrations: asJson(rest.integrations),
                   };
                 } else {
                   configData = buildDefaultConfigData();
@@ -1215,6 +1182,7 @@ export function apiPlugin(): PluginOption {
                   quickLinks: asJson(rest.quickLinks),
                   dataset: asJson(rest.dataset),
                   behavior: asJson(rest.behavior),
+                  integrations: asJson(rest.integrations),
                 };
                 const updateData = { ...createData };
                 delete (updateData as Record<string, unknown>).profileId;
@@ -1546,5 +1514,6 @@ function buildDefaultConfigData() {
     quickLinks: asJson(rest.quickLinks),
     dataset: asJson(rest.dataset),
     behavior: asJson(rest.behavior),
+    integrations: asJson(rest.integrations),
   };
 }

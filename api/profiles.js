@@ -1,3 +1,4 @@
+import { isAdmin } from "./_lib/auth.js";
 import prisma from "@duran-chatbot/database";
 import { mergeWithDefaults } from "@duran-chatbot/config";
 
@@ -31,6 +32,7 @@ function configRowToPartial(config) {
     quickLinks: config.quickLinks ?? [],
     dataset: config.dataset ?? [],
     behavior: config.behavior ?? {},
+    integrations: config.integrations ?? {},
   };
 }
 
@@ -48,6 +50,7 @@ function buildDefaultConfigData() {
     quickLinks: rest.quickLinks,
     dataset: rest.dataset,
     behavior: rest.behavior,
+    integrations: rest.integrations,
   };
 }
 
@@ -63,6 +66,8 @@ export default async function handler(req, res) {
     res.status(204).end();
     return;
   }
+
+  if (req.method !== "GET" && !isAdmin(req)) return res.status(401).json({ error: "Unauthorized" });
 
   let slug =
     req.query?.slug ??
@@ -149,6 +154,7 @@ export default async function handler(req, res) {
             quickLinks: rest.quickLinks,
             dataset: rest.dataset,
             behavior: rest.behavior,
+            integrations: rest.integrations,
           };
         }
       }
@@ -263,6 +269,7 @@ export default async function handler(req, res) {
           quickLinks: rest.quickLinks,
           dataset: rest.dataset,
           behavior: rest.behavior,
+          integrations: rest.integrations,
         };
         await prisma.config.upsert({
           where: { profileId: slug },

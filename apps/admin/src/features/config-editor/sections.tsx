@@ -1,4 +1,4 @@
-import { Bot, BriefcaseBusiness, Database, Link2, Mail, MapPin, Palette, SlidersHorizontal, UserRound } from "lucide-react";
+import { Bot, BriefcaseBusiness, Database, Link2, Mail, MapPin, Palette, Plug, SlidersHorizontal, UserRound } from "lucide-react";
 
 import { AIPanel } from "@/features/config-editor/panels/ai-panel";
 import { AppearancePanel } from "@/features/config-editor/panels/appearance-panel";
@@ -6,6 +6,7 @@ import { BehaviorPanel } from "@/features/config-editor/panels/behavior-panel";
 import { ContactPanel } from "@/features/config-editor/panels/contact-panel";
 import { DatasetPanel } from "@/features/config-editor/panels/dataset-panel";
 import { EmailPanel } from "@/features/config-editor/panels/email-panel";
+import { IntegrationsPanel } from "@/features/config-editor/panels/integrations-panel";
 import { PersonaPanel } from "@/features/config-editor/panels/persona-panel";
 import { QuickLinksPanel } from "@/features/config-editor/panels/quick-links-panel";
 import { ServicesPanel } from "@/features/config-editor/panels/services-panel";
@@ -120,6 +121,20 @@ export function getConfigSections(
           profileSlug={bindings.profileSlug}
           behavior={bindings.behavior}
           onBehaviorChange={bindings.onBehaviorChange}
+        />
+      ),
+    },
+    {
+      id: "integrations",
+      label: "Integrations",
+      description:
+        "Viber, WhatsApp, and Telegram alerts to the admin when a visitor shares their details.",
+      icon: Plug,
+      render: () => (
+        <IntegrationsPanel
+          profileSlug={bindings.profileSlug}
+          integrations={bindings.integrations}
+          onChange={bindings.onIntegrationsChange}
         />
       ),
     },

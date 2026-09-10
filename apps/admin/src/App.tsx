@@ -105,6 +105,7 @@ function ConfigEditor() {
             quickLinks: currentConfig.quickLinks,
             dataset: currentConfig.dataset,
             behavior: currentConfig.behavior,
+            integrations: currentConfig.integrations,
             onAppearanceChange: (appearance) =>
               updateSection("appearance", appearance),
             onAIChange: (ai) => updateSection("ai", ai),
@@ -114,6 +115,8 @@ function ConfigEditor() {
               updateSection("quickLinks", quickLinks),
             onDatasetChange: (dataset) => updateSection("dataset", dataset),
             onBehaviorChange: (behavior) => updateSection("behavior", behavior),
+            onIntegrationsChange: (integrations) =>
+              updateSection("integrations", integrations),
           })
         : [],
     [currentConfig, updateSection, activeProfileSlug],

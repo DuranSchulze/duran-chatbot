@@ -1,3 +1,4 @@
+import { getAuthHeaders } from "@/lib/auth"
 import { mergeWithDefaults, type ChatbotConfig, type ChatbotProfile } from "@duran-chatbot/config"
 
 const PROFILES_PATH = "/api/profiles"
@@ -48,7 +49,7 @@ export async function fetchProfile(slug: string): Promise<ChatbotProfile> {
 export async function createProfile(name: string, slug?: string): Promise<ProfileMeta> {
   const response = await fetch(PROFILES_PATH, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({ name, slug }),
   })
   if (!response.ok) {
@@ -60,7 +61,7 @@ export async function createProfile(name: string, slug?: string): Promise<Profil
 export async function saveProfileConfig(slug: string, config: ChatbotConfig): Promise<void> {
   const response = await fetch(`${PROFILES_PATH}?slug=${encodeURIComponent(slug)}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({ config }),
   })
   if (!response.ok) {
@@ -71,6 +72,7 @@ export async function saveProfileConfig(slug: string, config: ChatbotConfig): Pr
 export async function archiveProfile(slug: string): Promise<void> {
   const response = await fetch(`${PROFILES_PATH}?slug=${encodeURIComponent(slug)}`, {
     method: "DELETE",
+    headers: getAuthHeaders(),
   })
   if (!response.ok) {
     throw new Error(await getErrorMessage(response, `Failed to archive profile (${response.status})`))
@@ -80,6 +82,7 @@ export async function archiveProfile(slug: string): Promise<void> {
 export async function hardDeleteProfile(slug: string): Promise<void> {
   const response = await fetch(`${PROFILES_PATH}?slug=${encodeURIComponent(slug)}&mode=hard`, {
     method: "DELETE",
+    headers: getAuthHeaders(),
   })
   if (!response.ok) {
     throw new Error(await getErrorMessage(response, `Failed to delete profile (${response.status})`))
@@ -89,7 +92,7 @@ export async function hardDeleteProfile(slug: string): Promise<void> {
 export async function reactivateProfile(slug: string): Promise<void> {
   const response = await fetch(`${PROFILES_PATH}?slug=${encodeURIComponent(slug)}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({ status: "active" }),
   })
   if (!response.ok) {
@@ -100,7 +103,7 @@ export async function reactivateProfile(slug: string): Promise<void> {
 export async function renameProfile(slug: string, name: string, newSlug: string): Promise<void> {
   const response = await fetch(`${PROFILES_PATH}?slug=${encodeURIComponent(slug)}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({ name, slug: newSlug }),
   })
   if (!response.ok) {

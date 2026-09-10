@@ -1,3 +1,4 @@
+import { getAuthHeaders } from "@/lib/auth"
 import { mergeWithDefaults, type ChatbotConfig } from "@duran-chatbot/config"
 
 const CONFIG_PATH = "/api/config"
@@ -39,7 +40,7 @@ export async function fetchConfig(profileSlug?: string): Promise<ChatbotConfig> 
 export async function saveConfig(config: ChatbotConfig, profileSlug?: string): Promise<void> {
   const response = await fetch(configUrl(profileSlug), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(config),
   })
   if (!response.ok) {

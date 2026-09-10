@@ -56,6 +56,7 @@ model Config {
   quickLinks Json
   dataset    Json
   behavior   Json
+  integrations Json @default("{}")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -74,6 +75,7 @@ model Conversation {
   adminReadAt DateTime?
 
   messages Message[]
+  notificationEvents NotificationEvent[]
 
   @@unique([sessionId, profileId])
   @@index([profileId])
@@ -88,6 +90,7 @@ model Message {
   role           String
   content        String
   senderName     String?
+  notificationEvent NotificationEvent?
   timestamp      DateTime     @default(now())
 
   @@index([conversationId, timestamp])
@@ -105,4 +108,35 @@ model QuoteRequest {
   createdAt DateTime @default(now())
 
   @@index([profileId, createdAt])
+}
+
+// Durable inquiry event. No extra copy of visitor PII is stored here.
+model NotificationEvent {
+  id String @id @default(uuid())
+  conversationId String
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  requestId String
+  messageId String @unique
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  deliveries NotificationDelivery[]
+  @@unique([conversationId, requestId])
+}
+
+model NotificationDelivery {
+  id String @id @default(uuid())
+  eventId String
+  event NotificationEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  channel String
+  status String @default("pending")
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now())
+  leaseUntil DateTime?
+  leaseToken String?
+  lastError String?
+  providerMessageId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([eventId, channel])
+  @@index([status, nextAttemptAt])
 }

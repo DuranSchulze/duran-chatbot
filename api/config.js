@@ -1,3 +1,4 @@
+import { isAdmin } from "./_lib/auth.js";
 import prisma from "@duran-chatbot/database";
 import { mergeWithDefaults } from "@duran-chatbot/config";
 
@@ -24,6 +25,7 @@ function configRowToPartial(config) {
     quickLinks: config.quickLinks ?? [],
     dataset: config.dataset ?? [],
     behavior: config.behavior ?? {},
+    integrations: config.integrations ?? {},
   };
 }
 
@@ -50,6 +52,7 @@ async function getOrBootstrapProfile(slug) {
             quickLinks: rest.quickLinks,
             dataset: rest.dataset,
             behavior: rest.behavior,
+            integrations: rest.integrations,
           },
         },
       },
@@ -63,12 +66,14 @@ async function getOrBootstrapProfile(slug) {
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (req.method === "OPTIONS") {
     res.status(204).end();
     return;
   }
+
+  if (req.method !== "GET" && !isAdmin(req)) return res.status(401).json({ error: "Unauthorized" });
 
   const urlParams = new URL(req.url, "http://localhost").searchParams;
   const profileSlug = req.query?.profile ?? urlParams.get("profile") ?? "";
@@ -103,6 +108,7 @@ export default async function handler(req, res) {
         quickLinks: rest.quickLinks,
         dataset: rest.dataset,
         behavior: rest.behavior,
+        integrations: rest.integrations,
       };
 
       await prisma.profile.upsert({

@@ -11,14 +11,41 @@
     }
   ],
   "functions": {
-    "api/auth.js": { "maxDuration": 10 },
-    "api/warmup.js": { "maxDuration": 10 },
-    "api/config.js": { "maxDuration": 15 },
-    "api/chat-log.js": { "maxDuration": 15 },
-    "api/conversations.js": { "maxDuration": 15 },
-    "api/messages.js": { "maxDuration": 10 },
-    "api/email-integration.js": { "maxDuration": 15 },
-    "api/profiles.js": { "maxDuration": 15 },
-    "api/quote-request.js": { "maxDuration": 15 }
-  }
+    "api/auth.js": {
+      "maxDuration": 10
+    },
+    "api/warmup.js": {
+      "maxDuration": 10
+    },
+    "api/config.js": {
+      "maxDuration": 15
+    },
+    "api/chat-log.js": {
+      "maxDuration": 30
+    },
+    "api/conversations.js": {
+      "maxDuration": 15
+    },
+    "api/messages.js": {
+      "maxDuration": 10
+    },
+    "api/email-integration.js": {
+      "maxDuration": 15
+    },
+    "api/profiles.js": {
+      "maxDuration": 15
+    },
+    "api/quote-request.js": {
+      "maxDuration": 15
+    },
+    "api/notification-dispatch.js": {
+      "maxDuration": 60
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/notification-dispatch",
+      "schedule": "* * * * *"
+    }
+  ]
 }
