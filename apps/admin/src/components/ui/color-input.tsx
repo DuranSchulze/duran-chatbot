@@ -12,7 +12,7 @@ export function ColorInput({ value, onChange }: ColorInputProps) {
         type="color"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-14 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm"
+        className="h-11 w-14 rounded-xl border border-border bg-card p-1 "
       />
       <Input value={value} onChange={(event) => onChange(event.target.value)} />
     </div>

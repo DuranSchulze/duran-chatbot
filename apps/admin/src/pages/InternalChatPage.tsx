@@ -535,7 +535,7 @@ ${footer}` : result.text
   })
 
   return (
-    <div className="flex h-[100dvh] min-h-[100dvh] overflow-hidden bg-slate-950 text-white">
+    <div className="flex h-[100dvh] min-h-[100dvh] overflow-hidden bg-background text-foreground">
       {/* Settings dialog backdrop */}
       {drawerOpen && (
         <div
@@ -547,21 +547,21 @@ ${footer}` : result.text
       {/* ── Chat panel ────────────────────────────────────────────────────── */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top bar */}
-        <header className="shrink-0 border-b border-slate-800 bg-slate-950">
-          <div className="mx-auto flex w-full max-w-4xl items-center gap-2.5 px-3 py-3 sm:px-6 lg:px-8">
-            <div className="flex size-8 shrink-0 items-center justify-center border border-blue-500/20 bg-blue-500/15">
-              <Bot className="size-4 text-blue-400" />
+        <header className="shrink-0 bg-background">
+          <div className="mx-auto flex w-full max-w-[1200px] items-center gap-2.5 px-3 py-3 sm:px-6 lg:px-8">
+            <div className="flex size-8 shrink-0 items-center justify-center border border-border bg-secondary">
+              <Bot className="size-4 text-muted-foreground" />
             </div>
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-sm font-semibold leading-none text-white">
+              <h1 className="font-display truncate text-sm font-medium leading-none text-foreground">
                 Internal Legal Chat
               </h1>
-              <p className="mt-1 truncate font-mono text-[10px] text-slate-500">
+              <p className="mt-1 truncate font-mono text-[10px] text-muted-foreground">
                 {activeModelLabel}
               </p>
             </div>
 
-            <button type="button" onClick={() => setReferencesOpen(true)} aria-haspopup="dialog" className="h-8 px-2 text-xs text-blue-300 hover:bg-blue-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 xl:hidden">
+            <button type="button" onClick={() => setReferencesOpen(true)} aria-haspopup="dialog" className="h-8 px-2 text-xs text-muted-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground xl:hidden">
               References ({referenceGroups.length})
             </button>
             {messages.length > 0 && (
@@ -570,7 +570,7 @@ ${footer}` : result.text
                 onClick={startNewSession}
                 title="New session"
                 aria-label="Start a new session"
-                className="flex size-8 items-center justify-center text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                className="flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground"
               >
                 <RotateCcw className="size-3.5" />
               </button>
@@ -579,7 +579,7 @@ ${footer}` : result.text
             <button
               type="button"
               onClick={() => navigate("/")}
-              className="flex h-8 items-center gap-1 px-2.5 text-xs text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+              className="flex h-8 items-center gap-1 px-2.5 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground"
             >
               <ChevronLeft className="size-3.5" />
               <span className="hidden sm:inline">Admin</span>
@@ -590,7 +590,7 @@ ${footer}` : result.text
               onClick={handleLogout}
               title="Logout"
               aria-label="Log out"
-              className="flex size-8 items-center justify-center text-slate-500 transition-colors hover:bg-slate-800 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60"
+              className="flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-secondary hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground"
             >
               <LogOut className="size-3.5" />
             </button>
@@ -599,10 +599,10 @@ ${footer}` : result.text
 
         {/* Fallback notice — shown when the primary model failed and another answered */}
         {fallbackNotice && (
-          <div className="shrink-0 border-b border-amber-500/20 bg-amber-500/10" role="status">
-            <div className="mx-auto flex w-full max-w-4xl items-center gap-2 px-4 py-2 sm:px-6 lg:px-8">
-              <Shield className="size-3 shrink-0 text-amber-400" />
-              <span className="flex-1 text-[11px] leading-snug text-amber-300">
+          <div className="shrink-0 border-b border-border bg-secondary" role="status">
+            <div className="mx-auto flex w-full max-w-[1200px] items-center gap-2 px-4 py-2 sm:px-6 lg:px-8">
+              <Shield className="size-3 shrink-0 text-muted-foreground" />
+              <span className="flex-1 text-[11px] leading-snug text-muted-foreground">
                 {fallbackNotice}
               </span>
               <button
@@ -610,7 +610,7 @@ ${footer}` : result.text
                 onClick={() => setFallbackNotice(null)}
                 title="Dismiss"
                 aria-label="Dismiss model fallback notice"
-                className="flex size-6 items-center justify-center text-amber-400/70 transition-colors hover:bg-amber-500/10 hover:text-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                className="flex size-6 items-center justify-center text-muted-foreground transition-colors hover:bg-secondary hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground"
               >
                 <X className="size-3" />
               </button>
@@ -621,7 +621,7 @@ ${footer}` : result.text
         {/* Messages */}
         <main className="min-h-0 flex-1 overflow-y-auto" onScroll={(event) => { const el = event.currentTarget; followBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 100 }}>
           <div
-            className="mx-auto flex min-h-full w-full max-w-4xl flex-col px-4 sm:px-6 lg:px-8"
+            className="mx-auto flex min-h-full w-full max-w-[1200px] flex-col px-4 sm:px-6 lg:px-8"
             role="log"
             aria-live="polite"
             aria-relevant="additions"
@@ -630,24 +630,24 @@ ${footer}` : result.text
           {/* Empty state */}
           {messages.length === 0 && !sending && (
             <section className="my-auto w-full py-10 sm:py-16" aria-labelledby="internal-chat-intro">
-              <div className="border-l-2 border-blue-500 bg-slate-900/40">
+              <div className="rounded-card bg-card">
                 <div className="flex items-start gap-4 px-5 py-6 sm:gap-5 sm:px-7 sm:py-8">
-                  <div className="flex size-11 shrink-0 items-center justify-center border border-blue-500/20 bg-blue-500/15 sm:size-12">
-                    <Bot className="size-5 text-blue-400 sm:size-6" />
+                  <div className="flex size-11 shrink-0 items-center justify-center border border-border bg-secondary sm:size-12">
+                    <Bot className="size-5 text-muted-foreground sm:size-6" />
                   </div>
                   <div className="min-w-0 max-w-xl">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-400">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
                       Internal legal assistant
                     </p>
-                    <h2 id="internal-chat-intro" className="mt-2 text-xl font-semibold tracking-tight text-white sm:text-2xl">
+                    <h2 id="internal-chat-intro" className="font-display mt-2 text-[32px] font-medium tracking-[0.015em] text-foreground sm:text-[42px]">
                       Start a legal briefing
                     </h2>
-                    <p className="mt-2 text-sm leading-6 text-slate-400">
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
                       Research Philippine law, work through case strategy, or draft internal material. Adjust the{" "}
                       <button
                         type="button"
                         onClick={openDrawer}
-                        className="text-blue-400 underline underline-offset-4 transition-colors hover:text-blue-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                        className="text-muted-foreground underline underline-offset-4 transition-colors hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground"
                       >
                         chat settings
                       </button>{" "}
@@ -656,11 +656,11 @@ ${footer}` : result.text
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 border-t border-amber-500/20 bg-amber-500/10 px-5 py-3 sm:px-7">
-                  <Shield className="mt-0.5 size-3.5 shrink-0 text-amber-400" />
+                <div className="flex items-start gap-3 border-t border-border bg-secondary px-5 py-3 sm:px-7">
+                  <Shield className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
                   <div>
-                    <p className="text-xs font-medium text-amber-300">Internal use only</p>
-                    <p className="mt-0.5 text-[11px] leading-5 text-amber-400/80">
+                    <p className="text-xs font-medium text-muted-foreground">Internal use only</p>
+                    <p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">
                       Do not send generated responses to clients without attorney review.
                     </p>
                   </div>
@@ -668,13 +668,13 @@ ${footer}` : result.text
               </div>
 
               {apiKeyLoading && (
-                <div className="flex items-center gap-2 border-x border-b border-slate-800 px-5 py-3 text-xs text-slate-500 sm:px-7" role="status">
+                <div className="flex items-center gap-2 border-x border-b border-border px-5 py-3 text-xs text-muted-foreground sm:px-7" role="status">
                   <Loader2 className="size-3.5 animate-spin motion-reduce:animate-none" />
                   Connecting to AI…
                 </div>
               )}
               {!apiKeyLoading && !apiKey && (
-                <p className="border-x border-b border-red-900/50 bg-red-950/40 px-5 py-3 text-xs text-red-300 sm:px-7" role="alert">
+                <p className="border-x border-b border-border bg-secondary px-5 py-3 text-xs text-muted-foreground sm:px-7" role="alert">
                   API key not configured — set GEMINI_API_KEY on the server.
                 </p>
               )}
@@ -691,11 +691,11 @@ ${footer}` : result.text
                 return (
                   <article key={i} className="group flex w-full justify-end">
                     <div className="min-w-0 max-w-[88%] sm:max-w-[78%]">
-                      <div className="bg-blue-600 px-4 py-3 text-sm leading-6 text-white shadow-sm">
+                      <div className="rounded-card bg-secondary px-4 py-3 text-base leading-6 text-foreground ">
                         <div className="chat-rich-text" dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }} />
                       </div>
                       <div className="mt-2 flex items-center justify-end gap-1.5">
-                        <time className="mr-1 text-[10px] text-slate-400">
+                        <time className="mr-1 text-[10px] text-muted-foreground">
                           {formatTime(msg.timestamp)}
                         </time>
                         <button
@@ -704,10 +704,10 @@ ${footer}` : result.text
                           title="Copy message"
                           aria-label="Copy your message"
                           className={cn(
-                            "flex size-7 items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100",
+                            "flex size-7 items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100",
                             copiedIndex === i
-                              ? "bg-emerald-500/20 text-emerald-400"
-                              : "bg-slate-900 text-slate-500 hover:bg-slate-800 hover:text-slate-200",
+                              ? "bg-secondary text-muted-foreground"
+                              : "bg-card text-muted-foreground hover:bg-secondary hover:text-foreground",
                           )}
                         >
                           {copiedIndex === i ? <Check className="size-3" /> : <Copy className="size-3" />}
@@ -717,7 +717,7 @@ ${footer}` : result.text
                           onClick={() => handleEdit(i, msg.content)}
                           title="Edit message"
                           aria-label="Edit your message"
-                          className="flex size-7 items-center justify-center bg-slate-900 text-slate-500 transition-all hover:bg-slate-800 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                          className="flex size-7 items-center justify-center bg-card text-muted-foreground transition-all hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                         >
                           <Pencil className="size-3" />
                         </button>
@@ -733,34 +733,34 @@ ${footer}` : result.text
                     className={cn(
                       "flex size-8 items-center justify-center border sm:size-9",
                       isError
-                        ? "border-red-500/20 bg-red-500/15"
-                        : "border-blue-500/20 bg-blue-500/15",
+                        ? "border-border bg-secondary"
+                        : "border-border bg-secondary",
                     )}
                   >
-                    <Bot className={cn("size-4", isError ? "text-red-400" : "text-blue-400")} />
+                    <Bot className={cn("size-4", isError ? "text-muted-foreground" : "text-muted-foreground")} />
                   </div>
                   <div className="min-w-0">
                     <div
                       className={cn(
                         "border px-4 py-4 sm:px-5 sm:py-5",
                         isError
-                          ? "border-red-700/60 bg-red-900/40 text-red-100"
-                          : "border-slate-700 bg-slate-800 text-slate-50",
+                          ? "border-border bg-secondary text-muted-foreground"
+                          : "border-border bg-secondary text-foreground",
                       )}
                     >
-                      <p className={cn("mb-3 text-[10px] font-semibold uppercase tracking-[0.18em]", isError ? "text-red-400" : "text-blue-400")}>
+                      <p className={cn("mb-3 text-[10px] font-medium uppercase tracking-[0.18em]", isError ? "text-muted-foreground" : "text-muted-foreground")}>
                         {isError ? "Response error" : "Legal assistant"}
                       </p>
                       {msg.role === "assistant" ? (
                         <>
                         <ThinkingSummary text={msg.thinkingSummary ?? ""} />
-                        {msg.incomplete && <p className="mb-3 text-xs text-amber-300">This answer is incomplete because the response limit was reached.</p>}
+                        {msg.incomplete && <p className="mb-3 text-xs text-muted-foreground">This answer is incomplete because the response limit was reached.</p>}
                         <div
                           className="chat-rich-text min-w-0 break-words text-sm leading-7"
                           dangerouslySetInnerHTML={{ __html: formatMessage(msg.displayContent ?? msg.content) }}
                         />
                         {msg.searched && (
-                          <p className="mt-4 text-xs text-slate-400">
+                          <p className="mt-4 text-xs text-muted-foreground">
                             {msg.sourceCount ? `${msg.sourceCount} web sources · numbered links identify supported passages.` : "No web sources returned for this answer."}
                           </p>
                         )}
@@ -770,7 +770,7 @@ ${footer}` : result.text
                       )}
                     </div>
                     <div className="mt-2 flex items-center gap-2">
-                      <time className="text-[10px] text-slate-400">
+                      <time className="text-[10px] text-muted-foreground">
                         {formatTime(msg.timestamp)}
                       </time>
                       <button
@@ -779,10 +779,10 @@ ${footer}` : result.text
                         title="Copy message"
                         aria-label={isError ? "Copy error message" : "Copy assistant response"}
                         className={cn(
-                          "flex size-7 items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100",
+                          "flex size-7 items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100",
                           copiedIndex === i
-                            ? "bg-emerald-500/20 text-emerald-400"
-                            : "bg-slate-900 text-slate-500 hover:bg-slate-800 hover:text-slate-200",
+                            ? "bg-secondary text-muted-foreground"
+                            : "bg-card text-muted-foreground hover:bg-secondary hover:text-foreground",
                         )}
                       >
                         {copiedIndex === i ? <Check className="size-3" /> : <Copy className="size-3" />}
@@ -799,11 +799,11 @@ ${footer}` : result.text
                 className="grid grid-cols-[2rem_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[2.25rem_minmax(0,1fr)] sm:gap-4"
                 aria-label="Legal assistant is preparing a response"
               >
-                <div className="flex size-8 items-center justify-center border border-blue-500/20 bg-blue-500/15 sm:size-9">
-                  <Bot className="size-4 text-blue-400" />
+                <div className="flex size-8 items-center justify-center border border-border bg-secondary sm:size-9">
+                  <Bot className="size-4 text-muted-foreground" />
                 </div>
-                <div className="min-w-0 border border-slate-700 bg-slate-800 px-4 py-3">
-                  <p role="status" className="mb-3 text-xs text-blue-300">{pending.text ? "Writing response…" : pending.summary ? "Thinking summary arriving…" : pending.restarted ? "Restarting response…" : "Preparing response…"}</p>
+                <div className="min-w-0 border border-border bg-secondary px-4 py-3">
+                  <p role="status" className="mb-3 text-xs text-muted-foreground">{pending.text ? "Writing response…" : pending.summary ? "Thinking summary arriving…" : pending.restarted ? "Restarting response…" : "Preparing response…"}</p>
                   <ThinkingSummary text={pending.summary} pending />
                   <div aria-live="off" className="chat-rich-text min-w-0 break-words text-sm leading-7" dangerouslySetInnerHTML={{ __html: formatMessage(pending.text) }} />
                 </div>
@@ -816,60 +816,65 @@ ${footer}` : result.text
         </main>
 
         {/* Input area */}
-        <div className="shrink-0 border-t border-slate-800 bg-slate-950 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
+        <div className="shrink-0 bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
           <form
             onSubmit={(e) => {
               e.preventDefault()
               void sendMessage()
             }}
-            className="mx-auto max-w-4xl"
+            className="mx-auto w-full max-w-3xl"
           >
-            <div className="border border-slate-700 bg-slate-900 shadow-sm transition-colors focus-within:border-blue-500/70 focus-within:ring-1 focus-within:ring-blue-500/30">
+            {/* Response length: sits above the input box, no container background */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 pb-2">
+              <span id="response-length-label" className="text-[9px] font-medium uppercase tracking-widest text-muted-foreground">Response length</span>
+              <div
+                role="group"
+                aria-labelledby="response-length-label"
+                className="inline-flex items-center gap-1 rounded-full bg-card p-1"
+              >
+                {RESPONSE_LENGTHS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={settings.responseLength === option.value}
+                    title={option.description}
+                    disabled={sending}
+                    onClick={() => {
+                      const next = { ...settings, responseLength: option.value }
+                      setSettings(next)
+                      setDraft((previous) => ({ ...previous, responseLength: option.value }))
+                      persistSettings(next)
+                    }}
+                    className={cn(
+                      "min-h-6 rounded-full border px-3 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground disabled:cursor-not-allowed disabled:opacity-50",
+                      settings.responseLength === option.value
+                        ? "border-foreground bg-secondary text-foreground"
+                        : "border-transparent text-muted-foreground hover:bg-secondary hover:text-foreground",
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <span className="text-[9px] text-muted-foreground">Applies to your next reply</span>
+            </div>
+            <div className="rounded-[32px] bg-card transition-colors focus-within:ring-1 focus-within:ring-foreground">
               {editingIndex !== null && (
-                <div className="flex items-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-3 py-2">
-                  <Pencil className="size-3 shrink-0 text-amber-400" />
-                  <span className="text-[11px] font-medium text-amber-300">Editing your message</span>
+                <div className="flex items-center gap-2 bg-secondary px-3 py-2">
+                  <Pencil className="size-3 shrink-0 text-muted-foreground" />
+                  <span className="text-[11px] font-medium text-muted-foreground">Editing your message</span>
                   <button
                     type="button"
                     onClick={() => {
                       setEditingIndex(null)
                       setInput("")
                     }}
-                    className="ml-auto text-[11px] text-amber-400 underline underline-offset-4 transition-colors hover:text-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                    className="ml-auto text-[11px] text-muted-foreground underline underline-offset-4 transition-colors hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground"
                   >
                     Cancel
                   </button>
                 </div>
               )}
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-slate-800 px-3 py-2">
-                <span id="response-length-label" className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">Response length</span>
-                <div role="group" aria-labelledby="response-length-label" className="flex border border-slate-700">
-                  {RESPONSE_LENGTHS.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      aria-pressed={settings.responseLength === option.value}
-                      title={option.description}
-                      disabled={sending}
-                      onClick={() => {
-                        const next = { ...settings, responseLength: option.value }
-                        setSettings(next)
-                        setDraft((previous) => ({ ...previous, responseLength: option.value }))
-                        persistSettings(next)
-                      }}
-                      className={cn(
-                        "min-h-7 px-2 text-[10px] font-medium focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:cursor-not-allowed disabled:opacity-50",
-                        settings.responseLength === option.value
-                          ? "bg-blue-500/20 text-blue-300"
-                          : "text-slate-400 hover:bg-slate-800 hover:text-slate-100",
-                      )}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-                <span className="text-[9px] text-slate-500">Applies to your next reply</span>
-              </div>
               <div className="flex items-end gap-2 px-3 py-3 sm:gap-3">
                 <button
                   type="button"
@@ -880,10 +885,10 @@ ${footer}` : result.text
                   aria-expanded={drawerOpen}
                   aria-controls="internal-chat-settings"
                   className={cn(
-                    "flex h-[42px] w-[42px] shrink-0 items-center justify-center transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60",
+                    "flex h-[42px] w-[42px] shrink-0 items-center justify-center transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground",
                     drawerOpen
-                      ? "bg-blue-500/20 text-blue-300"
-                      : "text-slate-400 hover:bg-slate-800 hover:text-slate-100",
+                      ? "bg-secondary text-muted-foreground"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground",
                   )}
                 >
                   <Settings className="size-5" />
@@ -905,14 +910,14 @@ ${footer}` : result.text
                   disabled={!isReady || sending}
                   rows={1}
                   aria-label={editingIndex !== null ? "Edit your legal question" : "Legal question"}
-                  className="min-h-[42px] max-h-40 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-1 py-2 text-xs leading-relaxed text-white outline-none placeholder:text-slate-600 disabled:cursor-not-allowed disabled:text-slate-500"
+                  className="min-h-[42px] max-h-40 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-1 py-2 text-base leading-relaxed text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:text-muted-foreground"
                   style={{ fieldSizing: "content" } as React.CSSProperties}
                 />
                 <Button
                   type="submit"
                   disabled={!isReady || sending || !input.trim()}
                   aria-label={sending ? "Preparing response" : editingIndex !== null ? "Send revised question" : "Send question"}
-                  className="h-[42px] w-[42px] shrink-0 p-0 focus-visible:ring-offset-slate-900"
+                  className="h-[42px] w-[42px] shrink-0 p-0 focus-visible:ring-offset-background"
                 >
                   {sending ? (
                     <Loader2 className="size-4 animate-spin motion-reduce:animate-none" />
@@ -921,7 +926,7 @@ ${footer}` : result.text
                   )}
                 </Button>
               </div>
-              <div className="flex items-center justify-between gap-3 border-t border-slate-800 px-3 py-2 text-[10px] text-slate-500">
+              <div className="flex items-center justify-between gap-3 px-3 py-2 text-[10px] text-muted-foreground">
                 <span>
                   Enter to send
                   <span className="hidden sm:inline"> · Shift+Enter for a new line</span>
@@ -930,10 +935,10 @@ ${footer}` : result.text
                   className={cn(
                     "shrink-0 font-medium",
                     !apiKeyLoading && !apiKey
-                      ? "text-red-400"
+                      ? "text-muted-foreground"
                       : isReady && !sending
-                        ? "text-emerald-400"
-                        : "text-slate-500",
+                        ? "text-muted-foreground"
+                        : "text-muted-foreground",
                   )}
                   role="status"
                 >
@@ -963,7 +968,7 @@ ${footer}` : result.text
       >
       <div
         id="internal-chat-settings"
-        className="flex h-[90dvh] min-h-0 w-[90vw] max-w-none flex-col overflow-hidden border border-slate-700 bg-slate-900 shadow-2xl"
+        className="rounded-card flex h-[90dvh] min-h-0 w-full max-w-[1200px] flex-col overflow-hidden border border-border bg-card "
         role="dialog"
         aria-modal="true"
         aria-labelledby="chat-settings-title"
@@ -971,15 +976,15 @@ ${footer}` : result.text
         inert={!drawerOpen}
       >
         {/* Dialog header */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-800 shrink-0">
-          <Settings className="size-4 text-slate-400" />
-          <h2 id="chat-settings-title" className="text-sm font-semibold text-white flex-1">Chat Settings</h2>
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-border shrink-0">
+          <Settings className="size-4 text-muted-foreground" />
+          <h2 id="chat-settings-title" className="font-display text-sm font-medium text-foreground flex-1">Chat Settings</h2>
           <button
             type="button"
             onClick={() => setDrawerOpen(false)}
             title="Close settings"
             aria-label="Close chat settings"
-            className="flex items-center justify-center size-7 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+            className="flex items-center justify-center size-7 rounded-control text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground"
           >
             <X className="size-4" />
           </button>
@@ -990,21 +995,21 @@ ${footer}` : result.text
           ref={settingsBodyRef}
           className="min-h-0 flex-1 overflow-y-auto px-5 py-5 space-y-7 sm:px-6"
         >
-          <section className={cn("space-y-3 border-b border-slate-800 pb-5", settingsPage !== 0 && "hidden")}>
-            <label className="flex items-center justify-between gap-4 text-sm text-slate-200">
+          <section className={cn("space-y-3 border-b border-border pb-5", settingsPage !== 0 && "hidden")}>
+            <label className="flex items-center justify-between gap-4 text-sm text-foreground">
               Web search and citations
-              <input type="checkbox" checked={draft.webSearch} onChange={(event) => setDraft((prev) => ({ ...prev, webSearch: event.target.checked }))} className="size-4 accent-blue-600" />
+              <input type="checkbox" checked={draft.webSearch} onChange={(event) => setDraft((prev) => ({ ...prev, webSearch: event.target.checked }))} className="size-4 accent-foreground" />
             </label>
-            <p className="text-xs leading-5 text-slate-400">Use Google Search for current information and linked sources. Search queries may incur additional Gemini usage charges.</p>
-            <label className="flex items-center justify-between gap-4 text-sm text-slate-200">
+            <p className="text-xs leading-5 text-muted-foreground">Use Google Search for current information and linked sources. Search queries may incur additional Gemini usage charges.</p>
+            <label className="flex items-center justify-between gap-4 text-sm text-foreground">
               Faster responses
-              <input type="checkbox" checked={draft.fastResponses} onChange={(event) => setDraft((prev) => ({ ...prev, fastResponses: event.target.checked }))} className="size-4 accent-blue-600" />
+              <input type="checkbox" checked={draft.fastResponses} onChange={(event) => setDraft((prev) => ({ ...prev, fastResponses: event.target.checked }))} className="size-4 accent-foreground" />
             </label>
-            <p className="text-xs leading-5 text-slate-400">Limits retries and reduces reasoning time on Gemini 2.5 Flash. Turn off for more deliberate analysis.</p>
+            <p className="text-xs leading-5 text-muted-foreground">Limits retries and reduces reasoning time on Gemini 2.5 Flash. Turn off for more deliberate analysis.</p>
           </section>
           {/* System prompt */}
           <section className={cn("space-y-2", settingsPage !== 1 && "hidden")}>
-            <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+            <label className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
               System Prompt
             </label>
             <PromptTextarea
@@ -1017,7 +1022,7 @@ ${footer}` : result.text
               variant="dark"
               placeholder="Describe how the AI should behave…"
             />
-            <p className="text-xs leading-5 text-slate-400">
+            <p className="text-xs leading-5 text-muted-foreground">
               Set the assistant’s role, tone, and instructions. Blue variables use
               your Contact &amp; Location details; amber variables are unrecognized.
               These settings apply only to internal chat.
@@ -1026,16 +1031,16 @@ ${footer}` : result.text
 
           {/* Model settings */}
           <section className={cn("space-y-5", settingsPage !== 2 && "hidden")}>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
               Model Settings
             </p>
 
             {/* Model selection */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm text-slate-300">Model</label>
+                <label className="text-sm text-foreground">Model</label>
                 {modelsLoading && (
-                  <span className="flex items-center gap-1 text-[11px] text-slate-500">
+                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                     <Loader2 className="size-3 animate-spin" />
                     Loading…
                   </span>
@@ -1046,23 +1051,23 @@ ${footer}` : result.text
                 onClick={() => setModelDialogOpen(true)}
                 disabled={modelsLoading}
                 className={cn(
-                  "w-full flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
-                  "border-slate-700 bg-slate-800/50 hover:border-slate-600 disabled:opacity-40 disabled:cursor-not-allowed",
+                  "w-full flex items-center gap-3 rounded-control border px-3 py-2.5 text-left transition-colors",
+                  "border-border bg-secondary hover:border-border disabled:opacity-40 disabled:cursor-not-allowed",
                 )}
               >
                 <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium text-white">
+                  <span className="text-sm font-medium text-foreground">
                     {(models.length > 0 ? models : FALLBACK_MODELS).find(
                       (m) => m.id === draft.model,
                     )?.label ?? draft.model}
                   </span>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
                     {models.length === 0 && !modelsLoading
                       ? "Using fallback model list"
                       : `${(models.length > 0 ? models : FALLBACK_MODELS).length} models available`}
                   </p>
                 </div>
-                <ChevronDown className="size-4 text-slate-500 shrink-0" />
+                <ChevronDown className="size-4 text-muted-foreground shrink-0" />
               </button>
 
               <Dialog
@@ -1080,25 +1085,25 @@ ${footer}` : result.text
                         setModelDialogOpen(false)
                       }}
                       className={cn(
-                        "w-full flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
+                        "w-full flex items-center gap-3 rounded-control border px-3 py-2.5 text-left transition-colors",
                         draft.model === m.id
-                          ? "border-blue-500/50 bg-blue-500/10"
-                          : "border-slate-700 bg-slate-800/50 hover:border-slate-600",
+                          ? "border-border bg-secondary"
+                          : "border-border bg-secondary hover:border-border",
                       )}
                     >
                       <div
                         className={cn(
                           "size-3.5 rounded-full border-2 shrink-0",
                           draft.model === m.id
-                            ? "border-blue-400 bg-blue-400"
-                            : "border-slate-600",
+                            ? "border-border bg-secondary"
+                            : "border-border",
                         )}
                       />
-                      <span className="text-sm font-medium text-white">{m.label}</span>
+                      <span className="text-sm font-medium text-foreground">{m.label}</span>
                     </button>
                   ))}
                   {models.length === 0 && !modelsLoading && (
-                    <p className="text-[11px] text-slate-600 text-center py-4">
+                    <p className="text-[11px] text-muted-foreground text-center py-4">
                       Using fallback model list — server could not be reached.
                     </p>
                   )}
@@ -1109,8 +1114,8 @@ ${footer}` : result.text
             {/* Temperature */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm text-slate-300">Temperature</label>
-                <span className="text-xs font-mono text-slate-400 tabular-nums">
+                <label className="text-sm text-foreground">Temperature</label>
+                <span className="text-xs font-mono text-muted-foreground tabular-nums">
                   {draft.temperature.toFixed(2)}
                 </span>
               </div>
@@ -1126,9 +1131,9 @@ ${footer}` : result.text
                     temperature: parseFloat(e.target.value),
                   }))
                 }
-                className="w-full accent-blue-500 cursor-pointer"
+                className="w-full accent-foreground cursor-pointer"
               />
-              <div className="flex justify-between text-[10px] text-slate-600">
+              <div className="flex justify-between text-[10px] text-muted-foreground">
                 <span>Precise (0)</span>
                 <span>Creative (1)</span>
               </div>
@@ -1137,8 +1142,8 @@ ${footer}` : result.text
             {/* Max tokens */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm text-slate-300">Max Output Tokens</label>
-                <span className="text-xs font-mono text-slate-400 tabular-nums">
+                <label className="text-sm text-foreground">Max Output Tokens</label>
+                <span className="text-xs font-mono text-muted-foreground tabular-nums">
                   {draft.maxTokens.toLocaleString()}
                 </span>
               </div>
@@ -1154,9 +1159,9 @@ ${footer}` : result.text
                     maxTokens: parseInt(e.target.value),
                   }))
                 }
-                className="w-full accent-blue-500 cursor-pointer"
+                className="w-full accent-foreground cursor-pointer"
               />
-              <div className="flex justify-between text-[10px] text-slate-600">
+              <div className="flex justify-between text-[10px] text-muted-foreground">
                 <span>256 — Short</span>
                 <span>65,536 — Max</span>
               </div>
@@ -1167,17 +1172,17 @@ ${footer}` : result.text
                     type="button"
                     onClick={() => setDraft((prev) => ({ ...prev, maxTokens: preset }))}
                     className={cn(
-                      "rounded-md py-1 text-[11px] font-mono transition-colors",
+                      "rounded-control py-1 text-[11px] font-mono transition-colors",
                       draft.maxTokens === preset
-                        ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                        : "bg-slate-800 text-slate-500 border border-slate-700 hover:text-slate-300",
+                        ? "bg-secondary text-muted-foreground border border-border"
+                        : "bg-secondary text-muted-foreground border border-border hover:text-foreground",
                     )}
                   >
                     {preset >= 1000 ? `${preset / 1024}k` : preset}
                   </button>
                 ))}
               </div>
-              <p className="text-[11px] text-slate-600">
+              <p className="text-[11px] text-muted-foreground">
                 Gemini 2.5 Flash/Pro support up to 65,536 output tokens.
               </p>
             </div>
@@ -1185,7 +1190,7 @@ ${footer}` : result.text
 
           {/* Response footer */}
           <section className={cn("space-y-2", settingsPage !== 1 && "hidden")}>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
               Response Footer
             </p>
             <PromptTextarea
@@ -1198,7 +1203,7 @@ ${footer}` : result.text
               variant="dark"
               placeholder="e.g. — This response is for internal use only and does not constitute legal advice."
             />
-            <p className="text-[11px] text-slate-600">
+            <p className="text-[11px] text-muted-foreground">
               Appended to every AI response. Supports markdown formatting and
               contact variables.
             </p>
@@ -1207,13 +1212,13 @@ ${footer}` : result.text
           {/* Dataset */}
           <section className={cn("space-y-3", settingsPage !== 3 && "hidden")}>
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+              <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
                 Knowledge Base
               </p>
               <button
                 type="button"
                 onClick={addEntry}
-                className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-muted-foreground transition-colors"
               >
                 <Plus className="size-3.5" />
                 Add entry
@@ -1221,7 +1226,7 @@ ${footer}` : result.text
             </div>
 
             {draft.dataset.length === 0 ? (
-              <p className="text-xs text-slate-600 py-1 leading-relaxed">
+              <p className="text-xs text-muted-foreground py-1 leading-relaxed">
                 Add entries to give the AI additional context — case notes,
                 internal procedures, reference material, etc.
               </p>
@@ -1230,10 +1235,10 @@ ${footer}` : result.text
                 {draft.dataset.map((entry, idx) => (
                   <div
                     key={entry.id}
-                    className="rounded-lg border border-slate-700/60 bg-slate-800/40 p-3 space-y-2"
+                    className="rounded-control border border-border bg-secondary p-3 space-y-2"
                   >
                     <div className="flex items-center justify-between mb-0.5">
-                      <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">
+                      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
                         Entry {idx + 1}
                       </span>
                       <button
@@ -1241,7 +1246,7 @@ ${footer}` : result.text
                         onClick={() => removeEntry(entry.id)}
                         title={`Remove entry ${idx + 1}`}
                         aria-label={`Remove knowledge base entry ${idx + 1}`}
-                        className="flex items-center justify-center size-5 rounded text-slate-600 hover:text-red-400 transition-colors"
+                        className="flex items-center justify-center size-5 rounded text-muted-foreground hover:text-muted-foreground transition-colors"
                       >
                         <Trash2 className="size-3.5" />
                       </button>
@@ -1251,7 +1256,7 @@ ${footer}` : result.text
                       value={entry.title}
                       onChange={(e) => updateEntry(entry.id, "title", e.target.value)}
                       placeholder="Title"
-                      className="w-full rounded-md bg-slate-800 border border-slate-700 px-2.5 py-1.5 text-xs text-white placeholder:text-slate-600 outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded-control bg-secondary border border-border px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-foreground"
                     />
                     <PromptTextarea
                       value={entry.content}
@@ -1271,11 +1276,11 @@ ${footer}` : result.text
         </div>
 
         {/* Dialog footer */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-4 border-t border-slate-800 shrink-0">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-4 border-t border-border shrink-0">
           <button
             type="button"
             onClick={resetDraft}
-            className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             Reset to defaults
           </button>
@@ -1288,19 +1293,19 @@ ${footer}` : result.text
               type="button"
               onClick={() => setSettingsPage((page) => Math.max(0, page - 1))}
               disabled={settingsPage === 0}
-              className="flex h-8 items-center gap-1 rounded-md px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-40 text-slate-300 hover:bg-slate-800"
+              className="flex h-8 items-center gap-1 rounded-control px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground disabled:pointer-events-none disabled:opacity-40 text-foreground hover:bg-secondary"
             >
               <ChevronLeft className="size-3.5" />
               Back
             </button>
-            <span className="whitespace-nowrap px-2 text-[11px] tabular-nums text-slate-500" aria-live="polite">
+            <span className="whitespace-nowrap px-2 text-[11px] tabular-nums text-muted-foreground" aria-live="polite">
               Step {settingsPage + 1} of {SETTINGS_PAGES.length} · {SETTINGS_PAGES[settingsPage].label}
             </span>
             <button
               type="button"
               onClick={() => setSettingsPage((page) => Math.min(SETTINGS_PAGES.length - 1, page + 1))}
               disabled={settingsPage === SETTINGS_PAGES.length - 1}
-              className="flex h-8 items-center gap-1 rounded-md px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-40 text-slate-300 hover:bg-slate-800"
+              className="flex h-8 items-center gap-1 rounded-control px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground disabled:pointer-events-none disabled:opacity-40 text-foreground hover:bg-secondary"
             >
               Next
               <ChevronRight className="size-3.5" />
@@ -1309,7 +1314,7 @@ ${footer}` : result.text
 
           <div className="flex items-center gap-3">
             {savedFlash && (
-              <span className="text-xs text-emerald-400 font-medium">Saved ✓</span>
+              <span className="text-xs text-muted-foreground font-medium">Saved ✓</span>
             )}
             <Button onClick={saveDrawer} size="sm" className="h-8 px-4 text-xs">
               Save settings

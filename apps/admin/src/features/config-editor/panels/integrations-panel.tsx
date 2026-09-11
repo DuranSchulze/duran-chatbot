@@ -44,7 +44,7 @@ const CHANNELS: ChannelDefinition[] = [
     id: "viber",
     name: "Viber",
     icon: Phone,
-    iconClass: "bg-purple-100 text-purple-600",
+    iconClass: "bg-secondary text-muted-foreground",
     tagline: "Bot alerts through a Viber commercial bot.",
     description:
       "Arrange a commercial Viber bot, then have every account that should receive inquiry alerts subscribe to it.",
@@ -80,7 +80,7 @@ const CHANNELS: ChannelDefinition[] = [
     id: "whatsapp",
     name: "WhatsApp",
     icon: MessageCircle,
-    iconClass: "bg-emerald-100 text-emerald-600",
+    iconClass: "bg-secondary text-muted-foreground",
     tagline: "Official Meta Cloud API — more setup, per-message fees apply.",
     description:
       "Uses the Meta Cloud API and an approved template with four body parameters: profile, name, email, and inquiry. Every recipient must opt in. Long inquiries are shortened in the alert; the full text stays in Conversations.",
@@ -124,7 +124,7 @@ const CHANNELS: ChannelDefinition[] = [
     id: "telegram",
     name: "Telegram",
     icon: Send,
-    iconClass: "bg-sky-100 text-sky-600",
+    iconClass: "bg-secondary text-muted-foreground",
     tagline: "Free bot alerts — fastest setup of all three.",
     description:
       "Create a bot with @BotFather in a couple of minutes, message it once, and the chatbot sends lead notifications straight to that chat.",
@@ -218,12 +218,12 @@ export function IntegrationsPanel({ profileSlug, integrations, onChange }: Integ
         }
       />
 
-      <Card className="border-dashed bg-slate-50/70 shadow-none">
+      <Card className="border-dashed bg-background shadow-none">
         <CardContent className="space-y-2 pt-5">
-          <h3 className="text-base font-semibold text-slate-900">
+          <h3 className="font-display text-base font-medium text-foreground">
             How credentials work
           </h3>
-          <p className="text-sm leading-6 text-slate-500">
+          <p className="text-sm leading-6 text-muted-foreground">
             Store credentials in your hosting environment (locally, the root .env.local file).
             Set <code>NOTIFICATION_PROFILE_SLUG</code> to <code>{profileSlug}</code> to authorize
             these recipients for this profile. Save your channel switches to enable alerts.
@@ -237,10 +237,10 @@ export function IntegrationsPanel({ profileSlug, integrations, onChange }: Integ
         {status?.lastFailure && <Button variant="outline" disabled={retrying} onClick={retryFailed}>
           {retrying ? "Queueing…" : "Retry failed alerts (up to 50)"}
         </Button>}
-        {retryMessage && <p role="status" className="text-sm text-slate-600">{retryMessage}</p>}
+        {retryMessage && <p role="status" className="text-sm text-muted-foreground">{retryMessage}</p>}
       </div>
-      {statusError && <p role="alert" className="text-sm text-red-600">{statusError}</p>}
-      {status?.lastFailure && <p role="status" className="text-sm text-amber-700">
+      {statusError && <p role="alert" className="text-sm text-muted-foreground">{statusError}</p>}
+      {status?.lastFailure && <p role="status" className="text-sm text-muted-foreground">
         Latest failed alert: {status.lastFailure.channel} ({status.lastFailure.lastError}). Check the provider settings and delivery logs.
       </p>}
       <div className="space-y-5">
@@ -254,8 +254,8 @@ export function IntegrationsPanel({ profileSlug, integrations, onChange }: Integ
               key={channel.id}
               className={
                 enabled
-                  ? "border-blue-200 bg-white shadow-none"
-                  : "border-slate-200 bg-white shadow-none"
+                  ? "border-border bg-card shadow-none"
+                  : "border-border bg-card shadow-none"
               }
             >
               <CardContent className="space-y-4 pt-5">
@@ -268,17 +268,17 @@ export function IntegrationsPanel({ profileSlug, integrations, onChange }: Integ
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-base font-semibold text-slate-900">
+                        <h3 className="font-display text-base font-medium text-foreground">
                           {channel.name}
                         </h3>
                         <Badge variant={enabled ? "success" : "secondary"}>
                           {enabled ? "On" : "Off"}
                         </Badge>
                       </div>
-                      <p className="text-sm font-medium text-slate-600">
+                      <p className="text-sm font-medium text-muted-foreground">
                         {channel.tagline}
                       </p>
-                      <p className="mt-1 max-w-xl text-sm leading-6 text-slate-500">
+                      <p className="mt-1 max-w-xl text-sm leading-6 text-muted-foreground">
                         {channel.description}
                       </p>
                     </div>
@@ -290,12 +290,12 @@ export function IntegrationsPanel({ profileSlug, integrations, onChange }: Integ
                   />
                 </div>
 
-                <p className="text-sm text-slate-600" role="status">
+                <p className="text-sm text-muted-foreground" role="status">
                   {!status ? "Delivery readiness unavailable" : status.channels[channel.id].configured
                     ? "Server settings present. Provider acceptance is tracked below."
                     : `Setup needed: ${status.channels[channel.id].missing.join(", ")}`}
                 </p>
-                {status && <p className="text-xs text-slate-500">
+                {status && <p className="text-xs text-muted-foreground">
                   {status.counts.filter(row => row.channel === channel.id).map(row => `${row.count} ${row.status}`).join(" · ") || "No alerts queued yet"}.
                   {" "}Accepted means the provider accepted the request; it does not confirm receipt on your phone.
                 </p>}
@@ -308,17 +308,17 @@ export function IntegrationsPanel({ profileSlug, integrations, onChange }: Integ
                   <CircleHelp />
                   How to get these credentials
                 </Button>
-                <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                <div className="rounded-xl border border-border bg-background p-3">
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Environment variables ({channel.name})
                   </p>
                   <ul className="space-y-1.5">
                     {channel.envVars.map((envVar) => (
                       <li key={envVar.name} className="flex flex-wrap items-baseline gap-x-2 text-sm">
-                        <code className="rounded bg-white px-1.5 py-0.5 text-xs font-semibold text-slate-700 shadow-sm">
+                        <code className="rounded bg-card px-1.5 py-0.5 text-xs font-medium text-foreground ">
                           {envVar.name}
                         </code>
-                        <span className="text-slate-500">{envVar.label}</span>
+                        <span className="text-muted-foreground">{envVar.label}</span>
                       </li>
                     ))}
                   </ul>
@@ -333,18 +333,18 @@ export function IntegrationsPanel({ profileSlug, integrations, onChange }: Integ
         {selectedGuide && GuideIcon && (
           <DialogContent
             showCloseButton={false}
-            className="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl bg-white p-0 text-slate-900 shadow-2xl motion-reduce:animate-none sm:max-w-2xl"
+            className="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-xl bg-card p-0 text-foreground  motion-reduce:animate-none sm:max-w-2xl"
           >
-            <DialogHeader className="border-b border-slate-200 bg-slate-50 px-5 py-5 sm:px-6">
+            <DialogHeader className="border-b border-border bg-background px-5 py-5 sm:px-6">
               <div className="flex items-start gap-3">
                 <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${selectedGuide.iconClass}`}>
                   <GuideIcon className="size-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <DialogTitle className="text-lg font-semibold text-slate-900">
+                  <DialogTitle className="text-lg font-medium text-foreground">
                     Set up {selectedGuide.name}
                   </DialogTitle>
-                  <DialogDescription className="mt-1 text-sm leading-5 text-slate-600">
+                  <DialogDescription className="mt-1 text-sm leading-5 text-muted-foreground">
                     {selectedGuide.guide.lead}
                   </DialogDescription>
                 </div>
@@ -353,7 +353,7 @@ export function IntegrationsPanel({ profileSlug, integrations, onChange }: Integ
                   size="icon-sm"
                   onClick={() => setGuideChannel(null)}
                   aria-label="Close setup instructions"
-                  className="-mr-1 -mt-1 text-slate-500"
+                  className="-mr-1 -mt-1 text-muted-foreground"
                 >
                   <X />
                 </Button>
@@ -364,12 +364,12 @@ export function IntegrationsPanel({ profileSlug, integrations, onChange }: Integ
               <ol className="space-y-4">
                 {selectedGuide.guide.steps.map((step, index) => (
                   <li key={step.title} className="grid grid-cols-[2rem_1fr] gap-3">
-                    <span className="flex size-8 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-blue-700" aria-hidden="true">
+                    <span className="flex size-8 items-center justify-center rounded-full bg-secondary text-sm font-medium text-muted-foreground" aria-hidden="true">
                       {index + 1}
                     </span>
                     <div className="pt-0.5">
-                      <h3 className="text-sm font-semibold text-slate-900">{step.title}</h3>
-                      <p className="mt-1 text-sm leading-6 text-slate-600 [&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-xs [&_code]:font-semibold [&_strong]:font-semibold [&_strong]:text-slate-800">
+                      <h3 className="font-display text-sm font-medium text-foreground">{step.title}</h3>
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground [&_code]:rounded [&_code]:bg-card [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-xs [&_code]:font-medium [&_strong]:font-medium [&_strong]:text-foreground">
                         {step.detail}
                       </p>
                     </div>
@@ -377,28 +377,28 @@ export function IntegrationsPanel({ profileSlug, integrations, onChange }: Integ
                 ))}
               </ol>
 
-              <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                <ShieldCheck className="mt-0.5 size-5 shrink-0 text-amber-700" aria-hidden="true" />
+              <div className="flex gap-3 rounded-xl border border-border bg-secondary p-4">
+                <ShieldCheck className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
                 <div>
-                  <p className="text-sm font-semibold text-amber-950">Keep tokens on the server</p>
-                  <p className="mt-1 text-sm leading-5 text-amber-800">
-                    Add these values to your hosting environment or local <code className="rounded bg-white/70 px-1 py-0.5 text-xs font-semibold">.env.local</code>. Never paste access tokens into browser-visible configuration or variables beginning with <code className="rounded bg-white/70 px-1 py-0.5 text-xs font-semibold">VITE_</code>.
+                  <p className="text-sm font-medium text-muted-foreground">Keep tokens on the server</p>
+                  <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                    Add these values to your hosting environment or local <code className="rounded bg-card px-1 py-0.5 text-xs font-medium">.env.local</code>. Never paste access tokens into browser-visible configuration or variables beginning with <code className="rounded bg-card px-1 py-0.5 text-xs font-medium">VITE_</code>.
                   </p>
                 </div>
               </div>
             </div>
 
-            <DialogFooter className="border-t border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <DialogFooter className="border-t border-border bg-background px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <a
                 href={selectedGuide.guide.docsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-8 items-center justify-center gap-2 rounded-lg px-2 text-sm font-medium text-blue-700 outline-none hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="inline-flex h-8 items-center justify-center gap-2 rounded-control px-2 text-sm font-medium text-muted-foreground outline-none hover:bg-secondary focus-visible:ring-2 focus-visible:ring-foreground"
               >
                 <ExternalLink className="size-4" />
                 Open official {selectedGuide.name} guide
               </a>
-              <Button size="sm" onClick={() => setGuideChannel(null)}>Done</Button>
+              <Button variant="outline" size="sm" onClick={() => setGuideChannel(null)}>Done</Button>
             </DialogFooter>
           </DialogContent>
         )}

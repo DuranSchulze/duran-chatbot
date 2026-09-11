@@ -107,8 +107,8 @@ export function PromptTextarea({
     <div className={cn("w-full min-w-0 space-y-3", className)}>
       {expandable && (
         <div className="flex min-w-0 items-center justify-between gap-3">
-          <span className={cn("text-xs", dark ? "text-slate-400" : "text-slate-500")}>Edit instructions</span>
-          <button type="button" onClick={() => setExpanded(true)} aria-haspopup="dialog" aria-label={`Expand ${label.toLowerCase()}`} className={cn("inline-flex shrink-0 items-center gap-1.5 border px-2.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500", dark ? "border-slate-700 text-slate-300 hover:bg-slate-800" : "border-slate-200 text-slate-700 hover:bg-slate-50")}>
+          <span className={cn("text-xs", dark ? "text-muted-foreground" : "text-muted-foreground")}>Edit instructions</span>
+          <button type="button" onClick={() => setExpanded(true)} aria-haspopup="dialog" aria-label={`Expand ${label.toLowerCase()}`} className={cn("inline-flex shrink-0 items-center gap-1.5 border px-2.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground", dark ? "border-border text-foreground hover:bg-secondary" : "border-border text-foreground hover:bg-background")}>
             <Maximize2 className="size-3.5" /> Expand
           </button>
         </div>
@@ -140,7 +140,7 @@ export function PromptTextarea({
           <span
             className={cn(
               "w-full text-xs",
-              dark ? "text-slate-500" : "text-slate-500",
+              dark ? "text-muted-foreground" : "text-muted-foreground",
             )}
           >
             Insert a contact variable at the cursor:
@@ -152,10 +152,10 @@ export function PromptTextarea({
               title={`${variable.label} — from Contact & Location`}
               onClick={() => insertToken(variable.token)}
               className={cn(
-                "max-w-full break-all border px-0.5 py-px font-mono text-[8px] leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                "max-w-full break-all border px-0.5 py-px font-mono text-[8px] leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground",
                 dark
-                  ? "border-blue-400/40 bg-blue-500/15 text-blue-300 hover:border-blue-300/60 hover:bg-blue-500/25"
-                  : "border-blue-200 bg-blue-500/10 text-blue-700 hover:border-blue-300 hover:bg-blue-500/20",
+                  ? "border-border bg-secondary text-muted-foreground hover:border-border hover:bg-secondary"
+                  : "border-border bg-secondary text-muted-foreground hover:border-border hover:bg-secondary",
               )}
             >
               {`{{${variable.token}}}`}
@@ -164,19 +164,19 @@ export function PromptTextarea({
         </div>
       )}
       {expanded && createPortal(
-        <dialog ref={dialogRef} aria-labelledby={titleId} onCancel={() => setExpanded(false)} onClose={() => setExpanded(false)} onClick={(event) => { if (event.target === event.currentTarget) setExpanded(false); }} className="fixed inset-0 m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto border border-slate-700 bg-slate-900 p-0 text-slate-100 shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm">
-          <div className="flex items-center justify-between gap-3 border-b border-slate-800 px-4 py-4 sm:px-6">
+        <dialog ref={dialogRef} aria-labelledby={titleId} onCancel={() => setExpanded(false)} onClose={() => setExpanded(false)} onClick={(event) => { if (event.target === event.currentTarget) setExpanded(false); }} className="fixed inset-0 m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto border border-border bg-card p-0 text-foreground  backdrop:bg-black/60 backdrop:backdrop-blur-sm">
+          <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4 sm:px-6">
             <div className="min-w-0">
-              <h2 id={titleId} className="text-base font-semibold">{label}</h2>
-              <p className="mt-1 text-xs text-slate-400">Edit in a larger workspace. Close this editor, then save your settings to apply changes.</p>
+              <h2 id={titleId} className="font-display text-base font-medium">{label}</h2>
+              <p className="mt-1 text-xs text-muted-foreground">Edit in a larger workspace. Close this editor, then save your settings to apply changes.</p>
             </div>
-            <button type="button" onClick={() => setExpanded(false)} aria-label="Close expanded editor" className="flex size-9 shrink-0 items-center justify-center text-slate-400 hover:bg-slate-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><X className="size-4" /></button>
+            <button type="button" onClick={() => setExpanded(false)} aria-label="Close expanded editor" className="flex size-9 shrink-0 items-center justify-center text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground"><X className="size-4" /></button>
           </div>
           <div className="p-4 sm:p-6">
             <PromptTextarea value={value} onChange={onChange} rows={16} placeholder={placeholder} variant="dark" hideChips={hideChips} label={label} expandable={false} />
           </div>
-          <div className="flex justify-end border-t border-slate-800 px-4 py-3 sm:px-6">
-            <button type="button" onClick={() => setExpanded(false)} className="bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">Done</button>
+          <div className="flex justify-end border-t border-border px-4 py-3 sm:px-6">
+            <button type="button" onClick={() => setExpanded(false)} className="bg-secondary px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground">Done</button>
           </div>
         </dialog>, document.body,
       )}

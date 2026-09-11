@@ -34,7 +34,7 @@ export function BehaviorPanel({ behavior, onChange }: BehaviorPanelProps) {
       />
 
       <div className="space-y-5">
-        <Field className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+        <Field className="rounded-xl border border-border bg-background p-4">
           <FieldLabel htmlFor="ctaHeading">Call-to-action heading</FieldLabel>
           <FieldDescription>
             Shown above the buttons in the CTA card that appears after the AI
@@ -49,7 +49,7 @@ export function BehaviorPanel({ behavior, onChange }: BehaviorPanelProps) {
           />
         </Field>
 
-        <Field className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+        <Field className="rounded-xl border border-border bg-background p-4">
           <FieldRow>
             <div>
               <FieldLabel>Show timestamps</FieldLabel>
@@ -64,7 +64,7 @@ export function BehaviorPanel({ behavior, onChange }: BehaviorPanelProps) {
           </FieldRow>
         </Field>
 
-        <Field className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+        <Field className="rounded-xl border border-border bg-background p-4">
           <FieldRow>
             <div>
               <FieldLabel>Enable copy button</FieldLabel>
@@ -79,7 +79,7 @@ export function BehaviorPanel({ behavior, onChange }: BehaviorPanelProps) {
           </FieldRow>
         </Field>
 
-        <Field className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+        <Field className="rounded-xl border border-border bg-background p-4">
           <FieldRow>
             <div>
               <div className="flex items-center gap-2">
@@ -107,7 +107,7 @@ export function BehaviorPanel({ behavior, onChange }: BehaviorPanelProps) {
         </Field>
       </div>
 
-      <Field className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
+      <Field className="rounded-xl border border-border bg-secondary p-4">
         <FieldRow>
           <div>
             <div className="flex items-center gap-2">
@@ -132,7 +132,7 @@ export function BehaviorPanel({ behavior, onChange }: BehaviorPanelProps) {
       <Field>
         <div className="flex items-center justify-between gap-4">
           <FieldLabel htmlFor="autoOpenDelay">Auto-open delay</FieldLabel>
-          <span className="text-sm font-semibold text-blue-600">
+          <span className="text-sm font-medium text-muted-foreground">
             {behavior.openByDefault ? "Not used" : `${behavior.autoOpenDelay}s`}
           </span>
         </div>

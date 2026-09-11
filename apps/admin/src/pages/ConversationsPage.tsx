@@ -376,27 +376,27 @@ export function ConversationsPage() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-950 text-white overflow-hidden">
+    <div className="flex h-screen bg-background text-foreground overflow-hidden">
       {/* ── Left Sidebar ── */}
-      <aside className={cn("w-full md:w-72 flex-col border-r border-slate-800 shrink-0", selected ? "hidden md:flex" : "flex")}>
+      <aside className={cn("w-full md:w-72 flex-col border-r border-border shrink-0", selected ? "hidden md:flex" : "flex")}>
         {/* Brand */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-800">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
           <img
             src="/logo.webp"
             alt="Logo"
             className="h-8 w-auto shrink-0 object-contain"
           />
-          <span className="text-sm font-semibold text-white truncate">
+          <span className="text-sm font-medium text-foreground truncate">
             Conversations
           </span>
         </div>
 
         {/* Nav */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-800">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 gap-1.5 px-2 text-slate-400 hover:text-white text-xs"
+            className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground text-xs"
             onClick={() => navigate("/")}
           >
             <ChevronLeft className="size-3.5" />
@@ -407,7 +407,7 @@ export function ConversationsPage() {
             type="button"
             onClick={() => void load(true)}
             disabled={refreshing}
-            className="flex items-center justify-center size-7 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+            className="flex items-center justify-center size-7 rounded-control text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
             title="Refresh"
           >
             <RefreshCw
@@ -417,7 +417,7 @@ export function ConversationsPage() {
           <button
             type="button"
             onClick={handleLogout}
-            className="flex items-center justify-center size-7 rounded-lg text-slate-500 hover:text-red-400 hover:bg-slate-800 transition-colors"
+            className="flex items-center justify-center size-7 rounded-control text-muted-foreground hover:text-muted-foreground hover:bg-secondary transition-colors"
             title="Logout"
           >
             <LogOut className="size-3.5" />
@@ -426,22 +426,22 @@ export function ConversationsPage() {
 
         {/* Current profile */}
         {activeProfile && (
-          <div className="mx-3 my-3 min-w-0 border border-blue-500/20 bg-blue-500/10 px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-400">Chatbot profile</p>
-            <p className="mt-1 break-words text-sm font-medium text-slate-100">{profile?.name}</p>
+          <div className="mx-3 my-3 min-w-0 border border-border bg-secondary px-3 py-2">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Chatbot profile</p>
+            <p className="mt-1 break-words text-sm font-medium text-foreground">{profile?.name}</p>
           </div>
         )}
 
         {/* Search */}
         <div className="px-3 pb-2 pt-1">
-          <div className="flex items-center gap-2 rounded-lg bg-slate-800/60 px-3 py-2">
-            <Search className="size-3.5 shrink-0 text-slate-500" />
+          <div className="flex items-center gap-2 rounded-control bg-secondary px-3 py-2">
+            <Search className="size-3.5 shrink-0 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search users…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 bg-transparent text-xs text-white placeholder:text-slate-600 outline-none"
+              className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground outline-none"
             />
           </div>
         </div>
@@ -450,17 +450,17 @@ export function ConversationsPage() {
         <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-1">
           {loading && (
             <div className="flex items-center justify-center py-10">
-              <div className="size-5 animate-spin rounded-full border-2 border-slate-700 border-t-blue-500" />
+              <div className="size-5 animate-spin rounded-full border-2 border-border border-t-border" />
             </div>
           )}
           {!loading && error && (
-            <p className="px-3 py-4 text-xs text-red-400">{error}</p>
+            <p className="px-3 py-4 text-xs text-muted-foreground">{error}</p>
           )}
           {!loading && !error && activeProfile && requestedConversation && !selected && (
-            <p role="status" className="px-3 py-4 text-sm text-amber-300">This conversation was not found in this profile. It may have been deleted. Choose another conversation below.</p>
+            <p role="status" className="px-3 py-4 text-sm text-muted-foreground">This conversation was not found in this profile. It may have been deleted. Choose another conversation below.</p>
           )}
           {!loading && !error && filtered.length === 0 && (
-            <p className="px-3 py-6 text-center text-xs text-slate-600">
+            <p className="px-3 py-6 text-center text-xs text-muted-foreground">
               {sessions.length === 0
                 ? "No conversations yet"
                 : "No users match your search"}
@@ -477,16 +477,16 @@ export function ConversationsPage() {
                 className={cn(
                   "relative w-full rounded-xl px-3 py-2.5 text-left transition-colors",
                   selected?.sessionId === session.sessionId
-                    ? "bg-blue-500/15 border border-blue-500/20"
-                    : "hover:bg-slate-800/70 border border-transparent",
-                  attention && "border-l-2 border-l-amber-400",
+                    ? "bg-secondary border border-border"
+                    : "hover:bg-secondary border border-transparent",
+                  attention && "border-l-2 border-l-border",
                 )}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="relative flex shrink-0 items-center justify-center size-7 rounded-full bg-slate-700 text-slate-300">
+                  <div className="relative flex shrink-0 items-center justify-center size-7 rounded-full bg-secondary text-foreground">
                     <User className="size-3.5" />
                     {unread && (
-                      <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-blue-500 ring-2 ring-slate-950" />
+                      <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-secondary ring-2 ring-foreground" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -494,24 +494,24 @@ export function ConversationsPage() {
                       className={cn(
                         "truncate text-xs",
                         unread
-                          ? "font-semibold text-white"
-                          : "font-medium text-white",
+                          ? "font-medium text-foreground"
+                          : "font-medium text-foreground",
                       )}
                     >
                       {session.userName || "Unknown"}
                     </p>
-                    <p className="truncate text-[11px] text-slate-500">
+                    <p className="truncate text-[11px] text-muted-foreground">
                       {session.userEmail || "—"}
                     </p>
                   </div>
                 </div>
                 <div className="mt-1.5 flex items-center gap-2 pl-9">
-                  <Clock className="size-2.5 shrink-0 text-slate-600" />
-                  <span className="text-[10px] text-slate-600 truncate">
+                  <Clock className="size-2.5 shrink-0 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground truncate">
                     {formatDate(session.lastActive)}
                   </span>
                   {attention && (
-                    <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-amber-400/15 px-1.5 py-0.5 text-[9px] font-medium text-amber-400">
+                    <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-secondary px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
                       <AlertCircle className="size-2.5" />
                       Needs reply
                     </span>
@@ -526,11 +526,11 @@ export function ConversationsPage() {
       {/* ── Right Panel ── */}
       <main className={cn("flex-1 flex-col min-w-0", selected ? "flex" : "hidden md:flex")}>
         {!selected ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-slate-600">
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-muted-foreground">
             <MessageSquare className="size-10" />
             <p role={requestedConversation ? "status" : undefined} className="text-sm text-center px-4">{loading ? "Loading conversation…" : requestedConversation ? "This conversation was not found in this profile. It may have been deleted." : "Select a user to view their conversation"}</p>
             {sessions.length === 0 && !loading && !error && (
-              <p className="text-xs text-slate-700 max-w-xs text-center">
+              <p className="text-xs text-foreground max-w-xs text-center">
                 Conversations will appear here after visitors chat with the widget.
               </p>
             )}
@@ -538,15 +538,15 @@ export function ConversationsPage() {
         ) : (
           <>
             {/* Header */}
-            <div className="flex flex-wrap items-center gap-3 border-b border-slate-800 px-4 md:px-6 py-4 shrink-0">
+            <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 md:px-6 py-4 shrink-0">
               <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setSearchParams({ profile: activeProfile })} aria-label="Back to conversations"><ChevronLeft className="size-4" /></Button>
               <div className="flex-1 min-w-40">
-                <h2 className="text-sm font-semibold text-white">
+                <h2 className="font-display text-sm font-medium text-foreground">
                   {selected.userName || "Unknown user"}
                 </h2>
-                <p className="text-xs text-slate-400 break-all">{selected.userEmail}</p>
+                <p className="text-xs text-muted-foreground break-all">{selected.userEmail}</p>
               </div>
-              <div className="hidden lg:flex items-center gap-2 shrink-0 text-xs text-slate-500">
+              <div className="hidden lg:flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
                 <span>First seen: {formatDate(selected.firstSeen)}</span>
                 <span>·</span>
                 <span>
@@ -557,7 +557,7 @@ export function ConversationsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 gap-1.5 px-3 text-xs border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white"
+                className="h-8 gap-1.5 px-3 text-xs border-border bg-card text-foreground hover:bg-secondary hover:text-foreground"
                 onClick={() => exportSessionAsPDF(selected)}
                 title="Print / save this conversation as a PDF"
               >
@@ -567,7 +567,7 @@ export function ConversationsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 gap-1.5 px-3 text-xs border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white"
+                className="h-8 gap-1.5 px-3 text-xs border-border bg-card text-foreground hover:bg-secondary hover:text-foreground"
                 onClick={() => exportSessionAsCSV(selected)}
               >
                 <Download className="size-3.5" />
@@ -587,7 +587,7 @@ export function ConversationsPage() {
                 >
                   {msg.role === "user" && (
                     <span
-                      className="mt-0.5 flex size-8 shrink-0 items-center justify-center border border-blue-500/20 bg-blue-500/15 text-blue-400"
+                      className="mt-0.5 flex size-8 shrink-0 items-center justify-center border border-border bg-secondary text-muted-foreground"
                       title={selected.userName || "Client"}
                       role="img"
                       aria-label={selected.userName || "Client"}
@@ -597,17 +597,17 @@ export function ConversationsPage() {
                   )}
                   <div
                     className={cn(
-                      "min-w-0 max-w-[85%] sm:max-w-[70%] rounded-2xl px-4 py-2.5 text-sm",
+                      "min-w-0 max-w-[85%] sm:max-w-[70%] rounded-xl px-4 py-2.5 text-sm",
                       msg.role === "user" &&
-                        "bg-blue-600 text-white rounded-bl-md",
+                        "bg-secondary text-foreground ",
                       msg.role === "assistant" &&
-                        "bg-slate-800 text-slate-100 rounded-br-md",
+                        "bg-card text-foreground",
                       msg.role === "admin" &&
-                        "bg-emerald-600/20 border border-emerald-500/30 text-emerald-50 rounded-br-md",
+                        "bg-secondary border border-border text-muted-foreground ",
                     )}
                   >
                     {msg.role === "admin" && (
-                      <p className="mb-1 flex items-center gap-1 text-[10px] font-semibold text-emerald-300">
+                      <p className="mb-1 flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
                         <Headset className="size-3" />
                         {msg.senderName || "You"}
                       </p>
@@ -617,8 +617,8 @@ export function ConversationsPage() {
                       className={cn(
                         "mt-1 block text-[10px]",
                         msg.role === "user"
-                          ? "text-blue-200"
-                          : "text-slate-500",
+                          ? "text-muted-foreground"
+                          : "text-muted-foreground",
                       )}
                     >
                       {formatDate(msg.timestamp)}
@@ -629,9 +629,9 @@ export function ConversationsPage() {
             </div>
 
             {/* Admin reply composer — inject a human ("middleman") response */}
-            <div className="border-t border-slate-800 px-6 py-3 shrink-0">
+            <div className="border-t border-border px-6 py-3 shrink-0">
               {replyError && (
-                <p className="mb-2 text-xs text-red-400">{replyError}</p>
+                <p className="mb-2 text-xs text-muted-foreground">{replyError}</p>
               )}
               <div className="flex items-end gap-2">
                 <textarea
@@ -645,11 +645,11 @@ export function ConversationsPage() {
                   }}
                   rows={2}
                   placeholder="Reply as sales… paste a link (https://…) to share. ⌘/Ctrl+Enter to send"
-                  className="flex-1 resize-none rounded-lg bg-slate-800/60 px-3 py-2 text-sm text-white placeholder:text-slate-600 outline-none focus:ring-1 focus:ring-emerald-500/40"
+                  className="flex-1 resize-none rounded-control bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-foreground"
                 />
                 <Button
                   size="sm"
-                  className="h-9 gap-1.5 bg-emerald-600 px-3 text-xs text-white hover:bg-emerald-500"
+                  className="h-10 gap-1.5 px-5 text-sm"
                   disabled={sending || !replyText.trim()}
                   onClick={() => void handleSendReply()}
                 >

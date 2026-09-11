@@ -259,10 +259,10 @@ export interface WidgetEmbedConfig {
 /** Default configuration values */
 export const defaultConfig: ChatbotConfig = {
   appearance: {
-    primaryColor: '#004a99',
-    accentColor: '#0056b3',
-    backgroundColor: '#ffffff',
-    textColor: '#212529',
+    primaryColor: '#5266eb',
+    accentColor: '#5266eb',
+    backgroundColor: '#171721',
+    textColor: '#ededf3',
     position: 'bottom-right',
     borderRadius: 12,
     companyName: 'AI Assistant',

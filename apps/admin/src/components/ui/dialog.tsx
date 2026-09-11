@@ -35,14 +35,14 @@ export function Dialog({ open, onClose, title, children }: DialogProps) {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
       {/* Panel */}
-      <div className="relative z-10 flex w-full max-w-lg flex-col rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl max-h-[80vh]">
+      <div className="relative z-10 flex w-full max-w-lg flex-col rounded-xl border border-border bg-card  max-h-[80vh]">
         {/* Header */}
-        <div className="flex items-center gap-3 border-b border-slate-800 px-5 py-4 shrink-0">
-          <h2 className="text-sm font-semibold text-white flex-1">{title}</h2>
+        <div className="flex items-center gap-3 border-b border-border px-5 py-4 shrink-0">
+          <h2 className="font-display text-sm font-medium text-foreground flex-1">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="flex items-center justify-center size-7 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+            className="flex items-center justify-center size-7 rounded-control text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           >
             <X className="size-4" />
           </button>

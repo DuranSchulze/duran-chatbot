@@ -3,7 +3,6 @@ import {
   ChevronLeft,
   ExternalLink,
   LogOut,
-  Menu,
   MessageSquare,
   Megaphone,
   Save,
@@ -32,7 +31,6 @@ export function TopBar({
   saveStatus,
   onSave,
   onPreview,
-  onMenuClick,
   activeLabel,
   profileName,
   profileSlug,
@@ -46,39 +44,29 @@ export function TopBar({
     navigate("/login", { replace: true });
   }
   return (
-    <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
-      {/* Mobile hamburger */}
-      <button
-        type="button"
-        onClick={onMenuClick}
-        className="flex items-center justify-center size-8 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors lg:hidden"
-        aria-label="Open navigation"
-      >
-        <Menu className="size-5" />
-      </button>
-
+    <div className="flex min-h-20 flex-wrap items-center gap-4 px-4 py-4 sm:px-8">
       {/* Back to profiles + page title */}
       <div className="flex flex-1 items-center gap-2 min-w-0">
         {onBackToProfiles && (
           <button
             type="button"
             onClick={onBackToProfiles}
-            className="hidden sm:flex items-center gap-1 text-xs text-slate-400 hover:text-slate-700 transition-colors shrink-0"
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0"
           >
             <ChevronLeft className="size-3.5" />
             Profiles
           </button>
         )}
         {onBackToProfiles && (
-          <span className="hidden sm:block text-slate-300 text-xs">/</span>
+          <span className="block text-foreground text-xs">/</span>
         )}
         <div className="min-w-0">
           {profileName && (
-            <p className="text-xs text-slate-500 truncate leading-none mb-0.5">
+            <p className="text-xs text-muted-foreground truncate leading-none mb-0.5">
               {profileName}
             </p>
           )}
-          <h1 className="text-sm font-semibold text-slate-900 truncate leading-none">
+          <h1 className="font-display text-sm font-medium text-foreground truncate leading-none">
             {activeLabel ?? "Chatbot Settings"}
           </h1>
         </div>
@@ -87,12 +75,12 @@ export function TopBar({
       {/* Actions */}
       <div className="flex items-center gap-2.5 shrink-0">
         {saveStatus ? (
-          <span className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+          <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
             <CheckCircle2 className="size-3.5" />
             Saved
           </span>
         ) : dirty ? (
-          <span className="hidden sm:block text-xs font-medium text-amber-600">
+          <span className="hidden sm:block text-xs font-medium text-muted-foreground">
             Unsaved changes
           </span>
         ) : null}
@@ -121,7 +109,7 @@ export function TopBar({
         <Link
           aria-label="Conversations"
           to={profileSlug ? `/conversations?profile=${encodeURIComponent(profileSlug)}` : "/conversations"}
-          className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+          className="flex items-center gap-1.5 h-8 px-3 rounded-control border border-border text-xs font-medium text-muted-foreground hover:bg-background hover:text-foreground transition-colors"
         >
           <MessageSquare className="size-3.5" />
           <span className="hidden sm:inline">Conversations</span>
@@ -131,7 +119,7 @@ export function TopBar({
           to="/announcements"
           aria-label="What’s new"
           title="What’s new"
-          className="flex size-8 items-center justify-center border border-slate-200 text-slate-500 outline-none transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-blue-500"
+          className="flex size-8 rounded-control items-center justify-center border border-border text-muted-foreground outline-none transition-colors hover:bg-background hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground"
         >
           <Megaphone className="size-3.5" aria-hidden="true" />
         </Link>
@@ -139,7 +127,7 @@ export function TopBar({
         <button
           type="button"
           onClick={handleLogout}
-          className="flex items-center justify-center size-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+          className="flex items-center justify-center size-8 rounded-control text-muted-foreground hover:text-muted-foreground hover:bg-secondary transition-colors"
           title="Logout"
         >
           <LogOut className="size-4" />

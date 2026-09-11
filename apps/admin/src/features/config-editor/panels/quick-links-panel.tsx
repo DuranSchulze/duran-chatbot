@@ -98,16 +98,16 @@ export function QuickLinksPanel({ quickLinks, onChange }: QuickLinksPanelProps) 
 
       <div className="space-y-4">
         {quickLinks.length === 0 ? (
-          <Card className="border-dashed bg-slate-50/70 shadow-none">
+          <Card className="border-dashed bg-background shadow-none">
             <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-slate-100 text-blue-600">
+              <div className="flex size-12 items-center justify-center rounded-xl bg-card text-muted-foreground">
                 <MousePointerClick className="size-5" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-base font-semibold text-slate-900">
+                <h3 className="font-display text-base font-medium text-foreground">
                   No action buttons yet
                 </h3>
-                <p className="max-w-md text-sm leading-6 text-slate-500">
+                <p className="max-w-md text-sm leading-6 text-muted-foreground">
                   Add buttons like “Request a quote”, “Contact us”, or “What
                   services do you offer?” to make the chat more engaging.
                 </p>
@@ -119,7 +119,7 @@ export function QuickLinksPanel({ quickLinks, onChange }: QuickLinksPanelProps) 
         {quickLinks.map((link) => {
           const type = actionType(link);
           return (
-            <Card key={link.id} className="border-slate-200 bg-white shadow-none">
+            <Card key={link.id} className="border-border bg-card shadow-none">
               <CardContent className="space-y-4 pt-5">
                 <div className="flex items-center justify-between gap-3">
                   <Badge>{ACTION_LABELS[type]}</Badge>
@@ -128,7 +128,7 @@ export function QuickLinksPanel({ quickLinks, onChange }: QuickLinksPanelProps) 
                     size="sm"
                     onClick={() => removeLink(link.id)}
                   >
-                    <Trash2 className="size-4 text-rose-600" />
+                    <Trash2 className="size-4 text-muted-foreground" />
                     Remove
                   </Button>
                 </div>
@@ -217,12 +217,12 @@ export function QuickLinksPanel({ quickLinks, onChange }: QuickLinksPanelProps) 
                   </FieldDescription>
                 ) : null}
 
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-2.5">
+                <div className="flex items-center justify-between gap-3 rounded-control border border-border bg-background px-3 py-2.5">
                   <div>
-                    <p className="text-sm font-medium text-slate-800">
+                    <p className="text-sm font-medium text-foreground">
                       Show as CTA after answers
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-muted-foreground">
                       Also display this button as a call-to-action card under the
                       AI's replies.
                     </p>
@@ -240,14 +240,14 @@ export function QuickLinksPanel({ quickLinks, onChange }: QuickLinksPanelProps) 
         })}
       </div>
 
-      <Card className="border-dashed bg-slate-50/70 shadow-none">
+      <Card className="border-dashed bg-background shadow-none">
         <CardContent className="space-y-4 pt-5">
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-slate-100 text-blue-600">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-card text-muted-foreground">
               <Plus className="size-4" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-slate-900">
+              <h3 className="font-display text-base font-medium text-foreground">
                 Add an action button
               </h3>
               <FieldDescription>
@@ -318,8 +318,8 @@ export function QuickLinksPanel({ quickLinks, onChange }: QuickLinksPanelProps) 
             </Field>
           ) : null}
 
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5">
-            <p className="text-sm font-medium text-slate-800">
+          <div className="flex items-center justify-between gap-3 rounded-control border border-border bg-card px-3 py-2.5">
+            <p className="text-sm font-medium text-foreground">
               Show as CTA after answers
             </p>
             <Switch
@@ -330,7 +330,7 @@ export function QuickLinksPanel({ quickLinks, onChange }: QuickLinksPanelProps) 
             />
           </div>
 
-          <Button onClick={addLink} disabled={!draftValid}>
+          <Button variant="outline" onClick={addLink} disabled={!draftValid}>
             <Plus className="size-4" />
             Add button
           </Button>

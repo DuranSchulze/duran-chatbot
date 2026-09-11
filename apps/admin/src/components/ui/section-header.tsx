@@ -12,17 +12,17 @@ export function SectionHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 border-b border-slate-100 pb-5 md:flex-row md:items-start md:justify-between">
+    <div className="flex flex-col gap-3 pb-8 md:flex-row md:items-start md:justify-between">
       <div className="space-y-1">
         {eyebrow ? (
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+          <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
             {eyebrow}
           </p>
         ) : null}
-        <h2 className="text-xl font-semibold tracking-tight text-slate-900">
+        <h2 className="font-display text-[28px] font-medium tracking-[0.015em] text-foreground">
           {title}
         </h2>
-        <p className="text-sm leading-6 text-slate-500">{description}</p>
+        <p className="text-sm leading-6 text-muted-foreground">{description}</p>
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>

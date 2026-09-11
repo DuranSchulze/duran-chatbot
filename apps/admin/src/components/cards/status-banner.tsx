@@ -17,25 +17,25 @@ export function StatusBanner({
   return (
     <div
       className={cn(
-        "flex items-start gap-3 rounded-2xl border p-4",
+        "flex items-start gap-3 rounded-xl border p-4",
         tone === "error"
-          ? "border-rose-200 bg-rose-50"
-          : "border-slate-200 bg-white",
+          ? "border-border bg-secondary"
+          : "border-border bg-card",
       )}
     >
       <div
         className={cn(
-          "flex size-8 shrink-0 items-center justify-center rounded-lg",
+          "flex size-8 shrink-0 items-center justify-center rounded-control",
           tone === "error"
-            ? "bg-rose-100 text-rose-600"
-            : "bg-slate-100 text-slate-500",
+            ? "bg-secondary text-muted-foreground"
+            : "bg-card text-muted-foreground",
         )}
       >
         <Icon className="size-4" />
       </div>
       <div className="min-w-0 space-y-0.5">
-        <p className="text-sm font-semibold text-slate-900">{title}</p>
-        <p className="text-xs leading-5 text-slate-500">{description}</p>
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        <p className="text-xs leading-5 text-muted-foreground">{description}</p>
       </div>
     </div>
   );

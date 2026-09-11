@@ -59,9 +59,9 @@ export function ProfileCreateDialog({ onClose, onCreate }: ProfileCreateDialogPr
         className="fixed inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-md rounded-2xl bg-white shadow-2xl p-6">
-        <h2 className="text-base font-semibold text-slate-900 mb-1">New Profile</h2>
-        <p className="text-sm text-slate-500 mb-5">
+      <div className="relative z-10 w-full max-w-md graphite-card">
+        <h2 className="font-display text-[28px] font-medium text-foreground mb-1">New Profile</h2>
+        <p className="text-sm text-muted-foreground mb-5">
           Create a chatbot profile for a new website or brand.
         </p>
 
@@ -86,12 +86,12 @@ export function ProfileCreateDialog({ onClose, onCreate }: ProfileCreateDialogPr
               placeholder="duran-schulze-law"
             />
             <FieldDescription>
-              Used in embed code: <code className="text-xs bg-slate-100 px-1 rounded">data-profile=&quot;{slug || "…"}&quot;</code>
+              Used in embed code: <code className="text-xs bg-card px-1 rounded">data-profile=&quot;{slug || "…"}&quot;</code>
             </FieldDescription>
           </Field>
 
           {error && (
-            <p className="text-sm text-rose-600">{error}</p>
+            <p className="text-sm text-muted-foreground">{error}</p>
           )}
 
           <div className="flex justify-end gap-2 pt-1">

@@ -63,12 +63,12 @@ export function AnnouncementsPage() {
   const improvementCount = shipped.reduce((total, section) => total + section.items.length, 0);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border bg-card">
+        <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between gap-4 px-4 sm:px-6">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 outline-none transition-colors hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-4"
+            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-4"
           >
             <ArrowLeft className="size-4" aria-hidden="true" />
             Back to profiles
@@ -80,20 +80,19 @@ export function AnnouncementsPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
-        <section className="relative overflow-hidden border border-slate-200 bg-slate-950 px-6 py-8 text-white sm:px-10 sm:py-10">
-          <div className="pointer-events-none absolute right-0 top-0 h-full w-2 bg-blue-500" aria-hidden="true" />
+      <main className="page-container">
+        <section className="graphite-card relative overflow-hidden">
           <div className="relative max-w-2xl">
-            <div className="mb-5 flex size-11 items-center justify-center border border-blue-400/30 bg-blue-500/15 text-blue-300">
+            <div className="mb-5 flex size-11 items-center justify-center border border-border bg-secondary text-muted-foreground">
               <Megaphone className="size-5" aria-hidden="true" />
             </div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">What’s new</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Latest Duran Chatbot updates</h1>
-            <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">What’s new</p>
+            <h1 className="font-display mt-2 page-heading">Latest Duran Chatbot updates</h1>
+            <p className="mt-4 max-w-xl text-sm leading-6 text-foreground sm:text-base">
               A simple record of the improvements now available across chatbot profiles, notifications, email, and the internal dashboard.
             </p>
             {release && (
-              <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-slate-700 pt-5 text-sm text-slate-300">
+              <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-border pt-5 text-sm text-foreground">
                 <span>{formatReleaseDate(release.date)}</span>
                 <span>{shipped.length} work areas</span>
                 <span>{improvementCount} completed improvements</span>
@@ -103,21 +102,21 @@ export function AnnouncementsPage() {
         </section>
 
         {!release ? (
-          <section className="mt-8 border border-slate-200 bg-white p-6">
-            <h2 className="font-semibold">No announcements yet</h2>
-            <p className="mt-1 text-sm text-slate-500">Add a dated entry to ACCOMPLISHMENTS.md and rebuild the admin app.</p>
+          <section className="mt-8 border border-border bg-card p-6">
+            <h2 className="font-display font-medium">No announcements yet</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Add a dated entry to ACCOMPLISHMENTS.md and rebuild the admin app.</p>
           </section>
         ) : (
-          <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
-            <div className="relative space-y-10 border-l-2 border-blue-100 pl-6 sm:pl-9">
+          <div className="mt-[72px] grid gap-10 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
+            <div className="relative space-y-10 border-l-2 border-border pl-6 sm:pl-9">
               {shipped.map((section) => (
                 <section key={section.title} className="relative">
-                  <span className="absolute -left-[1.95rem] top-1.5 size-3 border-2 border-white bg-blue-600 sm:-left-[2.7rem]" aria-hidden="true" />
-                  <h2 className="text-lg font-semibold tracking-tight text-slate-950">{section.title}</h2>
+                  <span className="absolute -left-[1.95rem] top-1.5 size-3 border-2 border-border bg-secondary sm:-left-[2.7rem]" aria-hidden="true" />
+                  <h2 className="font-display text-lg font-medium tracking-[0.015em] text-foreground">{section.title}</h2>
                   <ul className="mt-4 space-y-3">
                     {section.items.map((item) => (
-                      <li key={item} className="flex gap-3 text-sm leading-6 text-slate-600">
-                        <CheckCircle2 className="mt-1 size-4 shrink-0 text-emerald-600" aria-hidden="true" />
+                      <li key={item} className="flex gap-3 text-sm leading-6 text-muted-foreground">
+                        <CheckCircle2 className="mt-1 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                         <span>{item}</span>
                       </li>
                     ))}
@@ -126,27 +125,27 @@ export function AnnouncementsPage() {
               ))}
             </div>
 
-            <aside className="border border-amber-200 bg-amber-50 p-5 lg:sticky lg:top-6">
-              <div className="flex items-center gap-2 text-amber-900">
+            <aside className="graphite-card lg:sticky lg:top-6">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <Rocket className="size-4" aria-hidden="true" />
-                <h2 className="font-semibold">Before production</h2>
+                <h2 className="font-display font-medium">Before production</h2>
               </div>
               {setup ? (
                 <ul className="mt-4 space-y-3">
                   {setup.items.map((item) => (
-                    <li key={item} className="border-t border-amber-200 pt-3 text-sm leading-5 text-amber-950 first:border-0 first:pt-0">
+                    <li key={item} className="border-t border-border pt-3 text-sm leading-5 text-muted-foreground first:border-0 first:pt-0">
                       {item}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="mt-3 text-sm text-amber-900">No release setup has been recorded.</p>
+                <p className="mt-3 text-sm text-muted-foreground">No release setup has been recorded.</p>
               )}
             </aside>
           </div>
         )}
 
-        <div className="mt-12 border-t border-slate-200 pt-6">
+        <div className="mt-12 border-t border-border pt-6">
           <Button variant="outline" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
             Back to top
           </Button>

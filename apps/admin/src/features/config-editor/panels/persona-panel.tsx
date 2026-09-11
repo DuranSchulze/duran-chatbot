@@ -33,7 +33,7 @@ export function PersonaPanel({ persona, onChange }: PersonaPanelProps) {
         description="Personalize how the bot sounds without replacing your main prompt and guardrails."
       />
 
-      <Field className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+      <Field className="rounded-xl border border-border bg-background p-4">
         <FieldRow>
           <div>
             <FieldLabel>Enable persona voice</FieldLabel>
@@ -48,7 +48,7 @@ export function PersonaPanel({ persona, onChange }: PersonaPanelProps) {
         </FieldRow>
       </Field>
 
-      <Field className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+      <Field className="rounded-xl border border-border bg-background p-4">
         <FieldDescription>
           Persona guidance mirrors communication style only. It should not make the bot pretend to literally be the person.
         </FieldDescription>

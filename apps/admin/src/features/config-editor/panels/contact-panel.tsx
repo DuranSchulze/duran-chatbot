@@ -12,7 +12,7 @@ type ContactPanelProps = {
 function LabelWithIcon({ icon, htmlFor, children }: { icon: React.ReactNode; htmlFor: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-slate-400">{icon}</span>
+      <span className="text-muted-foreground">{icon}</span>
       <FieldLabel htmlFor={htmlFor}>{children}</FieldLabel>
     </div>
   )
@@ -31,20 +31,20 @@ export function ContactPanel({ appearance, onChange }: ContactPanelProps) {
         description="The official contact details and office location the chatbot shares with visitors. Fill these in and the AI will answer location questions with these exact details."
       />
 
-      <div className="rounded-xl border border-blue-100 bg-blue-50/50 px-4 py-3 text-sm text-slate-600">
+      <div className="rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-muted-foreground">
         This tab is the{" "}
-        <span className="font-medium text-slate-800">single source of truth</span>{" "}
+        <span className="font-medium text-foreground">single source of truth</span>{" "}
         for company details. Reference them anywhere — the AI system prompt,
         dataset entries, or the internal chat's footer — with variables like{" "}
-        <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] text-blue-700 ring-1 ring-slate-200">
+        <code className="rounded bg-card px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground ring-1 ring-foreground">
           {`{{address}}`}
         </code>
         ,{" "}
-        <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] text-blue-700 ring-1 ring-slate-200">
+        <code className="rounded bg-card px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground ring-1 ring-foreground">
           {`{{phone}}`}
         </code>
         ,{" "}
-        <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] text-blue-700 ring-1 ring-slate-200">
+        <code className="rounded bg-card px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground ring-1 ring-foreground">
           {`{{email}}`}
         </code>
         . Update the value here and it changes everywhere.

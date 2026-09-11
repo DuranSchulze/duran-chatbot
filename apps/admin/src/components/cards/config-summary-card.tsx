@@ -18,8 +18,8 @@ export function ConfigSummaryCard({ config }: { config: ChatbotConfig }) {
   ];
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-400">
+    <div className="rounded-xl border border-border bg-card p-4">
+      <p className="mb-3 text-xs font-medium uppercase tracking-widest text-muted-foreground">
         Config snapshot
       </p>
       <div className="space-y-2">
@@ -27,14 +27,14 @@ export function ConfigSummaryCard({ config }: { config: ChatbotConfig }) {
           const Icon = item.icon;
           return (
             <div key={item.label} className="flex items-center gap-3">
-              <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+              <div className="flex size-7 shrink-0 items-center justify-center rounded-control bg-card text-muted-foreground">
                 <Icon className="size-3.5" />
               </div>
               <div className="flex flex-1 items-center justify-between gap-2 min-w-0">
-                <span className="text-xs text-slate-500 shrink-0">
+                <span className="text-xs text-muted-foreground shrink-0">
                   {item.label}
                 </span>
-                <span className="text-xs font-semibold text-slate-900 truncate text-right">
+                <span className="text-xs font-medium text-foreground truncate text-right">
                   {item.value}
                 </span>
               </div>

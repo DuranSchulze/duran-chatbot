@@ -50,16 +50,16 @@ export function useToast() {
 
 const TONE_STYLES: Record<ToastTone, { accent: string; icon: ReactNode }> = {
   success: {
-    accent: "border-l-emerald-500",
-    icon: <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />,
+    accent: "border-l-border",
+    icon: <CheckCircle2 className="size-4 shrink-0 text-muted-foreground" />,
   },
   error: {
-    accent: "border-l-rose-500",
-    icon: <AlertCircle className="size-4 shrink-0 text-rose-600" />,
+    accent: "border-l-border",
+    icon: <AlertCircle className="size-4 shrink-0 text-muted-foreground" />,
   },
   info: {
-    accent: "border-l-blue-500",
-    icon: <Info className="size-4 shrink-0 text-blue-600" />,
+    accent: "border-l-border",
+    icon: <Info className="size-4 shrink-0 text-muted-foreground" />,
   },
 };
 
@@ -87,16 +87,16 @@ function ToastItem({
     <div
       role="status"
       className={cn(
-        "pointer-events-auto flex w-full max-w-sm items-start gap-3 border border-slate-200 border-l-[3px] bg-white px-4 py-3 shadow-lg transition-all duration-200",
+        "pointer-events-auto flex w-full max-w-sm items-start gap-3 border border-border border-l-[3px] bg-card px-4 py-3  transition-all duration-200",
         tone.accent,
         visible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
       )}
     >
       <span className="mt-0.5">{tone.icon}</span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-slate-900">{record.title}</p>
+        <p className="text-sm font-medium text-foreground">{record.title}</p>
         {record.description ? (
-          <p className="mt-0.5 text-xs leading-5 text-slate-500 break-words">
+          <p className="mt-0.5 text-xs leading-5 text-muted-foreground break-words">
             {record.description}
           </p>
         ) : null}
@@ -105,7 +105,7 @@ function ToastItem({
         type="button"
         aria-label="Dismiss notification"
         onClick={() => onDismiss(record.id)}
-        className="flex size-6 shrink-0 items-center justify-center text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+        className="flex size-6 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-card hover:text-muted-foreground"
       >
         <X className="size-3.5" />
       </button>

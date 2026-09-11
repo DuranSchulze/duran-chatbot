@@ -21,7 +21,7 @@ export function FieldLabel({
 }: LabelHTMLAttributes<HTMLLabelElement>) {
   return (
     <label
-      className={cn("text-sm font-medium text-slate-700", className)}
+      className={cn("text-sm font-medium text-foreground", className)}
       {...props}
     />
   );
@@ -33,7 +33,7 @@ export function FieldDescription({
 }: HTMLAttributes<HTMLParagraphElement>) {
   return (
     <p
-      className={cn("text-xs leading-5 text-slate-500", className)}
+      className={cn("text-xs leading-5 text-muted-foreground", className)}
       {...props}
     />
   );

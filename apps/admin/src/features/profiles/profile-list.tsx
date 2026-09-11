@@ -8,7 +8,6 @@ import {
   Calendar,
   Globe,
   MessageSquare,
-  Sparkles,
   Trash2,
   RotateCcw,
   Pencil,
@@ -61,7 +60,7 @@ function RowActionsMenu({ items }: { items: RowAction[] }) {
         aria-haspopup="menu"
         aria-expanded={open}
         title="More actions"
-        className={cn("gap-1.5", open && "bg-slate-50")}
+        className={cn("gap-1.5", open && "bg-background")}
       >
         Actions
         <ChevronDown className={cn("size-3.5 transition-transform", open && "rotate-180")} />
@@ -73,11 +72,11 @@ function RowActionsMenu({ items }: { items: RowAction[] }) {
           <div className="fixed inset-0 z-10" onClick={close} aria-hidden="true" />
           <div
             role="menu"
-            className="absolute right-0 top-full z-20 mt-1.5 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+            className="absolute right-0 top-full z-20 mt-1.5 w-52 overflow-hidden rounded-xl border border-border bg-card p-2 "
           >
             {items.map((action) => (
               <div key={action.label}>
-                {action.divider && <div className="my-1 h-px bg-slate-100" />}
+                {action.divider && <div className="my-1 h-px bg-card" />}
                 {action.href ? (
                   <Link
                     to={action.href}
@@ -85,12 +84,12 @@ function RowActionsMenu({ items }: { items: RowAction[] }) {
                     onClick={close}
                     title={action.title}
                     className={cn(
-                      "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                      "flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground",
                       action.tone === "danger"
-                        ? "text-red-600 hover:bg-red-50"
+                        ? "text-muted-foreground hover:bg-secondary"
                         : action.tone === "success"
-                          ? "text-emerald-700 hover:bg-emerald-50"
-                          : "text-slate-700 hover:bg-slate-100",
+                          ? "text-muted-foreground hover:bg-secondary"
+                          : "text-foreground hover:bg-card",
                     )}
                   >
                     <action.icon className="size-4 shrink-0" />
@@ -107,12 +106,12 @@ function RowActionsMenu({ items }: { items: RowAction[] }) {
                     disabled={action.disabled}
                     title={action.title}
                     className={cn(
-                      "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-40",
+                      "flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground disabled:pointer-events-none disabled:opacity-40",
                       action.tone === "danger"
-                        ? "text-red-600 hover:bg-red-50"
+                        ? "text-muted-foreground hover:bg-secondary"
                         : action.tone === "success"
-                          ? "text-emerald-700 hover:bg-emerald-50"
-                          : "text-slate-700 hover:bg-slate-100",
+                          ? "text-muted-foreground hover:bg-secondary"
+                          : "text-foreground hover:bg-card",
                     )}
                   >
                     <action.icon className="size-4 shrink-0" />
@@ -225,136 +224,77 @@ export function ProfileList({
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <div className="size-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-500" />
-          <p className="text-sm text-slate-500">Loading profiles…</p>
+          <div className="size-8 animate-spin rounded-full border-2 border-border border-t-border" />
+          <p className="text-sm text-muted-foreground">Loading profiles…</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-        {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
-          <div>
-            <div className="flex items-center gap-2.5 mb-1">
-              <div className="flex size-9 items-center justify-center rounded-xl bg-blue-600 text-white">
-                <Bot className="size-5" />
-              </div>
-              <h1 className="text-xl font-semibold text-slate-900">Chatbot Profiles</h1>
-            </div>
-            <p className="text-sm text-slate-500 ml-11.5">
-              Each profile has its own knowledge, persona, and widget settings.
-            </p>
+    <div className="min-h-screen bg-background">
+      <header className="top-navigation">
+        <nav aria-label="Main navigation" className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 px-4 py-6 sm:px-8">
+          <Link to="/" className="flex items-center gap-3 text-sm"><img src="/logo.webp" alt="Duran & Schulze" className="h-9 w-auto" /><span className="hidden sm:inline text-muted-foreground">Chatbot workspace</span></Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link to="/internal" className="nav-link">Legal assistant</Link>
+            <Link to="/announcements" className="nav-link"><Megaphone className="size-4" />What’s new</Link>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <Link
-              to="/announcements"
-              className="inline-flex h-10 items-center justify-center gap-2 border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none transition-colors hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-            >
-              <Megaphone className="size-4" aria-hidden="true" />
-              What’s new
-            </Link>
-            <Button onClick={() => setShowCreate(true)} className="gap-2 shrink-0">
-              <Plus className="size-4" />
-              New profile
-            </Button>
+        </nav>
+      </header>
+      <div className="page-container">
+        <div className="mb-[72px] flex flex-col items-start justify-between gap-8 sm:flex-row sm:items-end">
+          <div className="max-w-2xl">
+            <p className="mb-4 text-xs tracking-[0.12em] uppercase text-muted-foreground">Your workspace</p>
+            <h1 className="page-heading">A considered conversation.<br />Every time.</h1>
+            <p className="mt-5 max-w-lg text-base text-muted-foreground">Manage the knowledge, voice, and experience behind every chatbot profile.</p>
           </div>
+          <Button onClick={() => setShowCreate(true)} className="h-12 gap-2 px-6 shrink-0"><Plus className="size-4" />New profile</Button>
         </div>
-
-        {/* Legal Chatbot CTA */}
-        <Link to="/internal" className="block mb-8 group">
-          <div className="relative overflow-hidden rounded-2xl bg-slate-900 p-5 flex items-center gap-4 shadow-sm hover:shadow-lg transition-shadow">
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-blue-600/10 via-transparent to-transparent" />
-            <div className="flex items-center justify-center size-14 rounded-2xl bg-blue-500/15 border border-blue-500/20 shrink-0">
-              <Bot className="size-7 text-blue-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
-                <p className="font-semibold text-white text-base">Legal Chatbot</p>
-                <span className="flex items-center gap-1 rounded-full bg-blue-500/15 border border-blue-500/20 px-2 py-0.5 text-[10px] font-medium text-blue-400">
-                  <Sparkles className="size-2.5" />
-                  Internal
-                </span>
-              </div>
-              <p className="text-sm text-slate-400">
-                Chat with the AI assistant — customize the system prompt, temperature, and knowledge base.
-              </p>
-            </div>
-            <div className="shrink-0">
-              <div className="flex items-center justify-center size-9 rounded-xl bg-blue-600 text-white group-hover:bg-blue-500 transition-colors">
-                <ArrowRight className="size-4" />
-              </div>
-            </div>
-          </div>
-        </Link>
-
-        {/* Kairo chatbot — external workspace */}
-        <a
-          href="https://kairo.buildvault.live/login"
-          className="group relative mb-8 block overflow-hidden border border-blue-200 bg-blue-50 p-5 shadow-sm hover:border-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-4 sm:p-6"
-        >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 320 200"
-            fill="none"
-            className="pointer-events-none absolute -right-8 -top-3 h-56 w-80 text-blue-600 opacity-[0.08]"
-          >
-            <path d="M40 24h200v80H96l-32 28v-28H40z" stroke="currentColor" strokeWidth="2" />
-            <path d="M112 120h176v56h-24v20l-28-20H112z" stroke="currentColor" strokeWidth="2" />
-            <path d="M72 52h128M72 72h88M136 144h112M136 160h72" stroke="currentColor" strokeWidth="4" />
-          </svg>
-          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
-            <div className="flex min-w-0 flex-1 items-start gap-4">
-              <div className="flex size-12 shrink-0 items-center justify-center border border-blue-200 bg-white text-blue-600">
-                <MessageSquare className="size-6" aria-hidden="true" />
-              </div>
-              <div className="min-w-0">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-600">Another place to chat</p>
-                <h2 className="text-lg font-semibold tracking-tight text-slate-900">Meet Kairo</h2>
-                <p className="mt-1 max-w-sm text-sm leading-6 text-slate-600">Open the Kairo chatbot and sign in to start a conversation.</p>
-              </div>
-            </div>
-            <span className="flex min-h-10 shrink-0 items-center justify-center gap-2 bg-blue-600 px-4 py-2 text-sm font-medium text-white group-hover:bg-blue-700">
-              Open Kairo
-              <ArrowRight className="size-4" aria-hidden="true" />
-            </span>
-          </div>
-        </a>
-
+        <div className="mb-[72px] grid gap-8 md:grid-cols-2">
+          <Link to="/internal" className="graphite-card group flex flex-col gap-6">
+            <div className="flex items-center justify-between text-muted-foreground"><Bot className="size-5" /><span className="text-xs">Internal workspace</span></div>
+            <div><h2 className="section-heading">Legal assistant</h2><p className="mt-3 text-base text-muted-foreground">Research, draft, and work through a matter with your internal AI assistant.</p></div>
+            <span className="mt-auto flex items-center gap-2 text-sm">Start a briefing <ArrowRight className="size-4" /></span>
+          </Link>
+          <a href="https://kairo.buildvault.live/login" className="graphite-card group flex flex-col gap-6">
+            <div className="flex items-center justify-between text-muted-foreground"><MessageSquare className="size-5" /><span className="text-xs">Connected workspace</span></div>
+            <div><h2 className="section-heading">Meet Kairo</h2><p className="mt-3 text-base text-muted-foreground">Continue the conversation in Kairo’s dedicated chatbot workspace.</p></div>
+            <span className="mt-auto flex items-center gap-2 text-sm">Open Kairo <ArrowRight className="size-4" /></span>
+          </a>
+        </div>
         {error && (
-          <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
-            <p className="text-sm text-rose-700">{error}</p>
+          <div className="mb-6 rounded-xl border border-border bg-secondary px-4 py-3">
+            <p className="text-sm text-muted-foreground">{error}</p>
           </div>
         )}
 
         {/* Active profiles */}
         {active.length > 0 ? (
           <div className="mb-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">
               Active ({active.length})
             </p>
-            <div className="space-y-3 mb-8">
+            <div className="space-y-3 mb-[72px]">
               {active.map((profile) => (
                 <div
                   key={profile.slug}
-                  className="group flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:border-blue-200 hover:shadow-md transition-all"
+                  className="graphite-card group flex flex-col items-stretch justify-between gap-6 sm:flex-row sm:items-center"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex size-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shrink-0">
+                    <div className="flex size-10 items-center justify-center rounded-xl bg-secondary text-muted-foreground shrink-0">
                       <Globe className="size-5" />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-slate-900 truncate">{profile.name}</p>
+                        <p className="font-medium text-foreground truncate">{profile.name}</p>
                         <Badge variant="success">Active</Badge>
                       </div>
-                      <p className="text-xs text-slate-500 mt-0.5 font-mono">{profile.slug}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 font-mono">{profile.slug}</p>
                       {profile.createdAt && (
-                        <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                           <Calendar className="size-3" />
                           {new Date(profile.createdAt).toLocaleDateString()}
                         </p>
@@ -364,6 +304,7 @@ export function ProfileList({
 
                   <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
                     <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => onSelect(profile.slug)}
                       className="gap-1.5"
@@ -409,11 +350,11 @@ export function ProfileList({
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-10 text-center mb-8">
-            <Bot className="mx-auto size-10 text-slate-300 mb-3" />
-            <p className="font-medium text-slate-600">No profiles yet</p>
-            <p className="text-sm text-slate-400 mt-1">Create your first profile to get started.</p>
-            <Button onClick={() => setShowCreate(true)} className="mt-4 gap-2">
+          <div className="graphite-card text-center mb-8">
+            <Bot className="mx-auto size-10 text-foreground mb-3" />
+            <p className="font-medium text-muted-foreground">No profiles yet</p>
+            <p className="text-sm text-muted-foreground mt-1">Create your first profile to get started.</p>
+            <Button variant="outline" onClick={() => setShowCreate(true)} className="mt-4 gap-2">
               <Plus className="size-4" />
               Create profile
             </Button>
@@ -423,22 +364,22 @@ export function ProfileList({
         {/* Archived profiles */}
         {archived.length > 0 && (
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">
               Archived ({archived.length})
             </p>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {archived.map((profile) => (
                 <div
                   key={profile.slug}
-                  className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+                  className="graphite-card flex flex-col items-stretch justify-between gap-6 sm:flex-row sm:items-center"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex size-9 items-center justify-center rounded-lg bg-slate-200 text-slate-400 shrink-0">
+                    <div className="flex size-9 items-center justify-center rounded-control bg-secondary text-muted-foreground shrink-0">
                       <Globe className="size-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-medium text-slate-600 truncate">{profile.name}</p>
-                      <p className="text-xs text-slate-400 font-mono">{profile.slug}</p>
+                      <p className="font-medium text-muted-foreground truncate">{profile.name}</p>
+                      <p className="text-xs text-muted-foreground font-mono">{profile.slug}</p>
                     </div>
                   </div>
 

@@ -152,10 +152,10 @@ function ConfigEditor() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <div className="size-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-500" />
-          <p className="text-sm text-slate-500">Loading workspace…</p>
+          <div className="size-8 animate-spin rounded-full border-2 border-border border-t-border" />
+          <p className="text-sm text-muted-foreground">Loading workspace…</p>
         </div>
       </div>
     );
@@ -163,7 +163,7 @@ function ConfigEditor() {
 
   if (error || !currentConfig || !currentPanel) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="w-full max-w-sm space-y-4">
           <StatusBanner
             tone="error"
@@ -220,8 +220,8 @@ function ConfigEditor() {
         />
       }
       main={
-        <div className="rounded-2xl border border-slate-200 bg-white">
-          <div className="px-6 py-6">{currentPanel.render()}</div>
+        <div className="graphite-card">
+          <div className="min-w-0">{currentPanel.render()}</div>
         </div>
       }
       aside={

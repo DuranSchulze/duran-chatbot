@@ -116,7 +116,7 @@ export function AIPanel({ ai, onChange }: AIPanelProps) {
       <Field>
         <div className="flex items-center justify-between gap-4">
           <FieldLabel htmlFor="temperature">Temperature</FieldLabel>
-          <span className="text-sm font-semibold text-blue-600">
+          <span className="text-sm font-medium text-muted-foreground">
             {ai.temperature.toFixed(1)}
           </span>
         </div>

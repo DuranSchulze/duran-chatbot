@@ -1,91 +1,125 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { SidebarItem } from "@/features/config-editor/types";
 import { cn } from "@/lib/utils";
 
-type SidebarNavProps = {
+function prefersReducedMotion() {
+  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/** Scroll affordance: only rendered while there is content to reach in that direction. */
+function EdgeArrow({ direction, onScroll, label }: {
+  direction: "start" | "end";
+  onScroll: () => void;
+  label: string;
+}) {
+  const Icon = direction === "start" ? ChevronLeft : ChevronRight;
+  return (
+    <div
+      className={cn(
+        "pointer-events-none absolute inset-y-0 z-10 flex items-center",
+        direction === "start"
+          ? "left-0 bg-linear-to-r pr-4 pl-1 from-background via-background to-transparent"
+          : "right-0 bg-linear-to-l pl-4 pr-1 from-background via-background to-transparent",
+      )}
+    >
+      <button
+        type="button"
+        onClick={onScroll}
+        aria-label={label}
+        className="pointer-events-auto grid size-8 shrink-0 place-items-center rounded-full border border-border bg-background text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+      >
+        <Icon className="size-4" />
+      </button>
+    </div>
+  );
+}
+
+/** Configuration sections live in the top navigation on every screen size. */
+export function SidebarNav({ items, activeId, onSelect, dirty }: {
   items: SidebarItem[];
   activeId: string;
   onSelect: (id: string) => void;
   dirty: boolean;
-};
+}) {
+  const scrollerRef = useRef<HTMLElement>(null);
+  const [edges, setEdges] = useState({ start: false, end: false });
 
-export function SidebarNav({
-  items,
-  activeId,
-  onSelect,
-  dirty,
-}: SidebarNavProps) {
+  const syncEdges = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const remaining = el.scrollWidth - el.clientWidth - el.scrollLeft;
+    setEdges({ start: el.scrollLeft > 1, end: remaining > 1 });
+  }, []);
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    syncEdges();
+    el.addEventListener("scroll", syncEdges, { passive: true });
+    window.addEventListener("resize", syncEdges);
+    // Content width changes when labels wrap or the item list changes.
+    const observer = new ResizeObserver(syncEdges);
+    observer.observe(el);
+    for (const child of Array.from(el.children)) observer.observe(child);
+    return () => {
+      el.removeEventListener("scroll", syncEdges);
+      window.removeEventListener("resize", syncEdges);
+      observer.disconnect();
+    };
+  }, [syncEdges, items.length]);
+
+  // Keep the selected section in view, clear of the edge arrows.
+  useEffect(() => {
+    const el = scrollerRef.current;
+    const active = el?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!el || !active) return;
+    const edge = el.getBoundingClientRect();
+    const target = active.getBoundingClientRect();
+    const left = el.scrollLeft + (target.left - edge.left);
+    const right = left + target.width;
+    const behavior: ScrollBehavior = prefersReducedMotion() ? "auto" : "smooth";
+    if (left < el.scrollLeft + 48) el.scrollTo({ left: left - 48, behavior });
+    else if (right > el.scrollLeft + el.clientWidth - 48) {
+      el.scrollTo({ left: right - el.clientWidth + 48, behavior });
+    }
+  }, [activeId]);
+
+  const scrollByStep = (direction: -1 | 1) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    el.scrollBy({
+      left: direction * Math.max(160, Math.round(el.clientWidth * 0.6)),
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
+  };
+
   return (
-    <div className="flex flex-1 flex-col">
-      {/* Logo / Brand */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-slate-800">
-        <img
-          src="/logo.webp"
-          alt="Logo"
-          className="h-9 w-auto shrink-0 object-contain"
-        />
+    <div className="mx-auto max-w-[1200px] px-4 pb-4 sm:px-8">
+      <div className="flex items-center justify-between gap-4 py-3 text-xs text-muted-foreground">
+        <span>Profile configuration</span>
+        <span role="status">{dirty ? "Unsaved changes" : "All changes saved"}</span>
       </div>
-
-      {/* Status pill */}
-      <div className="px-4 py-3">
-        <div
-          className={cn(
-            "flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium",
-            dirty
-              ? "bg-amber-500/15 text-amber-300"
-              : "bg-emerald-500/15 text-emerald-400",
-          )}
+      <div className="relative">
+        {edges.start && (
+          <EdgeArrow direction="start" label="Scroll sections left" onScroll={() => scrollByStep(-1)} />
+        )}
+        <nav
+          ref={scrollerRef}
+          aria-label="Configuration sections"
+          className="flex gap-2 overflow-x-auto scroll-px-12 pb-1"
         >
-          <span
-            className={cn(
-              "size-1.5 rounded-full",
-              dirty ? "bg-amber-400" : "bg-emerald-400",
-            )}
-          />
-          {dirty ? "Unsaved changes" : "All changes saved"}
-        </div>
-      </div>
-
-      {/* Nav label */}
-      <div className="px-5 pb-2 pt-1">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-          Settings
-        </p>
-      </div>
-
-      {/* Nav items */}
-      <nav className="flex-1 space-y-0.5 px-3 pb-4">
-        {items.map((item) => {
-          const Icon = item.icon;
-          const isActive = item.id === activeId;
-
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onSelect(item.id)}
-              className={cn(
-                "group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-all",
-                isActive
-                  ? "bg-blue-500/20 text-white"
-                  : "text-slate-400 hover:bg-slate-800 hover:text-slate-100",
-              )}
-            >
-              <Icon
-                className={cn(
-                  "size-4 shrink-0",
-                  isActive
-                    ? "text-blue-400"
-                    : "text-slate-500 group-hover:text-slate-300",
-                )}
-              />
-              <span className="font-medium">{item.label}</span>
-              {isActive && (
-                <span className="ml-auto size-1.5 rounded-full bg-blue-400" />
-              )}
+          {items.map(({ id, icon: Icon, label }) => (
+            <button key={id} type="button" onClick={() => onSelect(id)} aria-current={id === activeId ? "page" : undefined}
+              className={cn("nav-link shrink-0 border", id === activeId ? "border-foreground bg-secondary" : "border-transparent text-muted-foreground")}>
+              <Icon className="size-4" /><span>{label}</span>
             </button>
-          );
-        })}
-      </nav>
+          ))}
+        </nav>
+        {edges.end && (
+          <EdgeArrow direction="end" label="Scroll sections right" onScroll={() => scrollByStep(1)} />
+        )}
+      </div>
     </div>
   );
 }

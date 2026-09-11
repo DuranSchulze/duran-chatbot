@@ -133,7 +133,7 @@ export function EmailPanel({ profileSlug, behavior, onBehaviorChange }: EmailPan
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 py-10 text-sm text-slate-500">
+      <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
         <Loader2 className="size-4 animate-spin" />
         Loading email settings…
       </div>
@@ -158,13 +158,13 @@ export function EmailPanel({ profileSlug, behavior, onBehaviorChange }: EmailPan
         }
       />
 
-      <Card className="border-slate-200 bg-white shadow-none">
+      <Card className="border-border bg-card shadow-none">
         <CardContent className="space-y-4 pt-5">
           <Field>
             <FieldLabel>
               Resend API key
               {hasSecret && (
-                <span className="ml-2 text-xs font-normal text-emerald-600">
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
                   • saved — leave blank to keep
                 </span>
               )}
@@ -179,7 +179,7 @@ export function EmailPanel({ profileSlug, behavior, onBehaviorChange }: EmailPan
             <FieldDescription>
               Create an API key at resend.com → API Keys. If this profile has no
               key, the{" "}
-              <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">
+              <code className="rounded bg-card px-1 py-0.5 text-xs">
                 RESEND_API_KEY
               </code>{" "}
               environment variable is used instead.
@@ -197,7 +197,7 @@ export function EmailPanel({ profileSlug, behavior, onBehaviorChange }: EmailPan
               />
               <FieldDescription>
                 Must be a sender verified in your Resend account (or use the{" "}
-                <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">
+                <code className="rounded bg-card px-1 py-0.5 text-xs">
                   RESEND_FROM_EMAIL
                 </code>{" "}
                 env fallback).
@@ -214,7 +214,7 @@ export function EmailPanel({ profileSlug, behavior, onBehaviorChange }: EmailPan
           </FieldGrid>
 
           <div className="flex items-center gap-2 pt-1">
-            <Button onClick={handleSave} disabled={saving} className="gap-2">
+            <Button variant="outline" onClick={handleSave} disabled={saving} className="gap-2">
               {saving ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
@@ -228,15 +228,15 @@ export function EmailPanel({ profileSlug, behavior, onBehaviorChange }: EmailPan
 
       <ConversationEmailCard key={profileSlug} profileSlug={profileSlug} settings={behavior.conversationEmail} onChange={value => updateBehavior("conversationEmail", value)} />
 
-      <Card className="border-slate-200 bg-white shadow-none">
+      <Card className="border-border bg-card shadow-none">
         <CardContent className="space-y-5 pt-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h3 className="flex items-center gap-2 text-base font-semibold text-slate-900">
-                <BellRing className="size-4 text-slate-400" />
+              <h3 className="font-display flex items-center gap-2 text-base font-medium text-foreground">
+                <BellRing className="size-4 text-muted-foreground" />
                 Quote request notifications
               </h3>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-muted-foreground">
                 Who gets emailed when a visitor submits a quote request from the
                 chatbot. Applies when quote requests are enabled (Behavior tab).
               </p>
@@ -308,9 +308,9 @@ export function EmailPanel({ profileSlug, behavior, onBehaviorChange }: EmailPan
         </CardContent>
       </Card>
 
-      <Card className="border-dashed bg-slate-50/70 shadow-none">
+      <Card className="border-dashed bg-background shadow-none">
         <CardContent className="space-y-3 pt-5">
-          <h3 className="text-base font-semibold text-slate-900">
+          <h3 className="font-display text-base font-medium text-foreground">
             Send a test email
           </h3>
           <FieldDescription>

@@ -101,16 +101,16 @@ export function ServicesPanel({ services, onChange }: ServicesPanelProps) {
 
       <div className="space-y-4">
         {services.length === 0 ? (
-          <Card className="border-dashed bg-slate-50/70 shadow-none">
+          <Card className="border-dashed bg-background shadow-none">
             <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-slate-100 text-blue-600">
+              <div className="flex size-12 items-center justify-center rounded-xl bg-card text-muted-foreground">
                 <BriefcaseBusiness className="size-5" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-base font-semibold text-slate-900">
+                <h3 className="font-display text-base font-medium text-foreground">
                   No services yet — that's okay
                 </h3>
-                <p className="max-w-md text-sm leading-6 text-slate-500">
+                <p className="max-w-md text-sm leading-6 text-muted-foreground">
                   The chatbot still provides general legal guidance based on its
                   system prompt. Entries you add here make it more precise:
                   it quotes your pricing, process, and next steps instead of
@@ -122,12 +122,12 @@ export function ServicesPanel({ services, onChange }: ServicesPanelProps) {
         ) : null}
 
         {services.map((service) => (
-          <Card key={service.id} className="bg-white shadow-none">
+          <Card key={service.id} className="bg-card shadow-none">
             <CardContent className="space-y-4 pt-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-base font-semibold text-slate-900">
+                    <h3 className="font-display text-base font-medium text-foreground">
                       {service.name}
                     </h3>
                     <Badge variant="secondary">{service.price}</Badge>
@@ -143,28 +143,28 @@ export function ServicesPanel({ services, onChange }: ServicesPanelProps) {
                   size="sm"
                   onClick={() => removeService(service.id)}
                 >
-                  <Trash2 className="size-4 text-rose-600" />
+                  <Trash2 className="size-4 text-muted-foreground" />
                   Remove
                 </Button>
               </div>
 
-              <div className="space-y-3 text-sm leading-7 text-slate-600">
-                <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <div className="space-y-3 text-sm leading-7 text-muted-foreground">
+                <p className="rounded-xl border border-border bg-background p-4">
+                  <span className="block text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Process
                   </span>
                   <span className="mt-2 block">{service.process}</span>
                 </p>
                 {service.notes ? (
-                  <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <p className="rounded-xl border border-border bg-background p-4">
+                    <span className="block text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Notes
                     </span>
                     <span className="mt-2 block">{service.notes}</span>
                   </p>
                 ) : null}
-                <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <p className="rounded-xl border border-border bg-background p-4">
+                  <span className="block text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Next step
                   </span>
                   <span className="mt-2 block">{service.cta}</span>
@@ -175,14 +175,14 @@ export function ServicesPanel({ services, onChange }: ServicesPanelProps) {
         ))}
       </div>
 
-      <Card className="border-dashed bg-slate-50/70 shadow-none">
+      <Card className="border-dashed bg-background shadow-none">
         <CardContent className="space-y-4 pt-5">
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-slate-100 text-blue-600">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-card text-muted-foreground">
               <Plus className="size-4" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-slate-900">
+              <h3 className="font-display text-base font-medium text-foreground">
                 Add service
               </h3>
               <FieldDescription>
@@ -249,7 +249,7 @@ export function ServicesPanel({ services, onChange }: ServicesPanelProps) {
                     key={item}
                     type="button"
                     onClick={() => removeKeyword(item)}
-                    className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700"
+                    className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground"
                   >
                     {item}
                     <X className="size-3" />
@@ -313,7 +313,7 @@ export function ServicesPanel({ services, onChange }: ServicesPanelProps) {
             </FieldDescription>
           </Field>
 
-          <Button
+          <Button variant="outline"
             onClick={addService}
             disabled={
               !draft.name ||

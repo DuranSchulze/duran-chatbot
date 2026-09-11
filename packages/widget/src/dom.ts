@@ -15,12 +15,24 @@ export const copyIconMarkup = `
 `
 
 export function getCSSVariables(appearance: AppearanceConfig, position: string): string {
+  // Adopt the new system for the original shipped palette without rewriting saved profiles.
+  // Explicit brand customizations continue to work in the appearance editor.
+  const originalPalette = appearance.primaryColor.toLowerCase() === '#004a99'
+    && appearance.backgroundColor.toLowerCase() === '#ffffff'
+    && appearance.textColor.toLowerCase() === '#212529'
+  const primary = originalPalette ? '#5266eb' : appearance.primaryColor
+  const background = originalPalette ? '#171721' : appearance.backgroundColor
+  const foreground = originalPalette ? '#ededf3' : appearance.textColor
   return `
     :host {
-      --cb-primary: ${appearance.primaryColor};
-      --cb-accent: ${appearance.accentColor};
-      --cb-bg: ${appearance.backgroundColor};
-      --cb-text: ${appearance.textColor};
+      --cb-primary: ${primary};
+      --cb-accent: ${originalPalette ? '#5266eb' : appearance.accentColor};
+      --cb-bg: ${background};
+      --cb-text: ${foreground};
+      --cb-card: ${background.toLowerCase() === '#171721' ? '#1e1e2a' : `color-mix(in srgb, ${background} 94%, ${foreground})`};
+      --cb-secondary: ${background.toLowerCase() === '#171721' ? '#272735' : `color-mix(in srgb, ${background} 88%, ${foreground})`};
+      --cb-muted: ${foreground.toLowerCase() === '#ededf3' ? '#c3c3cc' : foreground};
+      --cb-border: ${background.toLowerCase() === '#171721' ? '#70707d' : `color-mix(in srgb, ${foreground} 45%, ${background})`};
       --cb-radius: ${appearance.borderRadius}px;
       --cb-position: ${position === 'bottom-left' ? '20px auto auto 20px' : '20px 20px auto auto'};
       --cb-chat-left: ${position === 'bottom-left' ? '20px' : 'auto'};

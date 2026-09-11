@@ -98,22 +98,22 @@ export function AppearancePanel({ appearance, onChange }: AppearancePanelProps) 
                   type="button"
                   onClick={() => update("borderRadius", option.value)}
                   className={cn(
-                    "rounded-2xl border bg-white p-4 text-left transition-all",
+                    "rounded-xl border bg-card p-4 text-left transition-all",
                     isSelected
-                      ? "border-blue-500 ring-2 ring-blue-100"
-                      : "border-slate-200 hover:border-slate-300",
+                      ? "border-border ring-2 ring-foreground"
+                      : "border-border hover:border-border",
                   )}
                   aria-pressed={isSelected}
                 >
-                  <div className="mb-4 flex h-16 items-center justify-center rounded-xl bg-slate-50">
+                  <div className="mb-4 flex h-16 items-center justify-center rounded-xl bg-background">
                     <div
-                      className="h-10 w-20 border-2 border-slate-300 bg-white transition-all"
+                      className="h-10 w-20 border-2 border-border bg-card transition-all"
                       style={{ borderRadius: `${option.value}px` }}
                       aria-hidden="true"
                     />
                   </div>
-                  <p className="text-sm font-semibold text-slate-900">{option.label}</p>
-                  <p className="text-xs text-slate-500">{option.value}px radius</p>
+                  <p className="text-sm font-medium text-foreground">{option.label}</p>
+                  <p className="text-xs text-muted-foreground">{option.value}px radius</p>
                 </button>
               )
             })}

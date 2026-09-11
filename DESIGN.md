@@ -1,389 +1,377 @@
-# Duran Chatbot — Frontend Design Reference
+# Mercury — Style Reference
+> Alpine banking at blue hour
+
+**Theme:** dark
+
+Mercury operates in an alpine banking aesthetic: a near-black canvas (#171721) sets a cinematic, observatory-like atmosphere where content surfaces float as subtly lighter graphite cards. The interface is overwhelmingly monochromatic — ivory text on onyx, with a single vivid cobalt (#5266eb) acting as the only chromatic punctuation, reserved exclusively for the primary 'Open account' action. Typography carries the weight of expression: a custom display face at intermediate weight 480 (neither bold nor light) paired with a refined body face at weight 400, creating a voice that is confident but never loud. Components are flat and borderless, relying on the 12px-radius graphite card lift and pill-shaped controls to define structure rather than shadows. The full-bleed photographic hero — misty mountains with a solitary desk — establishes aspiration before the product UI takes over, and every subsequent surface maintains that hushed, premium darkness.
+
+## Tokens — Colors
+
+| Name | Value | Token | Role |
+|------|-------|-------|------|
+| Onyx Canvas | `#171721` | `--color-onyx-canvas` | Dominant page background, hero overlay base, footer and section canvases |
+| Graphite Card | `#1e1e2a` | `--color-graphite-card` | Elevated card and section surfaces — one step lighter than the canvas to create quiet separation |
+| Obsidian Button | `#272735` | `--color-obsidian-button` | Secondary button fills, inline form backgrounds, subtle interactive surfaces |
+| Slate Border | `#70707d` | `--color-slate-border` | Medium-weight dividers and structural borders between content blocks |
+| Mist Border | `#e2e3ed` | `--color-mist-border` | Light hairline borders, ghost-button outlines, input edges — light-on-dark border |
+| Ash Text | `#c3c3cc` | `--color-ash-text` | Muted body copy, helper text, secondary labels — reduced hierarchy without losing legibility |
+| Ivory Text | `#ededf3` | `--color-ivory-text` | Primary text, icons, nav items, ghost-button strokes and text — the dominant foreground color across the system |
+| Cobalt | `#5266eb` | `--color-cobalt` | Violet action color for filled buttons, selected navigation states, and focused conversion moments. |
+| Pure White | `#ffffff` | `--color-pure-white` | Text and icon fills on cobalt primary buttons for maximum contrast |
+
+## Tokens — Typography
+
+### arcadia — Body and UI typeface — handles navigation, body copy, buttons, inputs, labels, and supporting text at weight 400 for body and 480 for emphasis. The intermediate weight scale (360, 420, 480) instead of standard (300/400/600) gives Mercury's text a distinctly calibrated feel — never bold, never thin, always measured · `--font-arcadia`
+- **Substitute:** Inter
+- **Weights:** 360, 400, 420, 480
+- **Sizes:** 12px, 14px, 16px, 18px, 21px
+- **Line height:** 1.00–1.50
+- **Letter spacing:** 0.005em at 14px, 0.01em at 12px
+- **Role:** Body and UI typeface — handles navigation, body copy, buttons, inputs, labels, and supporting text at weight 400 for body and 480 for emphasis. The intermediate weight scale (360, 420, 480) instead of standard (300/400/600) gives Mercury's text a distinctly calibrated feel — never bold, never thin, always measured
 
-> **Purpose.** This document preserves the *theme, look, and idea* of the frontend so the design can be understood, reproduced, and evolved consistently. If you change colors, radii, type, layout, or motion, read this first and keep the conventions below intact.
+### arcadiaDisplay — Headline and display typeface — used at weight 480 for all heading sizes from 28px through 65px, with 530 reserved for the largest display moments. Tight line-heights (1.1–1.2) and positive letter-spacing (0.01–0.02em) give display copy a wide-set, architectural quality rather than compressed editorial tightness · `--font-arcadiadisplay`
+- **Substitute:** Söhne Breit
+- **Weights:** 360, 480, 530
+- **Sizes:** 21px, 24px, 28px, 32px, 42px, 49px, 65px
+- **Line height:** 1.10–1.20
+- **Letter spacing:** 0.01em at 42px, 0.015em at 32px, 0.02em at 24px
+- **Role:** Headline and display typeface — used at weight 480 for all heading sizes from 28px through 65px, with 530 reserved for the largest display moments. Tight line-heights (1.1–1.2) and positive letter-spacing (0.01–0.02em) give display copy a wide-set, architectural quality rather than compressed editorial tightness
 
----
+### Type Scale
 
-## 1. What this codebase is
+| Role | Size | Line Height | Letter Spacing | Token |
+|------|------|-------------|----------------|-------|
+| caption | 12px | 1 | 0.12px | `--text-caption` |
+| body-sm | 14px | 1 | 0.07px | `--text-body-sm` |
+| body | 16px | 1.5 | — | `--text-body` |
+| body-lg | 18px | 1.35 | — | `--text-body-lg` |
+| subheading | 21px | 1.35 | — | `--text-subheading` |
+| heading-sm | 28px | 1.2 | 0.42px | `--text-heading-sm` |
+| heading | 32px | 1.15 | 0.48px | `--text-heading` |
+| heading-lg | 42px | 1.15 | 0.42px | `--text-heading-lg` |
+| display | 65px | 1.1 | — | `--text-display` |
 
-A chatbot product with **three frontend surfaces**, all in one repo:
+## Tokens — Spacing & Shapes
 
-| Surface | Location | Audience | Tech |
-|---|---|---|---|
-| **Admin console** | `apps/admin` | The business (staff) | React 19 + Vite + Tailwind CSS v4 + shadcn-style primitives (`cva`), lucide-react icons |
-| **Embeddable chat widget** | `packages/widget` | Website visitors | Vanilla TypeScript, Shadow DOM, hand-written CSS string, no framework |
-| **Widget preview page** | `apps/admin/src/pages/widget-preview-page.tsx` (`/?preview=1`) | The business (approving changes) | React; mounts the *real* widget |
-| Shared config types/defaults | `packages/config` | Both | Plain TypeScript (drives what is customizable) |
+**Base unit:** 4px
 
-The widget's *appearance is data*: an admin edits an `AppearanceConfig`, and the widget renders it via CSS custom properties. Everything the visitor sees (colors, radius, position, company name, welcome message) is config, delivered through `/api/config`.
+**Density:** spacious
 
----
+### Spacing Scale
 
-## 2. The design idea
+| Name | Value | Token |
+|------|-------|-------|
+| 4 | 4px | `--spacing-4` |
+| 8 | 8px | `--spacing-8` |
+| 12 | 12px | `--spacing-12` |
+| 16 | 16px | `--spacing-16` |
+| 20 | 20px | `--spacing-20` |
+| 24 | 24px | `--spacing-24` |
+| 32 | 32px | `--spacing-32` |
+| 40 | 40px | `--spacing-40` |
+| 56 | 56px | `--spacing-56` |
+| 72 | 72px | `--spacing-72` |
+| 112 | 112px | `--spacing-112` |
+| 128 | 128px | `--spacing-128` |
 
-> **Backstage: sharp and quiet. Front stage: soft and brand-colored.**
+### Border Radius
 
-The product deliberately runs two distinct visual dialects, and the contrast *is* the design:
+| Element | Value |
+|---------|-------|
+| nav | 40px |
+| tags | 40px |
+| cards | 12px |
+| inputs | 32px |
+| buttons | 32px |
+| default | 4px |
 
-1. **The admin console is a flat, sharp-cornered, low-chroma "workbench."** Neutral slate surfaces on a very light canvas, one restrained blue accent, and semantic status colors (emerald/amber/rose). No gradient chrome, no decorative rounding — panels, buttons, chips, even avatars render as **squares**. It reads as precise, fast, utilitarian.
-2. **The visitor-facing widget is soft, rounded, and warm.** A circular floating launcher, 16px-radius message bubbles with a tiny "tail" corner, pill inputs, gentle float/enter animations — all tinted by the client's own brand color. It reads as approachable and human.
+### Layout
 
-Same product, two moods: **work** and **welcome**.
+- **Page max-width:** 1200px
+- **Section gap:** 72px
+- **Card padding:** 32px
+- **Element gap:** 12px
 
-### Corner-radius discipline (important)
+## Components
 
-The sharp admin look is **enforced globally**, not just styled:
+### Primary CTA Button (Cobalt)
+**Role:** The sole chromatic action in the system — reserved for the most important conversion
 
-- All radius tokens in `apps/admin/src/index.css` are `0rem` (`--radius-sm … --radius-3xl`).
-- An explicit override guarantees it:
-  ```css
-  #root [class*="rounded"] { border-radius: 0 !important; }
-  ```
-  (Introduced deliberately in commit `e2fdb6c` alongside the responsive/mobile layout.)
+Filled with #5266eb Cobalt, white text at 16px arcadia weight 400, 32px border-radius (pill), 0px vertical padding with 20px horizontal padding for inline contexts, 40px vertical padding when standalone. No border, no shadow. The vivid blue against the dark canvas makes this button the gravitational center of any page.
 
-This means utility classes like `rounded-xl`, `rounded-2xl`, and `rounded-full` still *appear* in components (they express shape intent and future flexibility), but at runtime **everything inside `#root` renders square** — cards, buttons, badges, chips, avatars, dots, and spinning loaders. The only softening cue that survives is the **ring** (focus rings, selection rings).
+### Ghost Outline Button
+**Role:** Secondary or tertiary action on dark backgrounds
 
-The widget, by contrast, lives in a Shadow DOM outside `#root` and is **fully rounded** (`packages/widget/src/styles.ts`). Never apply the admin flattening rule to widget styles, and never add rounding "back" into the admin at the utility level — if the flat look is ever reconsidered, remove the override and zero-tokens *globally*, not per-component.
+Transparent background, 1px solid #ededf3 Ivory border, Ivory text at 16px arcadia weight 400, 40px border-radius (pill). Zero padding top/bottom with 20px horizontal padding. Used for navigation links and secondary CTAs where a filled button would overpower the layout.
 
----
+### Navigation Pill Link
+**Role:** Top-bar navigation items with optional dropdown caret
 
-## 3. Visual foundations
+Transparent background, no border, Ivory text at 16px arcadia weight 400, 40px border-radius, 0px vertical / 20px horizontal padding. Floats over the hero image and transitions to a solid dark fill on scroll via backdrop-blur.
 
-### 3.1 Typography
+### Graphite Card
+**Role:** Content grouping surface — product features, feature blocks, and section containers
 
-| Context | Font stack |
-|---|---|
-| Admin console | `"Geist Variable", sans-serif` (imported via `@fontsource-variable/geist`; mapped to `--font-sans`) |
-| Code / mono inside admin | `ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace` |
-| Widget (visitor site) | System stack: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif` — deliberately *not* a webfont, so it stays lightweight and matches the host page |
+Background #1e1e2a, 12px border-radius, 32px padding on all sides, no shadow, no border. The one-step lift from the #171721 canvas creates separation through subtle value contrast rather than elevation. Cards sit flat on the dark plane.
 
-Admin type conventions:
+### Email Capture Input (Pill, Left-Half)
+**Role:** Hero email input with attached submit button
 
-- **Microlabels / eyebrows** — `text-[10px]` or `text-xs`, `font-semibold`, `uppercase`, `tracking-widest` (≈`0.2em`), `text-slate-400/500`. Used above section titles ("Settings", "Brand System", "Widget Preview", "Config snapshot").
-- **Titles** — `text-xl font-semibold tracking-tight text-slate-900` (sections), `text-2xl` on standalone pages.
-- **Body / descriptions** — `text-sm leading-6 text-slate-500`; fine print `text-xs leading-5 text-slate-500`.
-- **Labels on form fields** — `text-sm font-medium text-slate-700`.
-- Slug/model values that are identifiers are shown in `font-mono` (`profile.slug`, model label in the Internal Chat header).
-- Body is set to `text-rendering: optimizeLegibility` + antialiasing in `index.css`.
+Transparent background, 1px solid #ededf3 Ivory border on left side only, Ivory text at 16px arcadia weight 400, border-radius 32px 0px 0px 32px (left-side pill, flat right edge where it meets the button), 20px left padding. Placeholder text in #c3c3cc Ash.
 
-### 3.2 Admin color language
+### Full-Bleed Hero Section
+**Role:** Above-the-fold brand statement with photographic atmosphere
 
-Token source: `apps/admin/src/index.css` (`@theme inline`). Values map onto Tailwind's slate/blue palette.
+100vw × ~100vh, no padding constraints, centered content stack. Headline in arcadiaDisplay at 65px weight 480, subtext in arcadia at 18px weight 480. A full-bleed photographic background (atmospheric landscape) sits behind a subtle dark overlay. Content max-width ~640px centered vertically and horizontally.
 
-**Neutral canvas & text**
+### Transparent Top Navigation Bar
+**Role:** Primary site navigation overlaid on hero
 
-| Token | Value | Used for |
-|---|---|---|
-| `--color-background` | `#f8fafc` (slate-50) | Page background (`bg-slate-50`) |
-| `--color-foreground` | `#0f172a` (slate-900) | Body text |
-| `--color-card` | `#ffffff` | Card/panel surface |
-| `--color-card-foreground` | `#0f172a` | |
-| `--color-border` / `--color-input` | `#e2e8f0` (slate-200) | Hairlines, inputs |
-| `--color-muted` / `--color-secondary` / `--color-accent` | `#f1f5f9` (slate-100) | Subtle fills |
-| `--color-muted-foreground` | `#64748b` (slate-500) | Secondary text |
-| `--color-secondary-foreground` / `--color-accent-foreground` | `#334155` (slate-700) | |
+Full-width, fixed or sticky, transparent background over the hero image. Brand mark (Mercury logo with concentric-circle icon) on the left, nav links centered (Products, Solutions, Resources, About, Pricing), Log in text link and Cobalt 'Open account' pill button on the right. Uses backdrop-blur(8px or 20px) on scroll to create frosted-glass separation.
 
-**Accent & status**
+### Disclaimer Banner
+**Role:** Legal/regulatory footnote strip at page bottom
 
-| Role | Value | Usage notes |
-|---|---|---|
-| Primary / ring | `#2563eb` = blue-600 | Buttons default, active nav, focus rings, "Edit" CTAs, send buttons in dark surfaces |
-| Hover (light bg) | `bg-blue-700` | Button default hover |
-| Success / saved | emerald-500/600 (e.g. `#10b981`/`#059669`) | "Saved", status pills, admin-reply affordances |
-| Warning / dirty | amber-400/500/600 | "Unsaved changes", "Needs reply", editing cues |
-| Destructive / error | `#dc2626` red-600, rose-600/rose-50 surfaces | Delete, logout hover, error banners |
-| Link | `text-blue-600`, underline | |
+Dark background (matches canvas or slightly lighter), small text at 12px arcadia weight 480 with 0.01em letter-spacing, centered or left-aligned, subtle Ivory or Ash text color. Minimal visual weight — present but never distracting.
 
-**Dos & don'ts.** Stay inside the slate + blue-600 family for structure and primary action. Use emerald/amber/rose only with their semantic meaning (success / attention / destructive). There is **no** purple, orange, cyan, or pink in the UI, and no gradients on core surfaces (the only gradient is the preview-page "canvas" background, and a faint blue sheen on the Internal Chat CTA card).
+### Section Container
+**Role:** Horizontal content wrapper between hero and footer
 
-### 3.3 Dark "operations" surfaces
+Full-width dark canvas (#171721) with inner content constrained to 1200px max-width, 72px vertical padding. Contains 2- or 3-column grids of Graphite Cards or text+image splits.
 
-Four screens run a **dark variant of the same system** on `bg-slate-950`:
+## Do's and Don'ts
 
-- Login page (`LoginPage.tsx`)
-- Conversations inbox (`ConversationsPage.tsx`)
-- Internal Legal Chat (`InternalChatPage.tsx`)
-- The Config editor's **sidebar** and **dialogs** (dark panels inside an otherwise light app)
+### Do
+- Use Cobalt #5266eb exclusively for the single primary action per page — never as a decorative accent, icon fill, or secondary button
+- Set all cards to #1e1e2a with 12px radius and 32px padding — rely on the one-step value lift from the canvas, not shadows, for separation
+- Apply arcadiaDisplay weight 480 (not 600/700) for all headings — the intermediate weight is Mercury's signature restraint
+- Use 32px or 40px pill radius for all interactive controls (buttons, inputs, nav items) — sharp 4px corners are reserved for structural elements only
+- Set body text at 16px arcadia weight 400 with 1.5 line-height — this is the density baseline for all content
+- Maintain 72px vertical rhythm between major sections — spacious density is part of the premium feel
+- Use ivory #ededf3 on ghost/outline buttons for both border and text — never use a chromatic color for secondary actions
 
-Shared dark palette: canvas `slate-950`, panels `slate-900`, borders `slate-800`, elevated fills `slate-800/60–70`, input borders `slate-700`, placeholder `slate-600`, body text `slate-100/white`, secondary text `slate-400/500`. Accents are applied as **translucent tints** rather than solid fills:
+### Don't
+- Do not use multiple bright accent colors — Cobalt is the only chromatic note; introducing greens, reds, or oranges breaks the monochrome discipline
+- Do not add drop shadows to cards or components — separation comes from the graphite-on-onyx value difference alone
+- Do not use bold weights (700+) for headings — arcadiaDisplay at 480 is the ceiling
+- Do not use sharp corners (0–4px) on buttons, inputs, or nav items — the pill shape is non-negotiable
+- Do not use #ffffff for body text — always #ededf3 Ivory; pure white on dark creates harsh, cold contrast
+- Do not place Cobalt-filled elements next to each other without at least 32px gap — the vivid color creates visual competition when clustered
+- Do not use bright or saturated backgrounds for sections — every surface is either #171721 (canvas) or #1e1e2a (card); no mid-gray or colored bands
 
-- Active nav row: `bg-blue-500/20 text-white`, icon `text-blue-400`
-- Hover rows: `hover:bg-slate-800`
-- Icon chips: `bg-blue-500/15 text-blue-400`
-- Amber warning chips: `bg-amber-500/10–15 border-amber-500/20 text-amber-400`
-- Admin ("you") messages in the inbox: `bg-emerald-600/20 border-emerald-500/30 text-emerald-50`, label `text-emerald-300`
-- Unread dot: solid `bg-blue-500` with a `ring-2 ring-slate-950` halo
+## Surfaces
 
-Dialogs are dark **even when the rest of the page is light** — the dialog panel is `bg-slate-900 border-slate-700` over a `bg-black/60 backdrop-blur-sm` scrim. Keep that: it gives modals a consistent "system layer" identity.
+| Level | Name | Value | Purpose |
+|-------|------|-------|---------|
+| 0 | Onyx Canvas | `#171721` | Base page background — hero overlay, section canvases, footer |
+| 1 | Graphite Card | `#1e1e2a` | Elevated content surface — product cards, feature blocks, form containers |
+| 2 | Obsidian Button | `#272735` | Interactive surface — secondary button fills, inline form attachments |
 
-### 3.4 Elevation & shadows
+## Elevation
 
-| Element | Shadow |
-|---|---|
-| Light cards / panels | `shadow-sm` + `border-slate-200` |
-| Hovered profile row | `hover:shadow-md` (+ `hover:border-blue-200`) |
-| Sticky admin top bar | `shadow-sm` over `border-b border-slate-200` |
-| Dark drawer (settings) | `shadow-2xl` |
-| Mobile sidebar overlay scrim | `bg-black/50 backdrop-blur-sm` |
-| Dialog scrim | `bg-black/60 backdrop-blur-sm` |
-| Widget floating elements | soft `0 4–16px` black shadows with low alpha (`rgba(0,0,0,.15–.2)`); hover lifts slightly |
+Mercury deliberately avoids shadows. All elevation is communicated through value contrast alone — the graphite card (#1e1e2a) sits one step lighter than the onyx canvas (#171721), creating perceptible separation without any drop shadow. This flat aesthetic keeps the interface feeling modern, digital, and weightless, letting the photographic hero imagery and cobalt accent do the emotional work.
 
----
+## Imagery
 
-## 4. Admin console anatomy
+Cinematic full-bleed photography dominates the hero — atmospheric, aspirational landscapes (misty mountains, isolated desks in nature) that position banking as a contemplative, elevated experience. Photography is high-quality, slightly desaturated with cool tones, and treated with a subtle dark overlay to maintain text legibility. Below the hero, imagery shifts to product UI screenshots and abstract atmospheric backgrounds. No illustrations, no icons-as-art — visuals are photographic or purely functional. Icon style throughout the UI is minimal line/glyph style in Ivory, appearing in nav, buttons, and form elements.
 
-### 4.1 Shell (`components/layout/admin-shell.tsx`)
+## Layout
 
-- Desktop: fixed **dark** left sidebar `w-64` (`bg-slate-900`); content column padded `lg:pl-64`.
-- Sticky top bar (`z-30`, white, `border-b`).
-- Content: `px-4 py-6 sm:px-6 lg:px-8`, constrained by `max-w-5xl space-y-6`.
-- The active settings panel renders inside a white bordered card; below it a 3-column grid of `aside` cards (`sm:grid-cols-2 lg:grid-cols-3`).
-- Mobile (`< lg`): the sidebar becomes a slide-in drawer `w-72` with an overlay scrim, toggled from a hamburger in the top bar.
+Full-bleed dark canvas throughout. Hero is 100vw full-bleed photographic with centered headline + subtext + email-capture form stack (max-width ~640px). Below hero, content flows in 1200px max-width sections with 72px vertical padding, alternating between text-left/image-right 2-column splits and 3-column card grids for product features. Navigation is a transparent top bar overlaid on the hero, transitioning to a frosted-glass (backdrop-blur) solid dark fill on scroll. Footer is dark with disclaimer text. Vertical rhythm is generous — spacious density with large breathing room between sections. No sidebar navigation; all navigation lives in the top bar.
 
-### 4.2 Sidebar (`sidebar-nav.tsx`) — dark
+## Agent Prompt Guide
 
-1. **Logo row** — `logo.webp` at `h-9`, separated by `border-b border-slate-800`.
-2. **Save-status pill** — 12px, translucent fill: emerald (`bg-emerald-500/15 text-emerald-400` + dot) when clean, amber when dirty ("Unsaved changes" / "All changes saved").
-3. **"SETTINGS" microlabel** — 10px uppercase tracking-widest `text-slate-500`.
-4. **Nav rows** — icon (16px, lucide) + label, `py-2.5`, rounded (→ flat at runtime). Active = `bg-blue-500/20 text-white`, icon `text-blue-400`, plus a 6px blue dot on the right. Inactive = `text-slate-400 hover:bg-slate-800 hover:text-slate-100`.
+**Quick Color Reference**
+- Background (canvas): #171721 Onyx
+- Card surface: #1e1e2a Graphite
+- Primary text: #ededf3 Ivory
+- Muted text: #c3c3cc Ash
+- Border: #e2e3ed Mist
+- primary action: #5266eb (filled action)
 
-Order of sections (`features/config-editor/sections.tsx`): Appearance → AI Settings → Persona → Action Menu → Services → Dataset → Behavior → Contact & Location → Email.
+**Example Component Prompts**
 
-### 4.3 Top bar (`top-bar.tsx`) — light, 56px (`h-14`)
+1. Create a product feature card: background #1e1e2a Graphite, 12px border-radius, 32px padding all sides, no shadow. Heading at 28px arcadiaDisplay weight 480, letter-spacing 0.015em, color #ededf3 Ivory. Body text at 16px arcadia weight 400, line-height 1.5, color #ededf3 Ivory.
+
+2. Create a primary CTA button: background #5266eb Cobalt, white text at 16px arcadia weight 400, 32px border-radius (pill), no border, no shadow, 12px vertical / 24px horizontal padding. Text is 'Open account' or equivalent action label.
 
-Breadcrumb pattern `Profiles / {profileName} · {section}` on the left; actions right:
-
-- Status text: "Saved" (`CheckCircle2`, emerald) or "Unsaved changes" (amber) — desktop only.
-- **Preview** — outline button, `ExternalLink` icon.
-- **Save** — primary button, disabled unless dirty; label "Saving…" while saving.
-- **Conversations** — bordered link button (`MessageSquare`).
-- **Logout** — ghost icon button; hover turns `text-red-600 bg-red-50`.
-
----
-
-## 5. Admin UI kit (primitives)
-
-Components in `components/ui/`. Base look: `h-10` controls, 1px `slate-200` borders, white bg, blue focus ring `focus:border-blue-400 focus:ring-2 focus:ring-blue-100`, disabled = 40–60% opacity + `not-allowed`.
-
-**Button** (`button.tsx`, `cva`)
-
-| Variant | Look |
-|---|---|
-| `default` | `bg-blue-600 text-white`, hover `bg-blue-700`, `shadow-sm` |
-| `outline` | white + `border-slate-200`, `text-slate-700`, hover `bg-slate-50` |
-| `secondary` | `bg-slate-100 text-slate-700`, hover `bg-slate-200` |
-| `ghost` | transparent, `text-slate-600`, hover `bg-slate-100` |
-| `destructive` | `bg-rose-600 text-white`, hover `bg-rose-700` |
-| `link` | blue, underline on hover |
-
-Sizes: `xs (h-7)`, `sm (h-8)`, `default (h-10)`, `lg (h-11)`, icon variants. Compact bars use `h-8 px-3 text-xs gap-1.5` with 14px icons — the "chunky toolbar button" style seen in the TopBar/Conversations.
-
-**Form fields** (`field.tsx` + inputs)
-- Field = label above control, `space-y-2.5`; `FieldGrid` = 2-col at `md`.
-- Input/Select/Textarea: described above; Select draws a `ChevronDown` affordance; `Switch` = 28×48px pill track (`h-7 w-12`), checked `bg-blue-600` with knob `translate-x-6`, otherwise `bg-slate-100`.
-- `ColorInput`: native color swatch + hex text input side by side.
-- Field descriptions in `text-xs text-slate-500`.
-
-**Card** — `rounded-2xl border border-slate-200 bg-white shadow-sm` (flat at runtime), header `p-5`, title `text-lg font-semibold tracking-tight`, description `text-sm leading-6 text-slate-500`.
-
-**SectionHeader** — bordered bottom (`border-slate-100`, `pb-5`), optional eyebrow, `text-xl` title, `text-sm` description, optional action slot. Every settings panel opens with one.
-
-**Badge** — small pill `rounded-full border px-2.5 py-1 text-xs`: `default` (blue-50/blue-700), `secondary` (slate), `success` (emerald), `warning` (amber). (Rendered square by the global override.)
-
-**Dialog** (`dialog.tsx`) — dark system layer described in §3.3: `max-w-lg`, rounded-2xl (→ flat), header with title + X, scrollable body, Esc/overlay-click to close.
-
-**Banners & states**
-- `StatusBanner` — info (white/slate icon chip) or error (rose-50, rose icon chip) row cards.
-- Loading — centered `size-8 animate-spin` ring (`border-slate-200 border-t-blue-500`) + caption ("Loading profiles…", "Loading workspace…").
-- Empty states — dashed-border card, centered lucide icon in `text-slate-300`, medium title, helper text, primary CTA (see profile list).
-- Error blocks — `rounded-xl border-rose-200 bg-rose-50 text-rose-700`.
-
-### Iconography
-
-All admin icons are **lucide-react**, `size-4` inside buttons, `size-3.5` in compact/`sm`, `size-5/6` for page-level glyphs. Icon-with-tint chips are a recurring motif (blue `bg-blue-50 text-blue-600`, dark `bg-blue-500/15 text-blue-400`). The widget uses its own inline SVGs (see §7).
-
----
-
-## 6. Admin pages
-
-### 6.1 Profile hub (`features/profiles/profile-list.tsx`)
-
-Light page (`bg-slate-50`, `max-w-3xl`). Header: blue square logo chip with `Bot` icon + "Chatbot Profiles" + "New profile" primary button. Rows (active): white cards that lift on hover (`hover:border-blue-200 hover:shadow-md`), left icon chip + name/slug/date, right ghost icon actions (edit, archive, delete) + primary **Edit →** button. Archived section uses muted rows on `slate-50` with secondary badges. A dark gradient CTA card links to the Internal Legal Chat. Fullscreen `Dialog`s handle create/rename.
-
-### 6.2 Conversations inbox (`pages/ConversationsPage.tsx`) — dark, full-screen `h-screen`
-
-Master–detail mail-client layout on `bg-slate-950`:
-
-- **Left rail (w-72):** brand row, "Config / refresh / logout" actions, per-profile **tabs** (active `bg-blue-500/20 text-blue-400`), search box (`bg-slate-800/60`), and the user list.
-- **User rows:** avatar chip (flat square at runtime) with blue unread dot, name (white, semibold when unread), email, relative time; row-wide **attention** cue = 2px amber left border + "Needs reply" amber pill when the visitor's last message is unanswered.
-- **Thread panel:** header with identity + meta ("First seen · N messages") + **Export CSV**; bubbles `max-w-[70%] rounded-2xl`:
-  - visitor: `bg-blue-600 text-white`, corner `rounded-br-md` (→ flat);
-  - AI/assistant: `bg-slate-800 text-slate-100`;
-  - **admin (you):** `bg-emerald-600/20 border-emerald-500/30 text-emerald-50` with a `Headset` label row in emerald-300 — it must stay visually distinct in the inbox but *seamless* in the visitor widget (see §7.5).
-  - timestamps 10px (`text-blue-200` on visitor, `text-slate-500` otherwise).
-- **Reply composer:** dark textarea (`bg-slate-800/60`, emerald focus ring) + emerald "Send" button; hint "⌘/Ctrl+Enter to send".
-
-### 6.3 Internal Legal Chat (`pages/InternalChatPage.tsx`) — dark
-
-Full-screen chat like a messaging app:
-
-- **Reference rail:** at `xl+`, a separately scrolling right rail (`w-80`, `2xl:w-96`) collects source links and sandboxed Google Search suggestions by question in conversation order. It uses slate-950 canvas, slate-900 link surfaces, slate-800 borders, blue-400 reference numbers, and Geist utility text. Inline citations remain in answers; the full source appendix is retained for copying. On smaller screens, a header References button opens the same content in a native modal dialog with Escape, focus containment, and a visible close action. New sessions clear the rail along with the conversation. No additional motion is introduced.
-
-- Header: its content follows the same `max-w-4xl` measure as the transcript and composer; a square `Bot` chip, title "Internal Legal Chat", compact model name in `font-mono`, and actions for new session, back to admin, and logout establish the workspace context.
-- Empty state: a left-ruled legal-briefing introduction uses the standard uppercase microlabel, a blue icon tile, one explanatory paragraph, and a full-width amber internal-use notice. Connection and missing-key states attach directly below it.
-- Conversation measure: transcript and composer share `max-w-4xl` with responsive page gutters. Long assistant answers may use the full reading width; staff prompts remain compact and right-aligned.
-- Assistant responses: a square blue identity chip sits in a narrow left rail; the answer renders as an editorial `bg-slate-900/60 border-slate-800` briefing surface with a blue uppercase speaker label. Rich headings, paragraphs, outside-positioned lists, blockquotes, rules, links, and horizontally scrolling code are supplied by `formatMessage`.
-- Staff prompts: `bg-blue-600 text-white` blocks capped at roughly 78% on desktop and 88% on mobile. Errors use the same left-rail composition with `bg-red-950/50 border-red-800/50 text-red-200` semantics.
-- Message metadata: timestamps and copy/edit actions sit below the associated message instead of overlaying its content. Actions reveal on hover or keyboard focus at `sm+` and remain visible on touch layouts; copied success uses emerald.
-- Typing: three staggered dots occupy the same assistant briefing row so the transcript does not reflow when the response arrives. Under reduced motion, the dots remain visible but stop bouncing.
-- Composer: an anchored `bg-slate-900 border-slate-700` command surface contains the auto-growing textarea (`fieldSizing: content`), the sole solid-blue send control, persistent keyboard guidance, and a visible connection status. Editing adds an amber strip within the same surface.
-- **Settings drawer:** right-side panel `w-full sm:w-[420px] bg-slate-900 border-l border-slate-800`, slides via `translate-x`, scrim behind; contains system prompt, model select, temperature slider, dataset editor, response footer.
-- **Settings entry:** a square, bordered slate control at the left of the composer input opens the drawer. It matches the 42px send-button height, shows an icon plus “Settings” at `sm+`, and uses an icon alone on mobile. The open state uses the standard translucent blue tint.
-
-### 6.4 Login (`pages/LoginPage.tsx`) — dark, minimal
-
-Centered on `bg-slate-950`, no card: blue `Lock` icon chip, "Admin Login" + sub-copy, then a plain form (`max-w-sm`): labels `text-xs text-slate-400`, dark inputs (`bg-slate-900 border-slate-700`, blue focus ring), full-width primary submit, and a soft red error strip. This restraint is intentional.
-
----
-
-## 7. The embeddable widget (`packages/widget`)
-
-**Architecture:** a `ChatbotWidget` class creates a host + Shadow Root, injects one `<style>` (all CSS lives in `styles.ts`), builds HTML strings from `dom.ts`, and mounts fixed at the viewport corner. Styles are namespaced `cb-*`, isolated via `:host { all: initial }`, and depend on CSS custom properties injected by `getCSSVariables()` in `dom.ts`.
-
-### 7.1 Design tokens (CSS variables)
-
-| Variable | Source | Role |
-|---|---|---|
-| `--cb-primary` | `appearance.primaryColor` | Brand action color — header band, launcher, user bubbles, send, links, focus |
-| `--cb-accent` | `appearance.accentColor` | **Hover** color for primary controls |
-| `--cb-bg` | `appearance.backgroundColor` | Chat window background |
-| `--cb-text` | `appearance.textColor` | Message/body text color |
-| `--cb-radius` | `appearance.borderRadius` | Chat-window shell radius (UI offers 8 / 12 / 16 px; default 12) |
-| `--cb-keyboard-offset` | runtime (JS) | iOS keyboard lift for the composer |
-
-Defaults in `packages/config`: primary `#004a99` (deep brand blue), accent `#0056b3`, bg `#ffffff`, text `#212529`, radius `12`, position bottom-right.
-
-### 7.2 Geometry & chrome
-
-| Element | Spec |
-|---|---|
-| Launcher FAB | 60px circle, primary bg, white 28px glyph, `box-shadow 0 4px 12px rgba(0,0,0,.15)` |
-| Position | 20px from bottom+corner; mirrors to bottom-left via `[data-position]` |
-| Chat window | 440×600 (caps: `calc(100vw-40px)`, `calc(100vh-120px)`), `border-radius: var(--cb-radius)`, shadow `0 8px 32px rgba(0,0,0,.15)` |
-| Header | Solid **primary** band, white 16px semibold company name, ghost X button |
-| Composer | White, `border-top #e9ecef`; message input is a **pill** (`border-radius: 24px`); send is a 40px **circle** in primary |
-| Mobile (<420px) | Window becomes **fullscreen** (`inset:0`, radius 0), composer sticky with keyboard-offset + `safe-area-inset` paddings |
-| Message max width | 86% (bubbles) |
-
-### 7.3 Bubbles & type
-
-Bubble recipe: 13px text, `line-height 1.45`, `padding 9px 13px`, `border-radius 16px`, with the corner nearest the sender flattened to **4px** (the "tail" cue).
-
-| Bubble | Fill / text | Alignment |
-|---|---|---|
-| User | `var(--cb-primary)` / white | right |
-| AI / persona | `#f1f3f5` / `var(--cb-text)` | left |
-| Agent ("middleman" human reply) | `#f1f3f5` / `var(--cb-text)` + 11px semibold **primary** label above | left — *looks identical to AI on purpose* |
-| Error | `#f8d7da` / `#721c24` | left |
-| Friendly "problem" notice | `#fff7ed` / `#7c2d12`, border `#fed7aa` | left |
-| Quote success | `#f0fdf4` / `#166534`, border `#86efac` | left |
-
-Rich text: links underline in primary (fixed `#0056b3` inside AI bubbles), bold/italic/lists/mailto supported; timestamps 11px `opacity .6`; a **copy button** fades in at the bubble's top-right on hover. Enter animation = 8px rise + fade.
-
-### 7.4 Surfaces inside the chat
-
-- **Lead-capture form** (shown until the visitor gives name+email): title + two square-ish inputs (`#dee2e6` borders) whose focus state *lifts* (`translateY(-1px)` + soft shadow, primary border); full-width **square** submit (12px, weight 700).
-- **Action menu** (configurable quick links): a rounded 18px floating panel above the composer; items are 13px-radius tiles with a small primary dot, and **fill primary on hover** (text flips white). 
-- **CTA card** (post-answer): a brand-tinted chip row — bg `color-mix(primary 12%, transparent)`, border `color-mix(primary 20%, transparent)` — with italic 12px heading and pill buttons in primary (hover = accent).
-- **Quote card**: light-blue tint (`#f0f6ff`, border `#bfdbfe`), navy text (`#1e3a5f`), textarea with blue focus glow, full-width square-ish submit (8px radius).
-- Scrollbars: 6px, light gray thumbs.
-
-Motion personality: FAB gently **floats** (`cb-float`, 3.2s infinite, ±4px); on open the chat icon **cross-fades + rotates** into an X (the FAB stays put and morphs); window opens with `scale(.94) translateY(14px) → 1` over .28s from the bottom corner; sections/bubbles rise in. Everything respects `prefers-reduced-motion` (animations and transitions removed).
-
-### 7.5 The "middleman" seam
-
-Human replies injected by staff (Conversations page) render in the visitor's widget with **the same style as AI messages** plus a small primary-colored agent label — so a human hand-off feels seamless, never like a different system.
-
----
-
-## 8. Preview page (`/?preview=1`)
-
-A "look but don't touch" QA stage that follows the **light admin** language (square panels, uppercase tracking labels) while simulating a real website:
-
-- Page bg: soft diagonal slate gradient (`linear-gradient(135deg,#e2e8f0,#f8fafc,#cbd5e1)`).
-- Hero panel: white/90 blur card, title + actions (Reload saved config / Open chat / Close chat / Back to editor).
-- The "canvas" (left) is where the real widget mounts: gradient white panel with a faint **blueprint grid** background (32px cells, `rgba(148,163,184,.12)` hairlines).
-- "Current state" aside (right, 320px) shows live config: position, primary color swatch, welcome message.
-
----
-
-## 9. Motion & interaction budget
-
-- Durations are **fast and decisive**: 150–300ms micro-interactions; 300ms drawers/sheets; 240–280ms widget chrome.
-- Easing: CSS `ease` / `ease-in-out` (Tailwind), `ease` on widget transforms; hover effects are 150–200ms `transition-colors` / `transition-all` / `transition-transform`.
-- Hover language: **fill** (buttons), **lift** (translateY(-1px) + shadow — inputs on focus, widget CTAs), **tint** (rows, chips), **morph** (FAB icon), **rotate** (FAB hover while open = 90° turn).
-- Loading language: spin ring (admin), spinning lucide icon in buttons ("Saving…"/"Sending…"), bouncing dots (Internal Chat typing), CSS spinner circle (widget streaming). Internal Chat applies `motion-reduce:animate-none` to its typing dots and loading icons so status remains legible without continuous movement.
-- `tw-animate-css` is imported (admin) and available for utility-driven micro-animations; keep usage aligned with the budget above.
-
----
-
-## 10. Assets
-
-- `apps/admin/public/logo.webp` — brand logo, dark-surfaces header usage (`h-9`/`h-8`).
-- `apps/admin/public/favicon.svg`, `icons.svg`, `widget.js` (built embed script the admin points customers at).
-- `apps/admin/src/assets/` — legacy Vite/hero assets (hero.png currently unused by the UI).
-- Widget glyphs are **inline SVGs**: filled chat-bubble + X for the FAB (28px), outline menu ☰ (20px), filled send arrow (20px), X (20px), copy (14px). Keep stroke/fill consistent with `currentColor` so they inherit `--cb-primary`/white.
-
----
-
-## 11. Copy & voice
-
-### Formatted prompt and chat content
-
-Multiline AI instructions, persona guidance, knowledge entries, service guidance,
-preset messages, welcome text, and internal response footers use the shared
-Editorcn prompt editor. The inline and expanded editors save Markdown strings;
-underline uses the editor's `++text++` syntax.
-
-Internal chat, the conversations inbox, and the public widget use
-`formatRichMessage` from `packages/config` for that same Markdown dialect.
-This includes fresh and restored messages and the widget welcome message.
-Bold, italic, underline, strike-through, headings, lists, quotes, and code
-retain their formatting. Surface-specific CSS preserves the admin's dark
-square design and the widget's configured brand design. Raw HTML is escaped,
-unsafe link protocols are rejected, and remote Markdown images render as text.
-
-- UI chrome: short, imperative, sentence case ("Save", "Preview", "New profile", "Export CSV"); section *labels* may be capitalized words ("Action Menu").
-- Microlabels are uppercase + letterspaced; never shout in body copy.
-- Descriptions are calm and explanatory, one sentence, `text-sm` ("Each profile has its own knowledge, persona, and widget settings.").
-- Status language: "All changes saved" / "Unsaved changes" / "Saved"; error copy states the fixable condition plainly.
-- The persona panel configures the *widget's* voice; the *admin UI's* voice stays neutral and tool-like.
-
----
-
-## 12. Accessibility & responsive conventions to keep
-
-- Every icon-only control has `aria-label`/`title`; `role="dialog"`, `role="log" aria-live="polite"`, `aria-pressed`, `aria-expanded`, `aria-checked` are used where relevant (widget included).
-- Focus is never `outline: none` without a replacement: admin uses `focus-visible:ring-2`/`focus:ring-*` blue rings; widget inputs color the border + glow.
-- `prefers-reduced-motion: reduce` kills widget animation/transitions wholesale.
-- Safe-area insets + `100dvh` + keyboard-offset handling on mobile widget; `env(safe-area-inset-*)` respected.
-- Breakpoints: shell sidebar `lg` (drawer below), field grids `md`, top-bar breadcrumbs hide below `sm`, widget fullscreen below `420px`.
-
----
-
-## 13. Rules for future work (preserve this look)
-
-1. **Change global things globally.** Radius, fonts, and semantic colors live in one place: `apps/admin/src/index.css` `@theme inline`. Don't fight them per-component.
-2. **Square = admin, round = widget.** Never add `rounded-*` expecting it to show in the admin; never strip rounding from widget CSS.
-3. **Use the slate/blue lexicon.** New hues need a real reason; status colors stay semantic (emerald=success/saved/human-reply, amber=dirty/attention, rose/red=destructive/error).
-4. **Two dark layers allowed**: the config sidebar + dialogs, and the full-dark ops screens (Login/Conversations/Internal). Translucent blue tints (`/15–20`) are the house style for active states on dark.
-5. **Keep typography minimal.** Geist (admin), system stack (widget); mono only for identifiers; uppercase+tracking only for microlabels.
-6. **Widget colors are config.** If new widget styling is needed, route colors through `AppearanceConfig`/`--cb-*` vars — never hardcode brand colors into widget CSS (neutrals like `#f1f3f5` bubbles and `#e9ecef` borders are fine).
-7. **Motion stays in budget** (§9) and honors `prefers-reduced-motion`.
-8. **The "middleman" seam matters**: human replies should keep looking native inside the widget while staying clearly labeled.
-
----
-
-## 14. Intentional design pivots (changelog)
-
-- `e2fdb6c` — **Flat-corner overhaul + mobile layout**: radius tokens zeroed and `#root [class*="rounded"] { border-radius: 0 !important; }` added; shadcn `oklch` token system replaced by the explicit hex slate/blue palette in `index.css`; responsive sidebar-as-drawer and widget preview introduced. Treat the flat look as a deliberate decision, not a bug.
+3. Create a ghost/outline button: transparent background, 1px solid #ededf3 Ivory border, #ededf3 text at 16px arcadia weight 400, 40px border-radius, 10px vertical / 20px horizontal padding.
+
+4. Create a hero section: full-bleed (100vw), full-viewport height, photographic landscape background with dark overlay. Headline at 65px arcadiaDisplay weight 480, line-height 1.1, color #ffffff, centered. Subtext at 18px arcadia weight 480, color #ededf3 Ivory, centered, max-width 520px.
+
+5. Create an inline email capture form: flex row, no gap. Input — transparent background, 1px solid #ededf3 Ivory border (left + top + bottom only), #ededf3 text at 16px arcadia weight 400, placeholder in #c3c3cc Ash, border-radius 32px 0 0 32px, 14px vertical / 20px horizontal padding. Button — #5266eb Cobalt fill, white text at 16px arcadia weight 400, border-radius 0 32px 32px 0, 14px vertical / 24px horizontal padding, no border.
+
+## Typography Philosophy
+
+Mercury's type system uses two custom faces — arcadia for UI/body and arcadiaDisplay for headlines — both built on an intermediate weight axis (360, 420, 480, 530) that avoids the conventional bold/light binary. Heading weight 480 is the signature: it is heavier than regular but distinctly lighter than semibold, creating a voice that asserts without shouting. Display sizes use tight line-heights (1.1–1.15) with positive letter-spacing (0.01–0.02em), giving large text an architectural, wide-set quality. Body text stays at 16px weight 400 with generous 1.5 line-height. The overall effect is a voice that is measured, premium, and digitally native — never editorial, never corporate.
+
+## Similar Brands
+
+- **Wise** — Same dark-canvas + single-accent-color approach to fintech, with pill-shaped controls and flat card surfaces
+- **Ramp** — Similar graphite-on-dark card system with minimalist borderless components and a restrained primary accent
+- **Brex** — Dark-mode fintech aesthetic with comparable flat card elevation and confident intermediate-weight typography
+- **Linear** — Same whisper-weight typography philosophy and dark monochrome canvas with a single chromatic action color
+- **Stripe** — Shared approach to generous spacing, intermediate-weight display type, and letting one accent color carry the brand
+
+## Quick Start
+
+### CSS Custom Properties
+
+```css
+:root {
+  /* Colors */
+  --color-onyx-canvas: #171721;
+  --color-graphite-card: #1e1e2a;
+  --color-obsidian-button: #272735;
+  --color-slate-border: #70707d;
+  --color-mist-border: #e2e3ed;
+  --color-ash-text: #c3c3cc;
+  --color-ivory-text: #ededf3;
+  --color-cobalt: #5266eb;
+  --color-pure-white: #ffffff;
+
+  /* Typography — Font Families */
+  --font-arcadia: 'arcadia', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-arcadiadisplay: 'arcadiaDisplay', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Typography — Scale */
+  --text-caption: 12px;
+  --leading-caption: 1;
+  --tracking-caption: 0.12px;
+  --text-body-sm: 14px;
+  --leading-body-sm: 1;
+  --tracking-body-sm: 0.07px;
+  --text-body: 16px;
+  --leading-body: 1.5;
+  --text-body-lg: 18px;
+  --leading-body-lg: 1.35;
+  --text-subheading: 21px;
+  --leading-subheading: 1.35;
+  --text-heading-sm: 28px;
+  --leading-heading-sm: 1.2;
+  --tracking-heading-sm: 0.42px;
+  --text-heading: 32px;
+  --leading-heading: 1.15;
+  --tracking-heading: 0.48px;
+  --text-heading-lg: 42px;
+  --leading-heading-lg: 1.15;
+  --tracking-heading-lg: 0.42px;
+  --text-display: 65px;
+  --leading-display: 1.1;
+
+  /* Typography — Weights */
+  --font-weight-w360: 360;
+  --font-weight-regular: 400;
+  --font-weight-w420: 420;
+  --font-weight-w480: 480;
+  --font-weight-w530: 530;
+
+  /* Spacing */
+  --spacing-unit: 4px;
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-12: 12px;
+  --spacing-16: 16px;
+  --spacing-20: 20px;
+  --spacing-24: 24px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-56: 56px;
+  --spacing-72: 72px;
+  --spacing-112: 112px;
+  --spacing-128: 128px;
+
+  /* Layout */
+  --page-max-width: 1200px;
+  --section-gap: 72px;
+  --card-padding: 32px;
+  --element-gap: 12px;
+
+  /* Border Radius */
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-3xl: 32px;
+  --radius-3xl-2: 40px;
+
+  /* Named Radii */
+  --radius-nav: 40px;
+  --radius-tags: 40px;
+  --radius-cards: 12px;
+  --radius-inputs: 32px;
+  --radius-buttons: 32px;
+  --radius-default: 4px;
+
+  /* Surfaces */
+  --surface-onyx-canvas: #171721;
+  --surface-graphite-card: #1e1e2a;
+  --surface-obsidian-button: #272735;
+}
+```
+
+### Tailwind v4
+
+```css
+@theme {
+  /* Colors */
+  --color-onyx-canvas: #171721;
+  --color-graphite-card: #1e1e2a;
+  --color-obsidian-button: #272735;
+  --color-slate-border: #70707d;
+  --color-mist-border: #e2e3ed;
+  --color-ash-text: #c3c3cc;
+  --color-ivory-text: #ededf3;
+  --color-cobalt: #5266eb;
+  --color-pure-white: #ffffff;
+
+  /* Typography */
+  --font-arcadia: 'arcadia', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-arcadiadisplay: 'arcadiaDisplay', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Typography — Scale */
+  --text-caption: 12px;
+  --leading-caption: 1;
+  --tracking-caption: 0.12px;
+  --text-body-sm: 14px;
+  --leading-body-sm: 1;
+  --tracking-body-sm: 0.07px;
+  --text-body: 16px;
+  --leading-body: 1.5;
+  --text-body-lg: 18px;
+  --leading-body-lg: 1.35;
+  --text-subheading: 21px;
+  --leading-subheading: 1.35;
+  --text-heading-sm: 28px;
+  --leading-heading-sm: 1.2;
+  --tracking-heading-sm: 0.42px;
+  --text-heading: 32px;
+  --leading-heading: 1.15;
+  --tracking-heading: 0.48px;
+  --text-heading-lg: 42px;
+  --leading-heading-lg: 1.15;
+  --tracking-heading-lg: 0.42px;
+  --text-display: 65px;
+  --leading-display: 1.1;
+
+  /* Spacing */
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-12: 12px;
+  --spacing-16: 16px;
+  --spacing-20: 20px;
+  --spacing-24: 24px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-56: 56px;
+  --spacing-72: 72px;
+  --spacing-112: 112px;
+  --spacing-128: 128px;
+
+  /* Border Radius */
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-3xl: 32px;
+  --radius-3xl-2: 40px;
+}
+```

@@ -84,16 +84,16 @@ export function DatasetPanel({ dataset, onChange }: DatasetPanelProps) {
 
       <div className="space-y-4">
         {dataset.length === 0 ? (
-          <Card className="border-dashed bg-slate-50/70 shadow-none">
+          <Card className="border-dashed bg-background shadow-none">
             <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-slate-100 text-blue-600">
+              <div className="flex size-12 items-center justify-center rounded-xl bg-card text-muted-foreground">
                 <Database className="size-5" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-base font-semibold text-slate-900">
+                <h3 className="font-display text-base font-medium text-foreground">
                   No knowledge entries yet
                 </h3>
-                <p className="max-w-md text-sm leading-6 text-slate-500">
+                <p className="max-w-md text-sm leading-6 text-muted-foreground">
                   Add FAQs, policies, or trusted knowledge here.
                 </p>
               </div>
@@ -102,12 +102,12 @@ export function DatasetPanel({ dataset, onChange }: DatasetPanelProps) {
         ) : null}
 
         {dataset.map((entry) => (
-          <Card key={entry.id} className="bg-white shadow-none">
+          <Card key={entry.id} className="bg-card shadow-none">
             <CardContent className="space-y-4 pt-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-base font-semibold text-slate-900">
+                    <h3 className="font-display text-base font-medium text-foreground">
                       {entry.title}
                     </h3>
                     <Badge variant="secondary">{entry.category}</Badge>
@@ -123,11 +123,11 @@ export function DatasetPanel({ dataset, onChange }: DatasetPanelProps) {
                   size="sm"
                   onClick={() => removeEntry(entry.id)}
                 >
-                  <Trash2 className="size-4 text-rose-600" />
+                  <Trash2 className="size-4 text-muted-foreground" />
                   Remove
                 </Button>
               </div>
-              <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-7 text-slate-600">
+              <p className="rounded-xl border border-border bg-background p-4 text-sm leading-7 text-muted-foreground">
                 {entry.content}
               </p>
             </CardContent>
@@ -135,14 +135,14 @@ export function DatasetPanel({ dataset, onChange }: DatasetPanelProps) {
         ))}
       </div>
 
-      <Card className="border-dashed bg-slate-50/70 shadow-none">
+      <Card className="border-dashed bg-background shadow-none">
         <CardContent className="space-y-4 pt-5">
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-slate-100 text-blue-600">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-card text-muted-foreground">
               <Plus className="size-4" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-slate-900">
+              <h3 className="font-display text-base font-medium text-foreground">
                 Add dataset entry
               </h3>
               <FieldDescription>
@@ -206,7 +206,7 @@ export function DatasetPanel({ dataset, onChange }: DatasetPanelProps) {
                     key={item}
                     type="button"
                     onClick={() => removeKeyword(item)}
-                    className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700"
+                    className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground"
                   >
                     {item}
                     <X className="size-3" />
@@ -229,14 +229,14 @@ export function DatasetPanel({ dataset, onChange }: DatasetPanelProps) {
             />
             <FieldDescription>
               Contact variables like{" "}
-              <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-blue-700 ring-1 ring-slate-200">
+              <code className="rounded bg-card px-1 py-0.5 font-mono text-[11px] text-muted-foreground ring-1 ring-foreground">
                 {`{{address}}`}
               </code>{" "}
               are allowed and fill with the current Contact &amp; Location values.
             </FieldDescription>
           </Field>
 
-          <Button
+          <Button variant="outline"
             onClick={addEntry}
             disabled={
               !draft.title || !draft.content || !(draft.keywords?.length ?? 0)

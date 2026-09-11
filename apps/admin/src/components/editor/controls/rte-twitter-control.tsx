@@ -440,7 +440,7 @@ export const TwitterEmbedControl = ({ className }: { className?: string }) => {
           <button
             type="button"
             disabled={!url}
-            className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="rounded-control bg-primary px-3 py-1.5 text-sm text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
             onClick={() => {
               if (handleInsert()) {
                 setOpen(false);

@@ -4,30 +4,30 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-transparent text-sm font-medium whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex shrink-0 items-center justify-center gap-2 rounded-control border border-transparent text-base font-normal whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default:
-          "bg-blue-600 text-white shadow-sm hover:bg-blue-700 border-transparent",
+          "bg-primary text-primary-foreground hover:opacity-90 border-transparent",
         outline:
-          "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900",
+          "rounded-nav border-foreground bg-transparent text-foreground hover:bg-secondary",
         secondary:
-          "bg-slate-100 text-slate-700 hover:bg-slate-200 border-transparent",
+          "bg-card text-foreground hover:bg-secondary border-transparent",
         ghost:
-          "text-slate-600 hover:bg-slate-100 hover:text-slate-900 border-transparent",
+          "text-muted-foreground hover:bg-card hover:text-foreground border-transparent",
         destructive:
-          "bg-rose-600 text-white shadow-sm hover:bg-rose-700 border-transparent",
-        link: "text-blue-600 underline-offset-4 hover:underline border-transparent",
+          "bg-secondary text-foreground  hover:bg-secondary border-transparent",
+        link: "text-muted-foreground underline-offset-4 hover:underline border-transparent",
       },
       size: {
         default: "h-10 px-4",
-        xs: "h-7 rounded-lg px-2.5 text-xs",
-        sm: "h-8 rounded-lg px-3 text-sm",
+        xs: "h-7 rounded-control px-2.5 text-xs",
+        sm: "h-8 rounded-control px-3 text-sm",
         lg: "h-11 px-5 text-sm",
         icon: "size-10",
-        "icon-xs": "size-7 rounded-lg",
-        "icon-sm": "size-8 rounded-lg",
+        "icon-xs": "size-7 rounded-control",
+        "icon-sm": "size-8 rounded-control",
         "icon-lg": "size-11",
       },
     },
