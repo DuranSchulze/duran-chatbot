@@ -107,11 +107,33 @@ export function BehaviorPanel({ behavior, onChange }: BehaviorPanelProps) {
         </Field>
       </div>
 
+      <Field className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
+        <FieldRow>
+          <div>
+            <div className="flex items-center gap-2">
+              <FieldLabel>Start expanded</FieldLabel>
+              <Badge variant={behavior.openByDefault ? "success" : "secondary"}>
+                {behavior.openByDefault ? "Opens immediately" : "Starts minimized"}
+              </Badge>
+            </div>
+            <FieldDescription>
+              Show the full chatbox as soon as the widget loads, including on
+              WordPress embeds. Visitors can still minimize it.
+            </FieldDescription>
+          </div>
+          <Switch
+            checked={behavior.openByDefault}
+            onCheckedChange={(checked) => update("openByDefault", checked)}
+            aria-label="Start chatbot expanded"
+          />
+        </FieldRow>
+      </Field>
+
       <Field>
         <div className="flex items-center justify-between gap-4">
           <FieldLabel htmlFor="autoOpenDelay">Auto-open delay</FieldLabel>
           <span className="text-sm font-semibold text-blue-600">
-            {behavior.autoOpenDelay}s
+            {behavior.openByDefault ? "Not used" : `${behavior.autoOpenDelay}s`}
           </span>
         </div>
         <Slider
@@ -119,12 +141,14 @@ export function BehaviorPanel({ behavior, onChange }: BehaviorPanelProps) {
           min={0}
           max={30}
           value={behavior.autoOpenDelay}
+          disabled={behavior.openByDefault}
           onChange={(event) =>
             update("autoOpenDelay", Number(event.target.value))
           }
         />
         <FieldDescription>
-          Set to 0 to disable automatic widget opening.
+          Used only when “Start expanded” is off. Set to 0 to keep the widget
+          minimized until a visitor opens it.
         </FieldDescription>
       </Field>
     </div>

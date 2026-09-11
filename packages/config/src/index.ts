@@ -144,6 +144,8 @@ export interface DatasetEntry {
 }
 
 export interface BehaviorConfig {
+  /** Render the widget expanded as soon as it mounts */
+  openByDefault: boolean;
   /** Auto-open widget after seconds (0 = disabled) */
   autoOpenDelay: number;
   /** Show timestamp on messages */
@@ -209,6 +211,8 @@ export interface WidgetEmbedConfig {
   primaryColor?: string;
   /** Override company name */
   companyName?: string;
+  /** Override whether this embed starts expanded */
+  openByDefault?: boolean;
   /** User identification (optional) */
   user?: {
     name?: string;
@@ -255,6 +259,7 @@ export const defaultConfig: ChatbotConfig = {
   quickLinks: [],
   dataset: [],
   behavior: {
+    openByDefault: true,
     autoOpenDelay: 0,
     showTimestamps: true,
     enableCopyButton: true,
@@ -282,6 +287,9 @@ export function mergeWithDefaults(partial: Partial<ChatbotConfig>): ChatbotConfi
     behavior: {
       ...defaultConfig.behavior,
       ...partial.behavior,
+      openByDefault: partial.behavior?.openByDefault === undefined
+        ? defaultConfig.behavior.openByDefault
+        : partial.behavior.openByDefault === true,
       quoteNotifyTo: partial.behavior?.quoteNotifyTo ?? defaultConfig.behavior.quoteNotifyTo,
       quoteNotifyCC: partial.behavior?.quoteNotifyCC ?? defaultConfig.behavior.quoteNotifyCC,
     },

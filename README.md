@@ -477,7 +477,7 @@ Example:
 ```html
 <!-- Chatbot Widget -->
 <div id="chatbot-widget" data-profile="duran-schulze"></div>
-<script src="https://your-deployed-domain.com/widget.js?v=1.1.0" defer></script>
+<script src="https://your-deployed-domain.com/widget.js?v=1.1.1" defer></script>
 ```
 
 The `data-profile` attribute selects which profile config to load.
@@ -504,6 +504,17 @@ Supported container data attributes:
 - `data-position`
 - `data-primary-color`
 - `data-company-name`
+- `data-start-open` (`true` opens immediately; `false` overrides the profile and starts minimized)
+
+For WordPress, enable **Behavior → Start expanded** in the chatbot admin and
+save the profile. After deploying the updated widget, replace the old version in
+the WordPress embed with `widget.js?v=1.1.1`, then clear any WordPress page-cache
+or CDN cache. A single WordPress embed can force the behavior independently:
+
+```html
+<div id="chatbot-widget" data-profile="duran-schulze" data-start-open="true"></div>
+<script src="https://your-deployed-domain.com/widget.js?v=1.1.1" defer></script>
+```
 
 The preferred production pattern is still to keep the Gemini key on the server and let `/api/config` inject it.
 

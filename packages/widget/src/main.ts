@@ -38,6 +38,8 @@ if (typeof window !== 'undefined') {
       if (dataset.position) embedConfig.position = dataset.position as 'bottom-right' | 'bottom-left'
       if (dataset.primaryColor) embedConfig.primaryColor = dataset.primaryColor
       if (dataset.companyName) embedConfig.companyName = dataset.companyName
+      if (dataset.startOpen === 'true') embedConfig.openByDefault = true
+      if (dataset.startOpen === 'false') embedConfig.openByDefault = false
     }
 
     return embedConfig

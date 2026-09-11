@@ -567,7 +567,8 @@ sequenceDiagram
 - **Quote request** — Detects intent keywords (price, cost, quote, etc.) and shows an inline quote form
 - **Copy button** — Each AI response has a copy-to-clipboard button
 - **Timestamps** — Optional display of message timestamps
-- **Auto-open** — Optional delay before widget opens automatically
+- **Start expanded** — Show the full chatbox immediately when the widget loads
+- **Auto-open** — Optional delayed opening when Start expanded is disabled
 - **Honeypot spam protection** — Hidden form field traps bots
 - **Rate limiting** — 5 quote requests per 10 minutes per IP
 
@@ -581,7 +582,7 @@ The admin dashboard generates embed code like:
 <script src="https://your-domain.com/widget.js" defer></script>
 ```
 
-The widget auto-detects `data-profile`, `data-api-key`, `data-position`, `data-primary-color`, and `data-company-name` attributes on the container div for runtime overrides.
+The widget auto-detects `data-profile`, `data-api-key`, `data-position`, `data-primary-color`, `data-company-name`, and `data-start-open` attributes on the container div for runtime overrides. Set `data-start-open="true"` to force a particular embed to open immediately or `data-start-open="false"` to keep it minimized regardless of the profile setting.
 
 ---
 

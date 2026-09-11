@@ -6,13 +6,30 @@ export type NotificationChannel = typeof notificationChannels[number];
 type Env = Record<string, string | undefined>;
 const required: Record<NotificationChannel, string[]> = {
   telegram: ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"],
-  viber: ["VIBER_AUTH_TOKEN", "VIBER_ADMIN_USER_ID"],
-  whatsapp: ["WHATSAPP_ACCESS_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_ADMIN_NUMBER", "WHATSAPP_TEMPLATE_NAME", "WHATSAPP_TEMPLATE_LANGUAGE", "WHATSAPP_API_VERSION"],
+  viber: ["VIBER_AUTH_TOKEN"],
+  whatsapp: ["WHATSAPP_ACCESS_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_TEMPLATE_NAME", "WHATSAPP_TEMPLATE_LANGUAGE", "WHATSAPP_API_VERSION"],
 };
+
+const recipientVariables = {
+  viber: { plural: "VIBER_ADMIN_USER_IDS", legacy: "VIBER_ADMIN_USER_ID" },
+  whatsapp: { plural: "WHATSAPP_ADMIN_NUMBERS", legacy: "WHATSAPP_ADMIN_NUMBER" },
+} as const;
+
+function recipients(channel: "viber" | "whatsapp", env: Env): string[] {
+  const variables = recipientVariables[channel];
+  return [...new Set(`${env[variables.plural] || ""}\n${env[variables.legacy] || ""}`
+    .split(/[\n,]+/)
+    .map(value => value.trim())
+    .filter(Boolean))];
+}
 
 export function notificationReadiness(profile: string, env: Env = process.env) {
   return Object.fromEntries(notificationChannels.map(channel => {
     const missing = required[channel].filter(key => !env[key]?.trim());
+    if (channel !== "telegram" && recipients(channel, env).length === 0) {
+      const variables = recipientVariables[channel];
+      missing.push(`${variables.plural} or ${variables.legacy}`);
+    }
     if (env.NOTIFICATION_PROFILE_SLUG !== profile) missing.push("NOTIFICATION_PROFILE_SLUG");
     if (channel === "whatsapp" && env.WHATSAPP_API_VERSION && !/^v\d+\.\d+$/.test(env.WHATSAPP_API_VERSION)) missing.push("WHATSAPP_API_VERSION (invalid)");
     return [channel, { configured: missing.length === 0, missing }];
@@ -32,30 +49,31 @@ export type Inquiry = { profile: string; name: string; email: string; query: str
 const clip = (value: string, limit: number) => Array.from(value).length > limit ? Array.from(value).slice(0, limit - 1).join("") + "…" : value;
 const oneLine = (value: string) => value.replace(/\p{Cc}+/gu, " ").trim();
 
-export async function sendNotification(channel: NotificationChannel, inquiry: Inquiry, env: Env = process.env, transport: typeof fetch = fetch) {
-  if (!notificationReadiness(inquiry.profile, env)[channel].configured) throw new NotificationError("not_configured", false);
-  const name = clip(oneLine(inquiry.name) || "Not provided", 150);
-  const email = clip(oneLine(inquiry.email) || "Not provided", 254);
-  const query = clip(inquiry.query, 2400);
-  const text = `New chatbot inquiry\nProfile: ${clip(oneLine(inquiry.profile), 100)}\nName: ${name}\nEmail: ${email}\n\nInquiry:\n${query}\n\nReference: ${inquiry.eventId}`;
+/**
+ * Provider-ready payload: plain text for Telegram/Viber, plus WhatsApp's four
+ * positional template parameters (profile, name, email, inquiry).
+ */
+type Outbound = { text: string; whatsapp: [string, string, string, string] };
+
+async function deliver(channel: NotificationChannel, outbound: Outbound, env: Env, transport: typeof fetch, recipient?: string) {
   let url: string;
   let body: unknown;
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (channel === "telegram") {
     url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`;
-    body = { chat_id: env.TELEGRAM_CHAT_ID, text, link_preview_options: { is_disabled: true } };
+    body = { chat_id: env.TELEGRAM_CHAT_ID, text: outbound.text, link_preview_options: { is_disabled: true } };
   } else if (channel === "viber") {
     url = "https://chatapi.viber.com/pa/send_message";
     headers["X-Viber-Auth-Token"] = env.VIBER_AUTH_TOKEN!;
-    body = { receiver: env.VIBER_ADMIN_USER_ID, type: "text", sender: { name: "Chatbot inquiries" }, text };
+    body = { receiver: recipient, type: "text", sender: { name: "Chatbot inquiries" }, text: outbound.text };
   } else {
     url = `https://graph.facebook.com/${env.WHATSAPP_API_VERSION}/${encodeURIComponent(env.WHATSAPP_PHONE_NUMBER_ID!)}/messages`;
     headers.Authorization = `Bearer ${env.WHATSAPP_ACCESS_TOKEN}`;
     // Approved template body has exactly four positional parameters:
     // profile, visitor name, visitor email, inquiry (single-line, bounded).
-    body = { messaging_product: "whatsapp", to: env.WHATSAPP_ADMIN_NUMBER, type: "template", template: {
+    body = { messaging_product: "whatsapp", to: recipient, type: "template", template: {
       name: env.WHATSAPP_TEMPLATE_NAME, language: { code: env.WHATSAPP_TEMPLATE_LANGUAGE },
-      components: [{ type: "body", parameters: [clip(oneLine(inquiry.profile), 100), name, email, clip(oneLine(inquiry.query), 350)].map(text => ({ type: "text", text })) }],
+      components: [{ type: "body", parameters: outbound.whatsapp.map(text => ({ type: "text", text })) }],
     } };
   }
   let response: Response;
@@ -75,6 +93,43 @@ export async function sendNotification(channel: NotificationChannel, inquiry: In
   const id = channel === "telegram" ? data?.result?.message_id : channel === "viber" ? data?.message_token : data?.messages?.[0]?.id;
   if (id == null) throw new NotificationError("invalid_provider_response", true);
   return String(id);
+}
+
+export async function sendNotification(channel: NotificationChannel, inquiry: Inquiry, env: Env = process.env, transport: typeof fetch = fetch) {
+  if (!notificationReadiness(inquiry.profile, env)[channel].configured) throw new NotificationError("not_configured", false);
+  const name = clip(oneLine(inquiry.name) || "Not provided", 150);
+  const email = clip(oneLine(inquiry.email) || "Not provided", 254);
+  const query = clip(inquiry.query, 2400);
+  const outbound: Outbound = {
+    text: `New chatbot inquiry\nProfile: ${clip(oneLine(inquiry.profile), 100)}\nName: ${name}\nEmail: ${email}\n\nInquiry:\n${query}\n\nReference: ${inquiry.eventId}`,
+    whatsapp: [clip(oneLine(inquiry.profile), 100), name, email, clip(oneLine(inquiry.query), 350)],
+  };
+  if (channel === "telegram") return deliver(channel, outbound, env, transport);
+  const ids: string[] = [];
+  // A channel delivery is accepted only after every configured recipient has
+  // been accepted by the provider. A later-recipient failure may cause an
+  // earlier recipient to see a duplicate when the delivery is retried.
+  for (const recipient of recipients(channel, env)) ids.push(await deliver(channel, outbound, env, transport, recipient));
+  return ids.join(",");
+}
+
+/**
+ * Send a clearly-labelled test alert straight to the configured recipient so an
+ * admin can prove credentials without waiting for a visitor inquiry. Never
+ * persisted to the delivery outbox and never counted as a real inquiry.
+ */
+export async function sendTestNotification(channel: NotificationChannel, profile: string, env: Env = process.env, transport: typeof fetch = fetch) {
+  if (!notificationReadiness(profile, env)[channel].configured) throw new NotificationError("not_configured", false);
+  const label = clip(oneLine(profile) || "Chatbot", 100);
+  const summary = `If you can read this, ${channel} alerts are wired up. No visitor inquiry is involved.`;
+  const outbound: Outbound = {
+    text: `Test alert from the chatbot dashboard\nProfile: ${label}\n\n${summary}`,
+    whatsapp: [label, "Test alert", "no-reply@example.com", clip(summary, 350)],
+  };
+  if (channel === "telegram") return deliver(channel, outbound, env, transport);
+  const ids: string[] = [];
+  for (const recipient of recipients(channel, env)) ids.push(await deliver(channel, outbound, env, transport, recipient));
+  return ids.join(",");
 }
 
 // CAS claims prevent concurrent request/cron workers from sending the same row.

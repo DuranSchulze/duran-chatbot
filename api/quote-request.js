@@ -204,9 +204,9 @@ export default async function handler(req, res) {
   const recipients = behavior?.quoteNotifyTo?.filter(Boolean) ?? [];
   const ccList = behavior?.quoteNotifyCC?.filter(Boolean) ?? [];
 
-  // Internal-only mode still requires a sales recipient. Visitor-starter mode
-  // emails the visitor directly, so the sales list is only used for CC.
-  if (!emailVisitor && recipients.length === 0) {
+  // Every quote request must include the internal team. The visitor-facing
+  // message uses this list as CC and the first address as Reply-To.
+  if (recipients.length === 0) {
     res.status(500).json({ error: "No notification recipients configured for this profile" });
     return;
   }

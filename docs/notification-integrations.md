@@ -17,11 +17,11 @@ Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`. Create a bot with BotFather, st
 
 ## Viber
 
-Set `VIBER_AUTH_TOKEN` and `VIBER_ADMIN_USER_ID`. Obtain an active commercial bot and subscribe the recipient account; the recipient ID comes from your bot's signed subscription/message callback. This implementation sends outbound alerts and does not host a subscription webhook. Viber bot creation is on commercial terms, so the old panel's “free” description was incorrect. [Viber REST API](https://developers.viber.com/docs/api/rest-bot-api/).
+Set `VIBER_AUTH_TOKEN` and `VIBER_ADMIN_USER_IDS`. The recipient list accepts comma- or newline-separated user IDs; duplicates and blank entries are ignored. The legacy `VIBER_ADMIN_USER_ID` remains supported and is combined with the plural list. Obtain an active commercial bot and have every recipient subscribe to it; each recipient ID comes from your bot's signed subscription/message callback. This implementation sends outbound alerts and does not host a subscription webhook. Viber bot creation is on commercial terms, so the old panel's “free” description was incorrect. [Viber REST API](https://developers.viber.com/docs/api/rest-bot-api/).
 
 ## WhatsApp
 
-Set `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ADMIN_NUMBER` (international digits), `WHATSAPP_TEMPLATE_NAME`, `WHATSAPP_TEMPLATE_LANGUAGE` (e.g. `en_US`) and `WHATSAPP_API_VERSION` (a supported Graph API version, e.g. `v23.0`). Use a business account and an opted-in recipient. Register an approved template with exactly four positional body text parameters and no required header/button parameters:
+Set `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ADMIN_NUMBERS` (comma- or newline-separated international-digit numbers), `WHATSAPP_TEMPLATE_NAME`, `WHATSAPP_TEMPLATE_LANGUAGE` (e.g. `en_US`) and `WHATSAPP_API_VERSION` (a supported Graph API version, e.g. `v23.0`). The legacy `WHATSAPP_ADMIN_NUMBER` remains supported and is combined with the plural list. Use a business account; every recipient must opt in. Register an approved template with exactly four positional body text parameters and no required header/button parameters:
 
 ```text
 New chatbot inquiry for {{1}}.
@@ -35,7 +35,7 @@ The parameters are profile slug, visitor name, visitor email and inquiry. The ad
 ## Delivery semantics and operation
 
 - Missing name/email is shown as “Not provided”; absence of identity does not discard an inquiry. Failed AI calls can be logged without an assistant response. The widget submits the inquiry immediately before AI generation and attaches the eventual answer using the same request ID. The notification does not wait for an AI answer. Network failure or browser termination before submission can still prevent capture.
-- `accepted` means the provider accepted the API request, **not** delivered/read on the recipient phone. Delivery-receipt webhooks are not implemented.
+- `accepted` means the provider accepted the API request for every configured recipient, **not** delivered/read on their phones. Delivery-receipt webhooks are not implemented. If a later recipient fails after an earlier one was accepted, retrying the channel delivery can send a duplicate to the earlier recipient.
 - Temporary HTTP/network failures retry up to five attempts with exponential backoff and rate-limit delay. Permanent failures stay visible. Fix the setup, then use **Retry failed alerts** to requeue up to 50 failed deliveries. Turning off a channel or archiving its profile cancels queued deliveries when processed. An already in-flight send cannot be revoked.
 - Rows are claimed using database compare-and-set leases. Expired leases recover after worker interruption. Provider acceptance followed by a worker crash can produce a duplicate; exactly-once delivery is not guaranteed by these APIs. Telegram/Viber include an event reference for recognizing duplicates.
 - `requestId` makes repeated submission of the same inquiry idempotent within a conversation. Clients must reuse that ID on retry; older clients without an ID receive a new one per request.

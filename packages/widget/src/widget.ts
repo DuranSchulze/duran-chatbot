@@ -262,13 +262,19 @@ export class ChatbotWidget {
       }
     })
 
-    if (this.config.behavior.autoOpenDelay > 0) {
+    const openByDefault = this.embedConfig.openByDefault ?? this.config.behavior.openByDefault
+    if (openByDefault) {
+      // Defer until the current mount work is complete so hosts such as
+      // WordPress render the expanded state reliably after async config loading.
+      queueMicrotask(() => this.open())
+    } else if (this.config.behavior.autoOpenDelay > 0) {
       setTimeout(() => this.open(), this.config.behavior.autoOpenDelay * 1000)
     }
   }
 
   private toggle() {
-    this.isOpen ? this.close() : this.open()
+    if (this.isOpen) this.close()
+    else this.open()
   }
 
   /** Open the chat window (also used by hosts to start with the chat visible). */
@@ -771,7 +777,8 @@ export class ChatbotWidget {
   private toggleActionMenu() {
     const menu = this.getRoot()?.querySelector<HTMLElement>('.cb-action-menu')
     if (!menu) return
-    menu.classList.contains('cb-hidden') ? this.openActionMenu() : this.closeActionMenu()
+    if (menu.classList.contains('cb-hidden')) this.openActionMenu()
+    else this.closeActionMenu()
   }
 
   private openActionMenu() {
@@ -831,11 +838,11 @@ export class ChatbotWidget {
       return
     }
     if (type === 'quote') {
-      this.showQuoteCard('starter', true)
+      this.showQuoteCard(true)
     }
   }
 
-  private showQuoteCard(mode: 'internal' | 'starter' = 'internal', force = false) {
+  private showQuoteCard(force = false) {
     if (this.quoteCardShown && !force) return
     this.quoteCardShown = true
 
@@ -864,11 +871,11 @@ export class ChatbotWidget {
       if (submitBtn) submitBtn.disabled = true
       if (submitBtn) submitBtn.textContent = 'Sending…'
 
-      await this.handleQuoteSubmit(service, card, mode)
+      await this.handleQuoteSubmit(service, card)
     })
   }
 
-  private async handleQuoteSubmit(service: string, card: HTMLElement, mode: 'internal' | 'starter' = 'internal') {
+  private async handleQuoteSubmit(service: string, card: HTMLElement) {
     const profile = this.visitorProfile
     const submitBtn = card.querySelector<HTMLButtonElement>('.cb-quote-submit')
     const errorEl = card.querySelector<HTMLElement>('.cb-quote-error')
@@ -884,7 +891,9 @@ export class ChatbotWidget {
           message: service,
           service,
           profile: this.profileSlug || undefined,
-          emailVisitor: mode === 'starter',
+          // Every quote entry point uses the same shared email thread: the
+          // visitor is addressed directly and the configured team is CC'd.
+          emailVisitor: true,
         }),
       })
 
@@ -896,9 +905,7 @@ export class ChatbotWidget {
       const successEl = document.createElement('div')
       successEl.className = 'cb-quote-success'
       successEl.textContent =
-        mode === 'starter'
-          ? '✓ Sent! Check your email — our team is included and will follow up shortly.'
-          : '✓ Request sent! Our team will be in touch shortly.'
+        '✓ Sent! Check your email — our team is included and will follow up shortly.'
       card.replaceWith(successEl)
 
       const messagesContainer = this.getRoot()?.querySelector<HTMLElement>('.cb-messages')

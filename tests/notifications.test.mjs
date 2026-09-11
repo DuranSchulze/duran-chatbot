@@ -15,7 +15,11 @@ const reply = (data, status = 200, headers) => new Response(JSON.stringify(data)
 function response() { return { headers: {}, statusCode: 200, setHeader(k, v) { this.headers[k] = v; }, status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; }, end() { return this; } }; }
 
 test('integration flags default off and reject truthy strings and unexpected secret fields', () => {
-  assert.deepEqual(enabledChannels(mergeWithDefaults({}).integrations), []);
+  const defaults = mergeWithDefaults({});
+  assert.deepEqual(enabledChannels(defaults.integrations), []);
+  assert.equal(defaults.behavior.openByDefault, true);
+  assert.equal(mergeWithDefaults({ behavior: { openByDefault: false } }).behavior.openByDefault, false);
+  assert.equal(mergeWithDefaults({ behavior: { openByDefault: 'true' } }).behavior.openByDefault, false);
   const merged = mergeWithDefaults({ integrations: { telegram: { enabled: 'true', token: 'secret' }, viber: { enabled: true } } });
   assert.deepEqual(merged.integrations.telegram, { enabled: false });
   assert.deepEqual(enabledChannels(merged.integrations), ['viber']);
@@ -24,6 +28,11 @@ test('credentials are bound to a profile and readiness never exposes their value
   assert.equal(notificationReadiness('example', env).telegram.configured, true);
   assert.equal(notificationReadiness('other', env).telegram.configured, false);
   assert.ok(!JSON.stringify(notificationReadiness('example', env)).includes('secret'));
+});
+test('plural Viber and WhatsApp recipient lists are accepted without legacy recipient variables', () => {
+  const multi = { ...env, VIBER_ADMIN_USER_ID: '', VIBER_ADMIN_USER_IDS: 'viber-1,viber-2', WHATSAPP_ADMIN_NUMBER: '', WHATSAPP_ADMIN_NUMBERS: '6391\n6392' };
+  assert.equal(notificationReadiness('example', multi).viber.configured, true);
+  assert.equal(notificationReadiness('example', multi).whatsapp.configured, true);
 });
 for (const channel of ['telegram', 'viber', 'whatsapp']) test(`${channel} uses correct official payload and accepts a provider id`, async () => {
   const id = await sendNotification(channel, inquiry, env, async (url, options) => {
@@ -49,6 +58,19 @@ test('WhatsApp parameters have no newlines and stay within template size budget'
     const params = JSON.parse(options.body).template.components[0].parameters;
     assert.ok(params.every(x => !x.text.includes('\n'))); assert.ok(params[3].text.length <= 450); return reply({ messages: [{ id: '1' }] });
   });
+});
+for (const channel of ['viber', 'whatsapp']) test(`${channel} sends once to each unique configured recipient`, async () => {
+  const multi = channel === 'viber'
+    ? { ...env, VIBER_ADMIN_USER_ID: 'first', VIBER_ADMIN_USER_IDS: 'second, first\nthird' }
+    : { ...env, WHATSAPP_ADMIN_NUMBER: '6391', WHATSAPP_ADMIN_NUMBERS: '6392,6391\n6393' };
+  const recipients = [];
+  const id = await sendNotification(channel, inquiry, multi, async (_, options) => {
+    const body = JSON.parse(options.body);
+    recipients.push(channel === 'viber' ? body.receiver : body.to);
+    return channel === 'viber' ? reply({ status: 0, message_token: recipients.length }) : reply({ messages: [{ id: recipients.length }] });
+  });
+  assert.deepEqual(recipients, channel === 'viber' ? ['second', 'first', 'third'] : ['6392', '6391', '6393']);
+  assert.equal(id, '1,2,3');
 });
 test('429 honors retry-after without exposing provider content', async () => {
   await assert.rejects(sendNotification('telegram', inquiry, env, async () => reply({ description: 'secret' }, 429, { 'retry-after': '120' })), error => error.retryable && error.retryAfterSeconds === 120 && !error.message.includes('secret'));
