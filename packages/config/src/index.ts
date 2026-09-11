@@ -144,6 +144,8 @@ export interface DatasetEntry {
 }
 
 export interface BehaviorConfig {
+  /** Internal-only conversation email settings; stripped from public APIs. */
+  conversationEmail: ConversationEmailConfig;
   /** Render the widget expanded as soon as it mounts */
   openByDefault: boolean;
   /** Auto-open widget after seconds (0 = disabled) */
@@ -166,6 +168,40 @@ export interface BehaviorConfig {
   quoteStarterSubject?: string;
   /** Heading shown above the post-answer call-to-action card */
   ctaHeading?: string;
+}
+
+export interface ConversationEmailConfig {
+  enabled: boolean;
+  to: string[];
+  cc: string[];
+  subject: string;
+}
+
+export function normalizeConversationEmail(value: unknown): ConversationEmailConfig {
+  const input = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+  const list = (value: unknown): string[] => Array.isArray(value)
+    ? [...new Set(value.filter((x): x is string => typeof x === 'string').map(x => x.trim().toLowerCase()).filter(Boolean))]
+    : [];
+  const to = list(input.to);
+  return {
+    enabled: input.enabled === true,
+    to,
+    cc: list(input.cc).filter(x => !to.includes(x)),
+    subject: typeof input.subject === 'string' ? input.subject.replace(/\p{Cc}+/gu, ' ').trim().slice(0, 160) : '',
+  };
+}
+
+/** Invalid/oversized lists fail closed instead of silently dropping recipients. */
+export function conversationEmailRecipientError(settings: ConversationEmailConfig): string | null {
+  if (!settings.to.length) return 'Add at least one primary recipient';
+  if (settings.to.length + settings.cc.length > 20) return 'Use at most 20 recipients including CC';
+  if ([...settings.to, ...settings.cc].some(x => x.length > 254 || !/^[^\s@<>(),;]+@[^\s@<>(),;]+\.[^\s@<>(),;]+$/.test(x))) return 'Enter valid email addresses without display names';
+  return null;
+}
+
+/** Never publish internal alert routing or subjects to embedded widgets. */
+export function publicWidgetConfig(config: ChatbotConfig): ChatbotConfig {
+  return { ...config, behavior: { ...config.behavior, conversationEmail: normalizeConversationEmail(null) } };
 }
 
 /** Per-channel settings for a messaging integration */
@@ -259,6 +295,7 @@ export const defaultConfig: ChatbotConfig = {
   quickLinks: [],
   dataset: [],
   behavior: {
+    conversationEmail: { enabled: false, to: [], cc: [], subject: '' },
     openByDefault: true,
     autoOpenDelay: 0,
     showTimestamps: true,
@@ -287,6 +324,7 @@ export function mergeWithDefaults(partial: Partial<ChatbotConfig>): ChatbotConfi
     behavior: {
       ...defaultConfig.behavior,
       ...partial.behavior,
+      conversationEmail: normalizeConversationEmail(partial.behavior?.conversationEmail),
       openByDefault: partial.behavior?.openByDefault === undefined
         ? defaultConfig.behavior.openByDefault
         : partial.behavior.openByDefault === true,

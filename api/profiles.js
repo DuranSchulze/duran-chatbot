@@ -1,6 +1,6 @@
 import { isAdmin } from "./_lib/auth.js";
 import prisma from "@duran-chatbot/database";
-import { mergeWithDefaults } from "@duran-chatbot/config";
+import { mergeWithDefaults, publicWidgetConfig } from "@duran-chatbot/config";
 
 const DEFAULT_SLUG = "duran-schulze";
 const DEFAULT_PROFILE_NAME = "Duran Schulze";
@@ -55,6 +55,7 @@ function buildDefaultConfigData() {
 }
 
 export default async function handler(req, res) {
+  res.setHeader("Cache-Control", "no-store");
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
     "Access-Control-Allow-Methods",
@@ -68,6 +69,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== "GET" && !isAdmin(req)) return res.status(401).json({ error: "Unauthorized" });
+  if (req.headers.authorization && !isAdmin(req)) return res.status(401).json({ error: "Unauthorized" });
 
   let slug =
     req.query?.slug ??
@@ -76,6 +78,10 @@ export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
       if (slug) {
+        if (new URL(req.url, "http://localhost").searchParams.get("metadata") === "1") {
+          const profile = await prisma.profile.findUnique({ where: { slug }, select: { slug: true, name: true, status: true, createdAt: true } });
+          return res.status(profile ? 200 : 404).json(profile ?? { error: "Profile not found" });
+        }
         const profile = await prisma.profile.findUnique({
           where: { slug },
           include: { config: true },
@@ -88,7 +94,7 @@ export default async function handler(req, res) {
         const {
           ai: { apiKey: _dropped, ...ai },
           ...rest
-        } = merged;
+        } = isAdmin(req) ? merged : publicWidgetConfig(merged);
         res.status(200).json({
           slug: profile.slug,
           name: profile.name,

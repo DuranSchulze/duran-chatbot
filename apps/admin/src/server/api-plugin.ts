@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Connect, PluginOption, ViteDevServer } from "vite";
-import { mergeWithDefaults, type ServiceEntry, type QuickLink, type DatasetEntry } from "@duran-chatbot/config";
+import { mergeWithDefaults, publicWidgetConfig, type ServiceEntry, type QuickLink, type DatasetEntry } from "@duran-chatbot/config";
 import prisma, {
   getNotificationStatus,
   retryFailedNotifications,
@@ -371,7 +371,10 @@ export function apiPlugin(): PluginOption {
         if (req.method !== "GET" && req.method !== "POST") { jsonRes(res, 405, { error: "Method not allowed" }); return; }
         if (!isAdminRequest(req)) { jsonRes(res, 401, { error: "Unauthorized" }); return; }
         const profile = new URL(req.url || "/", "http://localhost").searchParams.get("profile") || DEFAULT_SLUG;
-        try { jsonRes(res, 200, await (req.method === "POST" ? retryFailedNotifications(profile) : getNotificationStatus(profile))); }
+        const channel = new URL(req.url || "/", "http://localhost").searchParams.get("channel");
+        if (channel && channel !== "email") { jsonRes(res, 400, { error: "Unsupported channel" }); return; }
+        const scope = channel === "email" ? "email" : "messaging";
+        try { jsonRes(res, 200, await (req.method === "POST" ? retryFailedNotifications(profile, scope) : getNotificationStatus(profile, scope))); }
         catch { jsonRes(res, 500, { error: "Unable to read notification status" }); }
       });
 
@@ -572,6 +575,7 @@ export function apiPlugin(): PluginOption {
             });
 
             const sessions = conversations.map((conv) => ({
+              id: conv.id,
               sessionId: conv.sessionId,
               userName: conv.userName,
               userEmail: conv.userEmail,
@@ -830,6 +834,8 @@ export function apiPlugin(): PluginOption {
           }
 
           const configUrl = new URL(req.url ?? "/", "http://localhost");
+          res.setHeader("Cache-Control", "no-store");
+          if (req.headers.authorization && !isAdminRequest(req)) { jsonRes(res, 401, { error: "Unauthorized" }); return; }
           const profileSlug =
             configUrl.searchParams.get("profile") ?? "";
           const slug = profileSlug || DEFAULT_SLUG;
@@ -843,7 +849,7 @@ export function apiPlugin(): PluginOption {
               );
               merged.ai.apiKey = geminiApiKey;
 
-              jsonRes(res, 200, merged);
+              jsonRes(res, 200, isAdminRequest(req) ? merged : publicWidgetConfig(merged));
             } catch (error) {
               jsonRes(res, 500, {
                 error: "Failed to read config",
@@ -938,6 +944,8 @@ export function apiPlugin(): PluginOption {
 
           const url = new URL(req.url ?? "/", "http://localhost");
           let slug = url.searchParams.get("slug") ?? "";
+          res.setHeader("Cache-Control", "no-store");
+          if (req.headers.authorization && !isAdminRequest(req)) { jsonRes(res, 401, { error: "Unauthorized" }); return; }
 
           try {
             if (req.method === "GET") {
@@ -964,7 +972,7 @@ export function apiPlugin(): PluginOption {
                 const {
                   ai: { apiKey: _dropped, ...ai },
                   ...rest
-                } = merged;
+                } = isAdminRequest(req) ? merged : publicWidgetConfig(merged);
                 jsonRes(res, 200, {
                   slug: profile.slug,
                   name: profile.name,

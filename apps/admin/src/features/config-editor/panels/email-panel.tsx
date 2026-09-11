@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ConversationEmailCard } from "./conversation-email-card";
 import type { BehaviorConfig } from "@duran-chatbot/config";
 import { BellRing, KeyRound, Send, ShieldCheck, Loader2 } from "lucide-react";
 
@@ -144,7 +145,7 @@ export function EmailPanel({ profileSlug, behavior, onBehaviorChange }: EmailPan
       <SectionHeader
         eyebrow="Email"
         title="Email Settings"
-        description="Everything email in one place: the sending provider below, and the quote-request notifications this chatbot sends. Saving the profile config (top bar) applies the notification settings."
+        description="Manage the sending provider, conversation alerts, and quote-request emails. Saving the profile config (top bar) applies the notification settings."
         action={
           hasSecret ? (
             <Badge variant="success" className="gap-1">
@@ -224,6 +225,8 @@ export function EmailPanel({ profileSlug, behavior, onBehaviorChange }: EmailPan
           </div>
         </CardContent>
       </Card>
+
+      <ConversationEmailCard key={profileSlug} profileSlug={profileSlug} settings={behavior.conversationEmail} onChange={value => updateBehavior("conversationEmail", value)} />
 
       <Card className="border-slate-200 bg-white shadow-none">
         <CardContent className="space-y-5 pt-5">

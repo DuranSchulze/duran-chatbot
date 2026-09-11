@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import prisma from "./client.js";
 import { enabledChannels, dispatchNotifications } from "./notifications.js";
+import { normalizeConversationEmail } from "@duran-chatbot/config";
 
 export class ChatLogError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -52,7 +53,8 @@ export async function logChat(body: unknown, options: { allowInternal?: boolean 
     });
     const message = await tx.message.create({ data: { conversationId: conversation.id, role: "user", content: input.userMessage } });
     if (input.aiResponse) await tx.message.create({ data: { id: `reply:${message.id}`, conversationId: conversation.id, role: "assistant", content: input.aiResponse } });
-    const channels = enabledChannels(profile.config?.integrations);
+    const channels: string[] = enabledChannels(profile.config?.integrations);
+    if (normalizeConversationEmail((profile.config?.behavior as Record<string, unknown> | null)?.conversationEmail).enabled) channels.push("email");
     const event = await tx.notificationEvent.create({ data: { conversationId: conversation.id, requestId: input.requestId, messageId: message.id, deliveries: { create: channels.map(channel => ({ channel })) } } });
     return { eventId: event.id, duplicate: false };
   }, { maxWait: 10000, timeout: 10000 });

@@ -5,6 +5,9 @@ export default async function handler(req, res) {
   if (req.method !== "GET" && req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   if (!isAdmin(req)) return res.status(401).json({ error: "Unauthorized" });
   const profile = new URL(req.url, "http://localhost").searchParams.get("profile") || "duran-schulze";
-  try { return res.status(200).json(await (req.method === "POST" ? retryFailedNotifications(profile) : getNotificationStatus(profile))); }
+  const channel = new URL(req.url, "http://localhost").searchParams.get("channel");
+  if (channel && channel !== "email") return res.status(400).json({ error: "Unsupported channel" });
+  const scope = channel === "email" ? "email" : "messaging";
+  try { return res.status(200).json(await (req.method === "POST" ? retryFailedNotifications(profile, scope) : getNotificationStatus(profile, scope))); }
   catch { return res.status(500).json({ error: "Unable to read notification status" }); }
 }

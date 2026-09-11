@@ -8,6 +8,7 @@ export interface ChatMessage {
 }
 
 export interface ConversationSession {
+  id: string;
   sessionId: string;
   userName: string;
   userEmail: string;

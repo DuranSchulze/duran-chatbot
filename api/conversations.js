@@ -148,6 +148,7 @@ export default async function handler(req, res) {
     });
 
     const sessions = conversations.map((conv) => ({
+      id: conv.id,
       sessionId: conv.sessionId,
       userName: conv.userName,
       userEmail: conv.userEmail,

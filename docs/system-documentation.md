@@ -1,9 +1,19 @@
 # Duran Chatbot — System Documentation
 
-> **Last updated:** 2026-06-02  
+> **Last updated:** 2026-09-11 (conversation email alerts; older sections retain their original scope)  
 > **Project:** Duran Chatbot — AI-powered legal assistant chatbot with multi-profile management, conversation logging, and quote request handling.
 
 ---
+
+## Conversation email alerts — September 2026
+
+The Email settings page now includes optional per-profile **Conversation email alerts**, independent of quote emails and messaging integrations. `behavior.conversationEmail` stores `{ enabled, to, cc, subject }`, defaulting to disabled. Public configuration endpoints redact these internal settings; authenticated admin reads retain them.
+
+Every new visitor message can enqueue an `email` delivery atomically through the existing `NotificationEvent`/`NotificationDelivery` outbox. The shared worker sends through the profile’s Resend integration, includes only bounded visitor-authored content, and retries temporary failures. Status and retries use the authenticated `/api/notification-status?profile=…&channel=email` route. No new schema migration is required beyond the existing notification tables.
+
+Set `ADMIN_APP_URL` to the canonical admin origin. The email button opens the authenticated `/conversations?profile=…&conversation=…` view using the database conversation ID. Login restores the requested internal URL; the dashboard still shows all message roles. Email recipients require existing admin credentials and do not gain access merely by receiving a notification.
+
+See [notification setup and operations](notification-integrations.md#conversation-email-alerts) for configuration, privacy, limits, scheduler requirements, and rollback. Existing quote email recipients and behavior are unchanged.
 
 ## Table of Contents
 

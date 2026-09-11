@@ -27,7 +27,7 @@ function configUrl(profileSlug?: string): string {
 }
 
 export async function fetchConfig(profileSlug?: string): Promise<ChatbotConfig> {
-  const response = await fetch(configUrl(profileSlug))
+  const response = await fetch(configUrl(profileSlug), { headers: getAuthHeaders() })
   if (!response.ok) {
     throw new Error(
       await getErrorMessage(response, `Failed to fetch config (${response.status})`),

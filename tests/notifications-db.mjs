@@ -108,6 +108,46 @@ try {
   assert.equal((await prisma.notificationDelivery.findFirst({ where: { eventId: permanent.eventId } })).status, 'failed');
   console.log('PASS: authenticated internal chat bootstrap, permanent failures, manual retry, stale leases, attempt cap');
 
+  // Independent email profile; fake provider only, including transaction-level idempotency.
+  process.env.ADMIN_APP_URL = 'https://admin.example.test';
+  process.env.RESEND_API_KEY = 'test-only-key';
+  process.env.RESEND_FROM_EMAIL = 'test@example.test';
+  const conversationEmail = { enabled: true, to: ['team@example.test'], cc: [], subject: '' };
+  await prisma.profile.create({ data: { slug: 'email-test', name: 'Email test', config: { create: { appearance: {}, ai: {}, persona: {}, services: [], quickLinks: [], dataset: [], behavior: { conversationEmail }, integrations: {} } } } });
+  let emailSends = 0;
+  globalThis.fetch = async (_url, options) => {
+    emailSends++;
+    const payload = JSON.parse(options.body);
+    assert.ok(!payload.text.includes('AI_NOT_FOR_EMAIL'));
+    assert.ok(!payload.html.includes('AI_NOT_FOR_EMAIL'));
+    assert.ok(payload.text.includes('conversation='));
+    return new Response(JSON.stringify({ id: `email-${emailSends}` }));
+  };
+  const emailInput = { ...input, profile: 'email-test', sessionId: 'email-session', requestId: 'email-one', aiResponse: 'AI_NOT_FOR_EMAIL' };
+  const emailResults = await Promise.all([lib.logChat(emailInput), lib.logChat(emailInput)]);
+  assert.equal(emailResults.filter(x => x.duplicate).length, 1);
+  assert.equal(emailSends, 1);
+  let emailDelivery = await prisma.notificationDelivery.findFirst({ where: { eventId: emailResults[0].eventId, channel: 'email' } });
+  assert.equal(emailDelivery.status, 'accepted'); assert.equal(emailDelivery.providerMessageId, 'email-1');
+  globalThis.fetch = async () => new Response('{}', { status: 503 });
+  const emailRetry = await lib.logChat({ ...emailInput, requestId: 'email-retry' });
+  emailDelivery = await prisma.notificationDelivery.findFirst({ where: { eventId: emailRetry.eventId } });
+  assert.equal(emailDelivery.status, 'pending');
+  await prisma.notificationDelivery.update({ where: { id: emailDelivery.id }, data: { status: 'failed' } });
+  assert.equal((await lib.retryFailedNotifications('email-test')).queued, 0);
+  assert.equal((await lib.retryFailedNotifications('email-test', 'email')).queued, 1);
+  const emailStatus = await lib.getNotificationStatus('email-test', 'email');
+  assert.equal(emailStatus.readiness.configured, true);
+  assert.ok(!JSON.stringify(emailStatus).includes('team@example.test'));
+  await prisma.config.update({ where: { profileId: 'email-test' }, data: { behavior: { conversationEmail: { ...conversationEmail, enabled: false } } } });
+  globalThis.fetch = async () => assert.fail('disabled email must not send');
+  await lib.dispatchNotifications(emailRetry.eventId);
+  assert.equal((await prisma.notificationDelivery.findUnique({ where: { id: emailDelivery.id } })).status, 'cancelled');
+  const emailOff = await lib.logChat({ ...emailInput, requestId: 'email-off' });
+  assert.equal(await prisma.notificationDelivery.count({ where: { eventId: emailOff.eventId } }), 0);
+  await prisma.profile.delete({ where: { slug: 'email-test' } });
+  console.log('PASS: email transaction idempotency, visitor-only payload, retries, scope isolation, disable cancellation');
+
   await prisma.profile.delete({ where: { slug: 'example' } });
   assert.equal(await prisma.notificationDelivery.count(), 0);
   assert.equal(await prisma.notificationEvent.count(), 0);

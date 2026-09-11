@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   MessageSquare,
   Search,
@@ -193,17 +193,21 @@ function exportSessionAsPDF(session: ConversationSession) {
 
 export function ConversationsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnToRef = useRef(location.pathname + location.search);
+  returnToRef.current = location.pathname + location.search;
   const { logout } = useAuth();
   const { toast } = useToast();
   const [profile, setProfile] = useState<ProfileMeta | null>(null);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const requestedProfile = searchParams.get("profile");
+  const requestedConversation = searchParams.get("conversation");
   const activeProfile = profile?.slug === requestedProfile && profile.status === "active"
     ? profile.slug : "";
   const currentProfileRef = useRef(activeProfile);
   currentProfileRef.current = activeProfile;
   const [sessions, setSessions] = useState<ConversationSession[]>([]);
-  const [selected, setSelected] = useState<ConversationSession | null>(null);
+  const selected = activeProfile ? sessions.find(session => session.id === requestedConversation && session.profile === activeProfile) ?? null : null;
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -230,7 +234,7 @@ export function ConversationsPage() {
         });
         if (res.status === 401) {
           logout();
-          navigate("/login", { replace: true });
+          navigate("/login", { replace: true, state: { returnTo: returnToRef.current } });
           return;
         }
         if (!res.ok) throw new Error("This chatbot profile is unavailable.");
@@ -257,16 +261,11 @@ export function ConversationsPage() {
         const data = await fetchConversations(activeProfile);
         if (currentProfileRef.current !== activeProfile) return;
         setSessions(data);
-        // Keep the open conversation open across auto-refreshes, picking up any
-        // new messages, instead of closing it every cycle.
-        setSelected((prev) =>
-          prev ? (data.find((s) => s.sessionId === prev.sessionId) ?? null) : null,
-        );
       } catch (err) {
         if (currentProfileRef.current !== activeProfile) return;
         if (err instanceof UnauthorizedError) {
           logout();
-          navigate("/login", { replace: true });
+          navigate("/login", { replace: true, state: { returnTo: returnToRef.current } });
           return;
         }
         setError(err instanceof Error ? err.message : "Failed to load");
@@ -282,7 +281,6 @@ export function ConversationsPage() {
 
   useEffect(() => {
     setSessions([]);
-    setSelected(null);
     setReplyText("");
     setReplyError("");
     setSearch("");
@@ -305,13 +303,18 @@ export function ConversationsPage() {
 
   function handleLogout() {
     logout();
-    navigate("/login", { replace: true });
+    navigate("/login", { replace: true, state: { returnTo: returnToRef.current } });
   }
 
   function handleSelect(session: ConversationSession) {
-    setSelected(session);
+    setSearchParams({ profile: activeProfile, conversation: session.id });
     setReplyText("");
     setReplyError("");
+  }
+
+  useEffect(() => {
+    const session = selected;
+    if (!session || !activeProfile) return;
     // Mark as read locally + on the server so the unread badge clears.
     if (isUnread(session)) {
       const readAt = new Date().toISOString();
@@ -323,11 +326,13 @@ export function ConversationsPage() {
       void markConversationRead(activeProfile, session.sessionId).catch((err) => {
         if (err instanceof UnauthorizedError) {
           logout();
-          navigate("/login", { replace: true });
+          navigate("/login", { replace: true, state: { returnTo: returnToRef.current } });
         }
       });
     }
-  }
+  }, [selected, activeProfile, logout, navigate]);
+
+  useEffect(() => { setReplyText(""); setReplyError(""); }, [requestedConversation]);
 
   async function handleSendReply() {
     if (!selected) return;
@@ -351,22 +356,12 @@ export function ConversationsPage() {
             : s,
         ),
       );
-      setSelected((prev) =>
-        prev
-          ? {
-              ...prev,
-              messages: [...prev.messages, message],
-              lastActive: nowIso,
-              adminReadAt: nowIso,
-            }
-          : prev,
-      );
       setReplyText("");
       toast({ title: "Reply sent", description: "The visitor will see it next time the widget checks in.", tone: "success" });
     } catch (err) {
       if (err instanceof UnauthorizedError) {
         logout();
-        navigate("/login", { replace: true });
+        navigate("/login", { replace: true, state: { returnTo: returnToRef.current } });
         return;
       }
       setReplyError(err instanceof Error ? err.message : "Failed to send reply");
@@ -383,7 +378,7 @@ export function ConversationsPage() {
   return (
     <div className="flex h-screen bg-slate-950 text-white overflow-hidden">
       {/* ── Left Sidebar ── */}
-      <aside className="flex w-72 flex-col border-r border-slate-800 shrink-0">
+      <aside className={cn("w-full md:w-72 flex-col border-r border-slate-800 shrink-0", selected ? "hidden md:flex" : "flex")}>
         {/* Brand */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-800">
           <img
@@ -461,6 +456,9 @@ export function ConversationsPage() {
           {!loading && error && (
             <p className="px-3 py-4 text-xs text-red-400">{error}</p>
           )}
+          {!loading && !error && activeProfile && requestedConversation && !selected && (
+            <p role="status" className="px-3 py-4 text-sm text-amber-300">This conversation was not found in this profile. It may have been deleted. Choose another conversation below.</p>
+          )}
           {!loading && !error && filtered.length === 0 && (
             <p className="px-3 py-6 text-center text-xs text-slate-600">
               {sessions.length === 0
@@ -526,11 +524,11 @@ export function ConversationsPage() {
       </aside>
 
       {/* ── Right Panel ── */}
-      <main className="flex flex-1 flex-col min-w-0">
+      <main className={cn("flex-1 flex-col min-w-0", selected ? "flex" : "hidden md:flex")}>
         {!selected ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 text-slate-600">
             <MessageSquare className="size-10" />
-            <p className="text-sm">Select a user to view their conversation</p>
+            <p role={requestedConversation ? "status" : undefined} className="text-sm text-center px-4">{loading ? "Loading conversation…" : requestedConversation ? "This conversation was not found in this profile. It may have been deleted." : "Select a user to view their conversation"}</p>
             {sessions.length === 0 && !loading && !error && (
               <p className="text-xs text-slate-700 max-w-xs text-center">
                 Conversations will appear here after visitors chat with the widget.
@@ -540,14 +538,15 @@ export function ConversationsPage() {
         ) : (
           <>
             {/* Header */}
-            <div className="flex items-center gap-3 border-b border-slate-800 px-6 py-4 shrink-0">
-              <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-3 border-b border-slate-800 px-4 md:px-6 py-4 shrink-0">
+              <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setSearchParams({ profile: activeProfile })} aria-label="Back to conversations"><ChevronLeft className="size-4" /></Button>
+              <div className="flex-1 min-w-40">
                 <h2 className="text-sm font-semibold text-white">
                   {selected.userName || "Unknown user"}
                 </h2>
-                <p className="text-xs text-slate-400">{selected.userEmail}</p>
+                <p className="text-xs text-slate-400 break-all">{selected.userEmail}</p>
               </div>
-              <div className="flex items-center gap-2 shrink-0 text-xs text-slate-500">
+              <div className="hidden lg:flex items-center gap-2 shrink-0 text-xs text-slate-500">
                 <span>First seen: {formatDate(selected.firstSeen)}</span>
                 <span>·</span>
                 <span>
@@ -558,7 +557,7 @@ export function ConversationsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 gap-1.5 px-3 text-xs border-slate-700 text-slate-300 hover:text-white"
+                className="h-8 gap-1.5 px-3 text-xs border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white"
                 onClick={() => exportSessionAsPDF(selected)}
                 title="Print / save this conversation as a PDF"
               >
@@ -568,7 +567,7 @@ export function ConversationsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 gap-1.5 px-3 text-xs border-slate-700 text-slate-300 hover:text-white"
+                className="h-8 gap-1.5 px-3 text-xs border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white"
                 onClick={() => exportSessionAsCSV(selected)}
               >
                 <Download className="size-3.5" />

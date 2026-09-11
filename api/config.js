@@ -1,6 +1,6 @@
 import { isAdmin } from "./_lib/auth.js";
 import prisma from "@duran-chatbot/database";
-import { mergeWithDefaults } from "@duran-chatbot/config";
+import { mergeWithDefaults, publicWidgetConfig } from "@duran-chatbot/config";
 
 const DEFAULT_SLUG = "duran-schulze";
 const DEFAULT_PROFILE_NAME = "Duran Schulze";
@@ -64,6 +64,7 @@ async function getOrBootstrapProfile(slug) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader("Cache-Control", "no-store");
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
@@ -74,6 +75,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== "GET" && !isAdmin(req)) return res.status(401).json({ error: "Unauthorized" });
+  if (req.headers.authorization && !isAdmin(req)) return res.status(401).json({ error: "Unauthorized" });
 
   const urlParams = new URL(req.url, "http://localhost").searchParams;
   const profileSlug = req.query?.profile ?? urlParams.get("profile") ?? "";
@@ -85,7 +87,7 @@ export default async function handler(req, res) {
       const profile = await getOrBootstrapProfile(slug);
       const merged = mergeWithDefaults(configRowToPartial(profile.config));
       merged.ai.apiKey = geminiApiKey;
-      res.status(200).json(merged);
+      res.status(200).json(isAdmin(req) ? merged : publicWidgetConfig(merged));
     } catch (error) {
       res.status(500).json({
         error: "Failed to read config",

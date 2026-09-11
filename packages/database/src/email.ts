@@ -1,5 +1,6 @@
 import { prisma } from "./client.js";
 import { decryptSecret, encryptSecret } from "./crypto.js";
+import { NotificationError } from "./notification-error.js";
 
 export type EmailProvider = "resend";
 
@@ -43,11 +44,9 @@ export async function getEmailIntegration(
     fromEmail: row.fromEmail,
     fromName: row.fromName,
     hasSecret: Boolean(row.secretEnc),
-    // A profile is ready when it stores a key, or when the env fallback exists.
     configured: Boolean(
-      row.secretEnc ||
-        process.env.RESEND_API_KEY ||
-        process.env.RESEND_FROM_EMAIL,
+      (row.secretEnc || process.env.RESEND_API_KEY) &&
+        (row.fromEmail || process.env.RESEND_FROM_EMAIL),
     ),
   };
 }
@@ -150,9 +149,15 @@ async function resolveResend(profileId: string): Promise<ResolvedResend> {
 export async function sendProfileEmail(
   profileId: string,
   message: ProfileMailMessage,
-): Promise<void> {
-  const { apiKey, fromEmail, defaultFromName } =
-    await resolveResend(profileId);
+  options: { notification?: boolean } = {},
+): Promise<string | undefined> {
+  let resolved: ResolvedResend;
+  try { resolved = await resolveResend(profileId); }
+  catch (error) {
+    if (options.notification) throw new NotificationError("email_not_configured", false);
+    throw error;
+  }
+  const { apiKey, fromEmail, defaultFromName } = resolved;
   const fromName = sanitizeFromName(message.fromName || defaultFromName);
   const from = fromName ? `"${fromName}" <${fromEmail}>` : fromEmail;
 
@@ -165,6 +170,8 @@ export async function sendProfileEmail(
   };
   if (message.text) payload.text = message.text;
   if (message.html) payload.html = message.html;
+
+  if (options.notification) return sendResendNotification(apiKey, payload);
 
   const res = await fetch(RESEND_API_URL, {
     method: "POST",
@@ -185,4 +192,24 @@ export async function sendProfileEmail(
     }
     throw new Error(detail);
   }
+}
+
+/** Bounded outbox transport; quotes retain their existing behavior. */
+export async function sendResendNotification(apiKey: string, payload: Record<string, unknown>, transport: typeof fetch = fetch): Promise<string> {
+  let response: Response;
+  try {
+    response = await transport(RESEND_API_URL, {
+      method: "POST", redirect: "error", signal: AbortSignal.timeout(5000),
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch { throw new NotificationError("email_network_or_timeout", true); }
+  if (!response.ok) {
+    const delay = Number(response.headers.get("retry-after") || 0);
+    throw new NotificationError(`email_http_${response.status}`, response.status === 429 || response.status >= 500,
+      Number.isFinite(delay) ? Math.max(0, Math.min(delay, 86400)) : 0);
+  }
+  const data = await response.json().catch(() => null);
+  if (typeof data?.id !== "string" || !data.id || data.id.length > 200) throw new NotificationError("email_invalid_provider_response", true);
+  return data.id;
 }

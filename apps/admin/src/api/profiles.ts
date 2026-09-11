@@ -32,7 +32,7 @@ export async function fetchProfiles(): Promise<ProfileMeta[]> {
 }
 
 export async function fetchProfile(slug: string): Promise<ChatbotProfile> {
-  const response = await fetch(`${PROFILES_PATH}?slug=${encodeURIComponent(slug)}`)
+  const response = await fetch(`${PROFILES_PATH}?slug=${encodeURIComponent(slug)}`, { headers: getAuthHeaders() })
   if (!response.ok) {
     throw new Error(await getErrorMessage(response, `Failed to fetch profile (${response.status})`))
   }

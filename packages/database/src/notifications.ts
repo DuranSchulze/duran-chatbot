@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
 import prisma from "./client.js";
+import { normalizeConversationEmail } from "@duran-chatbot/config";
+import { NotificationError } from "./notification-error.js";
+import { sendConversationEmail } from "./conversation-email.js";
+export { NotificationError } from "./notification-error.js";
 
 export const notificationChannels = ["telegram", "viber", "whatsapp"] as const;
 export type NotificationChannel = typeof notificationChannels[number];
@@ -39,10 +43,6 @@ export function notificationReadiness(profile: string, env: Env = process.env) {
 export function enabledChannels(value: unknown): NotificationChannel[] {
   if (!value || typeof value !== "object") return [];
   return notificationChannels.filter(channel => (value as Record<string, { enabled?: unknown }>)[channel]?.enabled === true);
-}
-
-export class NotificationError extends Error {
-  constructor(public code: string, public retryable: boolean, public retryAfterSeconds = 0) { super(code); }
 }
 
 export type Inquiry = { profile: string; name: string; email: string; query: string; eventId: string };
@@ -157,7 +157,9 @@ export async function dispatchNotifications(eventId?: string) {
       const conversation = event.conversation;
       const profile = conversation.profile;
       const channel = row.channel as NotificationChannel;
-      if (profile.status !== "active" || !enabledChannels(profile.config?.integrations).includes(channel)) {
+      const emailSettings = normalizeConversationEmail((profile.config?.behavior as Record<string, unknown> | null)?.conversationEmail);
+      const enabled = row.channel === "email" ? emailSettings.enabled : enabledChannels(profile.config?.integrations).includes(channel);
+      if (profile.status !== "active" || !enabled) {
         await finish({ status: "cancelled", lastError: "channel_disabled" });
         return;
       }
@@ -165,7 +167,9 @@ export async function dispatchNotifications(eventId?: string) {
         await finish({ status: "failed", lastError: "attempt_limit" });
         return;
       }
-      const providerMessageId = await sendNotification(channel, { profile: profile.slug, name: conversation.userName, email: conversation.userEmail, query: event.message.content, eventId: event.id });
+      const providerMessageId = row.channel === "email"
+        ? await sendConversationEmail(emailSettings, profile, conversation, event.message)
+        : await sendNotification(channel, { profile: profile.slug, name: conversation.userName, email: conversation.userEmail, query: event.message.content, eventId: event.id });
       await finish({ status: "accepted", providerMessageId, lastError: null });
     } catch (error) {
       const failure = error instanceof NotificationError ? error : new NotificationError("worker_error", true);
