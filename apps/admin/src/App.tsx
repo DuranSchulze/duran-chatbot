@@ -18,6 +18,7 @@ import { ProfileList } from "@/features/profiles/profile-list";
 import { LoginPage } from "@/pages/LoginPage";
 import { ConversationsPage } from "@/pages/ConversationsPage";
 import { InternalChatPage } from "@/pages/InternalChatPage";
+import { AnnouncementsPage } from "@/pages/AnnouncementsPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toaster";
@@ -267,6 +268,14 @@ function App() {
         element={
           <ProtectedRoute>
             <ConversationsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/announcements"
+        element={
+          <ProtectedRoute>
+            <AnnouncementsPage />
           </ProtectedRoute>
         }
       />

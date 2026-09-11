@@ -4,6 +4,8 @@ Implementation status (2026-09-11): implemented. The new settings are nested und
 
 Validation: focused automated tests and full build pass. Mocked-provider coverage includes filtering, safe links/redirects, public-config redaction, worker cancellation/retries and scoped status. Isolated database coverage was added but requires `TEST_DATABASE_URL`, which is not configured in this session. Live provider delivery and production deployment remain release checks; no actual emails were sent.
 
+Final UI verification: isolated Playwright checks pass at desktop and 390px mobile widths for login return, exact conversation selection, missing-conversation handling, mobile back navigation, recipient validation, email-only retry, and the rendered email CTA. The existing settings shell needed minimum-width/grid fixes to avoid horizontal overflow from the embed-code summary; the mobile header now keeps actions accessible. Screenshots were visually reviewed. `npm run lint:notifications` and the additional layout lint pass. Existing build warnings about font asset paths and bundle size remain outside this feature.
+
 ## 1. Goal
 
 Add an optional, per-profile email notification for chatbot conversations. When a visitor sends a new message, configured internal recipients receive an email that identifies the visitor, shows only visitor-authored chat content, and includes a button that opens the exact conversation in the authenticated internal Conversations page. The existing quote-request email flow and Viber, WhatsApp, and Telegram notifications must continue to work unchanged.

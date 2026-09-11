@@ -8,8 +8,8 @@ import { formatConversationEmail } from '../packages/database/dist/index.js';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const output = await mkdtemp(join(tmpdir(), 'duran-email-ui-'));
+const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 try {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   const base = 'http://127.0.0.1:5188';
@@ -59,4 +59,10 @@ try {
   assert.equal(await page.getByRole('link', { name: 'View conversation', exact: true }).getAttribute('href'), base + path);
   console.log('PASS: login return, exact selection, missing conversation, mobile navigation, Email card validation/retry, and rendered email CTA');
   console.log('Screenshots:', output);
+} catch (error) {
+  await page.screenshot({ path: join(output, 'failure.png'), fullPage: true });
+  console.error('UI state:', await page.locator('body').innerText());
+  console.error('Overflow:', await page.evaluate(() => [...document.querySelectorAll('body *')].map(el => ({ tag: el.tagName, className: el.className, right: el.getBoundingClientRect().right, width: el.getBoundingClientRect().width })).filter(el => el.right > innerWidth + 1).slice(0, 25)));
+  console.error('Screenshots:', output);
+  throw error;
 } finally { await browser.close(); }

@@ -52,6 +52,9 @@ test('email is visitor-only in HTML and plain text, safely escaped, bounded and 
   assert.ok(!mail.to.includes(conversation.userEmail)); assert.equal(mail.cc, 'manager@example.com');
   const long = formatConversationEmail({ ...input, message: { ...message, content: 'x'.repeat(20000) }, messages: Array.from({ length: 30 }, (_, i) => ({ ...message, id: `history-${i}`, content: 'y'.repeat(5000) })) });
   assert.ok(long.text.length < 14000); assert.match(long.text, /omitted/);
+  const unicode = formatConversationEmail({ ...input, message: { ...message, content: 'x'.repeat(5999) + '😊'.repeat(20) } });
+  assert.equal(unicode.text.isWellFormed(), true);
+  assert.match(unicode.text, /omitted/);
   assert.throws(() => formatConversationEmail({ ...input, message: input.messages[2] }), /email_invalid_message_role/);
   const missing = formatConversationEmail({ ...input, conversation: { ...conversation, userName: '', userEmail: '' } });
   assert.match(missing.text, /Not provided/);

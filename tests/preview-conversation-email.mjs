@@ -22,7 +22,7 @@ createServer(async (req, res) => {
   }
   if (url.pathname === '/api/config') return json(config);
   if (url.pathname === '/api/db-status') return json({ ok: true });
-  if (url.pathname === '/api/email-integration') return req.method === 'GET' ? json({ provider: 'resend', fromEmail: 'notifications@example.test', fromName: 'Duran', hasSecret: true, configured: true }) : json({ error: 'Sending and credential writes disabled in preview' }, 403);
+  if (url.pathname === '/api/email-integration') return req.method === 'GET' ? json({ integration: { provider: 'resend', fromEmail: 'notifications@example.test', fromName: 'Duran', hasSecret: true, configured: true } }) : json({ error: 'Sending and credential writes disabled in preview' }, 403);
   if (url.pathname === '/api/notification-status') return json(req.method === 'POST' ? { queued: 1 } : { readiness: { enabled: config.behavior.conversationEmail.enabled, configured: true, missing: [] }, counts: [{ status: 'accepted', count: 8 }, { status: 'failed', count: 1 }], lastFailure: { lastError: 'email_http_503', updatedAt: new Date().toISOString() } });
   if (url.pathname === '/api/conversations') {
     if (req.method === 'POST') { session.adminReadAt = new Date().toISOString(); return json({ success: true }); }

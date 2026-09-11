@@ -5,6 +5,7 @@ import {
   LogOut,
   Menu,
   MessageSquare,
+  Megaphone,
   Save,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -100,10 +101,11 @@ export function TopBar({
           variant="outline"
           size="sm"
           onClick={onPreview}
+          aria-label="Preview"
           className="h-8 gap-1.5 px-3 text-xs"
         >
           <ExternalLink className="size-3.5" />
-          Preview
+          <span className="hidden sm:inline">Preview</span>
         </Button>
 
         <Button
@@ -117,11 +119,21 @@ export function TopBar({
         </Button>
 
         <Link
+          aria-label="Conversations"
           to={profileSlug ? `/conversations?profile=${encodeURIComponent(profileSlug)}` : "/conversations"}
           className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
         >
           <MessageSquare className="size-3.5" />
           <span className="hidden sm:inline">Conversations</span>
+        </Link>
+
+        <Link
+          to="/announcements"
+          aria-label="What’s new"
+          title="What’s new"
+          className="flex size-8 items-center justify-center border border-slate-200 text-slate-500 outline-none transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-blue-500"
+        >
+          <Megaphone className="size-3.5" aria-hidden="true" />
         </Link>
 
         <button

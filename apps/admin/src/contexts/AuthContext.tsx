@@ -3,7 +3,7 @@ import { isAuthenticated, setToken, clearToken } from "@/lib/auth";
 
 interface AuthContextValue {
   authenticated: boolean;
-  login: (token: string) => void;
+  login: (token: string, remember?: boolean) => void;
   logout: () => void;
 }
 
@@ -12,8 +12,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [authenticated, setAuthenticated] = useState(() => isAuthenticated());
 
-  const login = useCallback((token: string) => {
-    setToken(token);
+  const login = useCallback((token: string, remember = false) => {
+    setToken(token, remember);
     setAuthenticated(true);
   }, []);
 

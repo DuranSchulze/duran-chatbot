@@ -13,6 +13,7 @@ import {
   RotateCcw,
   Pencil,
   Archive,
+  Megaphone,
   ChevronDown,
   type LucideIcon,
 } from "lucide-react"
@@ -237,7 +238,7 @@ export function ProfileList({
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
         {/* Header */}
-        <div className="flex items-start justify-between mb-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
           <div>
             <div className="flex items-center gap-2.5 mb-1">
               <div className="flex size-9 items-center justify-center rounded-xl bg-blue-600 text-white">
@@ -249,10 +250,19 @@ export function ProfileList({
               Each profile has its own knowledge, persona, and widget settings.
             </p>
           </div>
-          <Button onClick={() => setShowCreate(true)} className="gap-2 shrink-0">
-            <Plus className="size-4" />
-            New profile
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            <Link
+              to="/announcements"
+              className="inline-flex h-10 items-center justify-center gap-2 border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none transition-colors hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            >
+              <Megaphone className="size-4" aria-hidden="true" />
+              What’s new
+            </Link>
+            <Button onClick={() => setShowCreate(true)} className="gap-2 shrink-0">
+              <Plus className="size-4" />
+              New profile
+            </Button>
+          </div>
         </div>
 
         {/* Legal Chatbot CTA */}

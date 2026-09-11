@@ -187,7 +187,7 @@ export function normalizeConversationEmail(value: unknown): ConversationEmailCon
     enabled: input.enabled === true,
     to,
     cc: list(input.cc).filter(x => !to.includes(x)),
-    subject: typeof input.subject === 'string' ? input.subject.replace(/\p{Cc}+/gu, ' ').trim().slice(0, 160) : '',
+    subject: typeof input.subject === 'string' ? Array.from(input.subject.replace(/\p{Cc}+/gu, ' ').trim()).slice(0, 160).join('') : '',
   };
 }
 

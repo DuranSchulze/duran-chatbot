@@ -37,7 +37,14 @@ type VisitorMessage = { id: string; role: string; content: string; timestamp: Da
 type ConversationIdentity = { id: string; userName: string; userEmail: string; firstSeen: Date | string; lastActive: Date | string };
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, x => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[x]!);
 const date = (value: Date | string) => new Date(value).toISOString();
-const clip = (value: string, length: number) => value.length > length ? value.slice(0, length) + "…" : value;
+const clip = (value: string, length: number) => {
+  if (value.length <= length) return value;
+  let cut = value.slice(0, length);
+  // Never split a UTF-16 surrogate pair at the content boundary.
+  const last = cut.charCodeAt(cut.length - 1);
+  if (last >= 0xd800 && last <= 0xdbff) cut = cut.slice(0, -1);
+  return cut + "…";
+};
 
 /** Defense in depth: roles are filtered here as well as in the database query. */
 export function formatConversationEmail(input: {

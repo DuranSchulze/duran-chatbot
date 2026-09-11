@@ -48,7 +48,7 @@ export function AdminShell({
       )}
 
       {/* Main content area */}
-      <div className="flex flex-1 flex-col lg:pl-64">
+      <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
         {/* Sticky header */}
         <div className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-sm">
           {header}
@@ -59,7 +59,7 @@ export function AdminShell({
           <div className="mx-auto max-w-5xl space-y-6">
             {main}
             {aside ? (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {aside}
               </div>
             ) : null}

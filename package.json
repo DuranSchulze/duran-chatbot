@@ -16,7 +16,7 @@
     "test:notifications": "npm run build --workspace=packages/config && npm run build --workspace=packages/database && node --test tests/notifications.test.mjs tests/conversation-email.test.mjs",
     "test:notifications:db": "node tests/notifications-db.mjs",
     "db:migrate:notifications": "node scripts/migrate-notifications.mjs",
-    "lint:notifications": "eslint --config apps/admin/eslint.config.js apps/admin/src/features/config-editor/panels/integrations-panel.tsx packages/database/src/chat-log.ts packages/database/src/notifications.ts packages/database/src/notification-status.ts"
+    "lint:notifications": "eslint --config apps/admin/eslint.config.js apps/admin/src/features/config-editor/panels/integrations-panel.tsx apps/admin/src/features/config-editor/panels/conversation-email-card.tsx apps/admin/src/lib/return-to.ts apps/admin/src/pages/ConversationsPage.tsx apps/admin/src/components/ProtectedRoute.tsx apps/admin/src/pages/LoginPage.tsx packages/config/src/index.ts packages/database/src/chat-log.ts packages/database/src/notifications.ts packages/database/src/notification-status.ts packages/database/src/notification-error.ts packages/database/src/conversation-email.ts packages/database/src/email.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
