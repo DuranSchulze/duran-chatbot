@@ -31,3 +31,7 @@ dist-ssr
 .claude/
 .continue/
 .cortex/
+
+# Generated widget bundle — emitted from packages/widget by the admin build
+# (apps/admin/scripts/sync-widget-bundle.mjs). Never commit build output.
+apps/admin/public/widget.js
