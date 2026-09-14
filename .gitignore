@@ -25,3 +25,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local AI agent / editor tooling — never push these
+.agents/
+.claude/
+.continue/
+.cortex/
