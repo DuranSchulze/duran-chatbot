@@ -15,18 +15,17 @@ export const copyIconMarkup = `
 `
 
 export function getCSSVariables(appearance: AppearanceConfig, position: string): string {
-  // Adopt the new system for the original shipped palette without rewriting saved profiles.
-  // Explicit brand customizations continue to work in the appearance editor.
-  const originalPalette = appearance.primaryColor.toLowerCase() === '#004a99'
-    && appearance.backgroundColor.toLowerCase() === '#ffffff'
-    && appearance.textColor.toLowerCase() === '#212529'
-  const primary = originalPalette ? '#5266eb' : appearance.primaryColor
-  const background = originalPalette ? '#171721' : appearance.backgroundColor
-  const foreground = originalPalette ? '#ededf3' : appearance.textColor
+  // Saved appearance values are authoritative — the widget renders exactly what the
+  // profile configures. Do not reintroduce a palette remap here: an earlier one
+  // replaced every profile still matching the legacy shipped palette with the dark
+  // theme, so a saved white background rendered black and could not be corrected
+  // from the appearance editor without also changing the primary and text colors.
+  const background = appearance.backgroundColor
+  const foreground = appearance.textColor
   return `
     :host {
-      --cb-primary: ${primary};
-      --cb-accent: ${originalPalette ? '#5266eb' : appearance.accentColor};
+      --cb-primary: ${appearance.primaryColor};
+      --cb-accent: ${appearance.accentColor};
       --cb-bg: ${background};
       --cb-text: ${foreground};
       --cb-card: ${background.toLowerCase() === '#171721' ? '#1e1e2a' : `color-mix(in srgb, ${background} 94%, ${foreground})`};
