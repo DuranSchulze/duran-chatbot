@@ -41,11 +41,5 @@
     "api/notification-dispatch.js": {
       "maxDuration": 60
     }
-  },
-  "crons": [
-    {
-      "path": "/api/notification-dispatch",
-      "schedule": "* * * * *"
-    }
-  ]
+  }
 }
