@@ -249,19 +249,19 @@ export function ProfileList({
           <div className="max-w-2xl">
             <p className="mb-4 text-xs tracking-[0.12em] uppercase text-muted-foreground">Your workspace</p>
             <h1 className="page-heading">A considered conversation.<br />Every time.</h1>
-            <p className="mt-5 max-w-lg text-base text-muted-foreground">Manage the knowledge, voice, and experience behind every chatbot profile.</p>
+            <p className="mt-5 max-w-lg text-sm text-muted-foreground">Manage the knowledge, voice, and experience behind every chatbot profile.</p>
           </div>
-          <Button onClick={() => setShowCreate(true)} className="h-12 gap-2 px-6 shrink-0"><Plus className="size-4" />New profile</Button>
+          <Button onClick={() => setShowCreate(true)} className="h-10 gap-2 px-5 shrink-0"><Plus className="size-4" />New profile</Button>
         </div>
         <div className="mb-[72px] grid gap-8 md:grid-cols-2">
           <Link to="/internal" className="graphite-card group flex flex-col gap-6">
             <div className="flex items-center justify-between text-muted-foreground"><Bot className="size-5" /><span className="text-xs">Internal workspace</span></div>
-            <div><h2 className="section-heading">Legal assistant</h2><p className="mt-3 text-base text-muted-foreground">Research, draft, and work through a matter with your internal AI assistant.</p></div>
+            <div><h2 className="section-heading">Legal assistant</h2><p className="mt-3 text-sm text-muted-foreground">Research, draft, and work through a matter with your internal AI assistant.</p></div>
             <span className="mt-auto flex items-center gap-2 text-sm">Start a briefing <ArrowRight className="size-4" /></span>
           </Link>
           <a href="https://kairo.buildvault.live/login" className="graphite-card group flex flex-col gap-6">
             <div className="flex items-center justify-between text-muted-foreground"><MessageSquare className="size-5" /><span className="text-xs">Connected workspace</span></div>
-            <div><h2 className="section-heading">Meet Kairo</h2><p className="mt-3 text-base text-muted-foreground">Continue the conversation in Kairo’s dedicated chatbot workspace.</p></div>
+            <div><h2 className="section-heading">Meet Kairo</h2><p className="mt-3 text-sm text-muted-foreground">Continue the conversation in Kairo’s dedicated chatbot workspace.</p></div>
             <span className="mt-auto flex items-center gap-2 text-sm">Open Kairo <ArrowRight className="size-4" /></span>
           </a>
         </div>

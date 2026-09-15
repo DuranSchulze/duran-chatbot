@@ -94,6 +94,7 @@ export function getConfigSections(
       render: () => (
         <BehaviorPanel
           behavior={bindings.behavior}
+          appearance={bindings.appearance}
           onChange={bindings.onBehaviorChange}
         />
       ),

@@ -88,7 +88,7 @@ export function AnnouncementsPage() {
             </div>
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">What’s new</p>
             <h1 className="font-display mt-2 page-heading">Latest Duran Chatbot updates</h1>
-            <p className="mt-4 max-w-xl text-sm leading-6 text-foreground sm:text-base">
+            <p className="mt-4 max-w-xl text-sm leading-6 text-foreground">
               A simple record of the improvements now available across chatbot profiles, notifications, email, and the internal dashboard.
             </p>
             {release && (
@@ -112,7 +112,7 @@ export function AnnouncementsPage() {
               {shipped.map((section) => (
                 <section key={section.title} className="relative">
                   <span className="absolute -left-[1.95rem] top-1.5 size-3 border-2 border-border bg-secondary sm:-left-[2.7rem]" aria-hidden="true" />
-                  <h2 className="font-display text-lg font-medium tracking-[0.015em] text-foreground">{section.title}</h2>
+                  <h2 className="font-display text-base font-medium tracking-[0.015em] text-foreground">{section.title}</h2>
                   <ul className="mt-4 space-y-3">
                     {section.items.map((item) => (
                       <li key={item} className="flex gap-3 text-sm leading-6 text-muted-foreground">

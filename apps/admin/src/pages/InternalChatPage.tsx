@@ -691,7 +691,7 @@ ${footer}` : result.text
                 return (
                   <article key={i} className="group flex w-full justify-end">
                     <div className="min-w-0 max-w-[88%] sm:max-w-[78%]">
-                      <div className="rounded-card bg-secondary px-4 py-3 text-base leading-6 text-foreground ">
+                      <div className="rounded-card bg-secondary px-4 py-3 text-sm leading-6 text-foreground ">
                         <div className="chat-rich-text" dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }} />
                       </div>
                       <div className="mt-2 flex items-center justify-end gap-1.5">
@@ -910,7 +910,7 @@ ${footer}` : result.text
                   disabled={!isReady || sending}
                   rows={1}
                   aria-label={editingIndex !== null ? "Edit your legal question" : "Legal question"}
-                  className="min-h-[42px] max-h-40 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-1 py-2 text-base leading-relaxed text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:text-muted-foreground"
+                  className="min-h-[42px] max-h-40 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-1 py-2 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:text-muted-foreground"
                   style={{ fieldSizing: "content" } as React.CSSProperties}
                 />
                 <Button

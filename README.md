@@ -168,6 +168,8 @@ Behavior settings control interaction rules and utility features.
 - Configure quote notification recipients.
 - Configure optional CC recipients.
 - Configure quote email subject.
+- Start expanded, or show a proactive greeting bubble with a custom message instead (mutually exclusive).
+- Data-privacy consent checkbox on the lead form, with a configurable sentence and link.
 
 Quote requests are only useful when email credentials and recipients are configured.
 
@@ -583,7 +585,7 @@ When you come back to this project later, remember:
 - Use Persona for voice/style only, not legal rules.
 - Use Services for pricing/process/CTA knowledge.
 - Use Dataset for FAQ or legal-process reference entries.
-- Use Behavior for auto-open, timestamps, copy buttons, and quote email settings.
+- Use Behavior for auto-open, timestamps, copy buttons, the proactive greeting, the privacy notice, and quote email settings.
 - Use Preview before saving/publishing major changes.
 - Copy the embed code from the admin dashboard for the active profile.
 - Keep secrets in environment variables, not config JSON.

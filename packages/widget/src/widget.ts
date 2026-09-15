@@ -87,6 +87,10 @@ function isMobile(): boolean {
   return window.innerWidth <= 420
 }
 
+// Delay before the proactive greeting bubble fades in, so it doesn't compete
+// with the host page's initial paint.
+const PROACTIVE_GREETING_DELAY_MS = 900
+
 export class ChatbotWidget {
   private host: HTMLElement | null = null
   private shadowRoot: ShadowRoot | null = null
@@ -108,6 +112,9 @@ export class ChatbotWidget {
   private seenAdminKeys = new Set<string>()
   // The post-answer call-to-action card; kept so only the latest answer shows one.
   private ctaEl: HTMLElement | null = null
+  // The proactive greeting bubble; hidden on dismiss and when the chat opens.
+  private teaserEl: HTMLElement | null = null
+  private teaserTimer: ReturnType<typeof setTimeout> | null = null
 
   constructor(
     config: Partial<ChatbotConfig> = {},
@@ -157,19 +164,37 @@ export class ChatbotWidget {
     this.container = document.createElement('div')
     this.container.className = 'cb-widget-container'
     this.container.dataset.position = this.embedConfig.position || this.config.appearance.position
-    this.container.innerHTML = getWidgetHTML(
-      this.config.appearance.companyName,
-      interpolateTemplateVariables(
+    this.container.innerHTML = getWidgetHTML({
+      companyName: this.config.appearance.companyName,
+      welcomeMessage: interpolateTemplateVariables(
         this.config.appearance.welcomeMessage,
         this.config.appearance,
       ),
-      this.config.quickLinks,
-    )
+      quickLinks: this.config.quickLinks,
+      // Rendered only when enabled; the widget decides when to reveal it.
+      proactiveGreeting: this.config.behavior.enableProactiveGreeting
+        ? interpolateTemplateVariables(
+            this.config.behavior.proactiveGreetingMessage,
+            this.config.appearance,
+          ).trim()
+        : '',
+      privacyNotice: this.config.behavior.privacyNoticeEnabled
+        ? {
+            text: interpolateTemplateVariables(
+              this.config.behavior.privacyNoticeText,
+              this.config.appearance,
+            ),
+            linkLabel: this.config.behavior.privacyNoticeLinkLabel,
+            url: this.config.behavior.privacyNoticeUrl,
+          }
+        : null,
+    })
 
     this.shadowRoot.appendChild(this.container)
     document.body.appendChild(this.host)
 
     this.chatWindow = this.container.querySelector('.cb-chat-window')
+    this.teaserEl = this.container.querySelector('.cb-teaser')
     this.syncLeadCaptureState()
   }
 
@@ -179,10 +204,20 @@ export class ChatbotWidget {
 
     const toggleBtn = root.querySelector('.cb-toggle-btn')
     const closeBtn = root.querySelector('.cb-close-btn')
-    const { leadForm, nameInput, emailInput, inputForm, messageInput } = getLeadFormElements(root)
+    const { leadForm, nameInput, emailInput, consentInput, inputForm, messageInput } = getLeadFormElements(root)
 
     toggleBtn?.addEventListener('click', () => this.toggle())
     closeBtn?.addEventListener('click', () => this.close())
+
+    const teaserOpen = root.querySelector<HTMLButtonElement>('.cb-teaser-open')
+    const teaserDismiss = root.querySelector<HTMLButtonElement>('.cb-teaser-dismiss')
+
+    teaserOpen?.addEventListener('click', () => {
+      this.hideTeaser()
+      this.open()
+    })
+
+    teaserDismiss?.addEventListener('click', () => this.hideTeaser())
 
     leadForm?.addEventListener('submit', (e) => {
       e.preventDefault()
@@ -191,6 +226,13 @@ export class ChatbotWidget {
 
       if (!visitorProfile) {
         setLeadError(root, 'Please enter a valid name and email address.')
+        return
+      }
+
+      // The checkbox only exists when the privacy notice is enabled, so its
+      // presence is what gates the lead form.
+      if (consentInput && !consentInput.checked) {
+        setLeadError(root, 'Please accept the privacy notice to continue.')
         return
       }
 
@@ -203,6 +245,10 @@ export class ChatbotWidget {
       setLeadError(root, '')
       setLeadCaptureVisibility(root, visitorProfile)
       getFocusInput(root)?.focus()
+    })
+
+    consentInput?.addEventListener('change', () => {
+      if (consentInput.checked) setLeadError(root, '')
     })
 
     inputForm?.addEventListener('submit', (e) => {
@@ -267,9 +313,31 @@ export class ChatbotWidget {
       // Defer until the current mount work is complete so hosts such as
       // WordPress render the expanded state reliably after async config loading.
       queueMicrotask(() => this.open())
-    } else if (this.config.behavior.autoOpenDelay > 0) {
-      setTimeout(() => this.open(), this.config.behavior.autoOpenDelay * 1000)
+    } else {
+      if (this.config.behavior.enableProactiveGreeting) {
+        // Reveal after a beat so the greeting doesn't compete with page load.
+        this.teaserTimer = setTimeout(() => this.showTeaser(), PROACTIVE_GREETING_DELAY_MS)
+      }
+      if (this.config.behavior.autoOpenDelay > 0) {
+        setTimeout(() => this.open(), this.config.behavior.autoOpenDelay * 1000)
+      }
     }
+  }
+
+  /** Reveal the greeting bubble — no-op when there is none or the chat is already open. */
+  private showTeaser() {
+    this.teaserTimer = null
+    if (!this.teaserEl || this.isOpen) return
+    this.teaserEl.classList.add('cb-visible')
+  }
+
+  /** Permanently hide the greeting bubble for this page visit. */
+  private hideTeaser() {
+    if (this.teaserTimer) {
+      clearTimeout(this.teaserTimer)
+      this.teaserTimer = null
+    }
+    this.teaserEl?.classList.remove('cb-visible')
   }
 
   private toggle() {
@@ -285,6 +353,7 @@ export class ChatbotWidget {
     // message, so this hides any remaining cold-start latency on chat-log / quote-request.
     this.warmUpBackend()
 
+    this.hideTeaser()
     this.isOpen = true
     this.container?.classList.add('cb-open')
     this.chatWindow?.setAttribute('aria-hidden', 'false')
@@ -933,11 +1002,16 @@ export class ChatbotWidget {
       clearInterval(this.pollTimer)
       this.pollTimer = null
     }
+    if (this.teaserTimer) {
+      clearTimeout(this.teaserTimer)
+      this.teaserTimer = null
+    }
     document.body.style.overflow = ''
     this.host?.remove()
     this.shadowRoot = null
     this.host = null
     this.container = null
     this.chatWindow = null
+    this.teaserEl = null
   }
 }

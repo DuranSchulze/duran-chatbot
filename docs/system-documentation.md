@@ -492,9 +492,11 @@ The main editing interface is organized into **7 config sections** with a sideba
 | **Quick Links** | Link | Action buttons shown in the widget (label, URL, icon) |
 | **Services** | Briefcase | Service entries with keywords, pricing, process, notes, CTA |
 | **Dataset** | Database | Knowledge base entries (keywords, title, content, category) |
-| **Behavior** | Sliders | Auto-open delay, timestamps, copy button, quote request settings, notification emails |
+| **Behavior** | Sliders | Auto-open delay, start expanded / proactive greeting, timestamps, copy button, privacy notice, quote request settings, notification emails |
 
 Each section has a dedicated panel component in `features/config-editor/panels/`.
+
+The left column holds the section navigation plus the editing-workflow status, **Config snapshot**, and **Embed snippet** cards. On large screens that whole column is sticky and scrolls internally; on small screens the cards drop below the panel so they never push the editor down the page.
 
 ### Conversations Page
 
@@ -573,11 +575,13 @@ sequenceDiagram
 - **Shadow DOM encapsulation** — All styles are scoped to the widget; no CSS leaks
 - **Responsive design** — Adjusts to mobile keyboards and viewport changes
 - **Lead capture** — Collects visitor name and email before starting chat
+- **Privacy notice** — Optional consent checkbox on the lead form with a configurable sentence and http(s) link
 - **Chat history** — Persists messages to `localStorage`, restores on revisit
 - **Quote request** — Detects intent keywords (price, cost, quote, etc.) and shows an inline quote form
 - **Copy button** — Each AI response has a copy-to-clipboard button
 - **Timestamps** — Optional display of message timestamps
 - **Start expanded** — Show the full chatbox immediately when the widget loads
+- **Proactive greeting** — Optional small greeting bubble beside the launcher with a custom message (mutually exclusive with Start expanded)
 - **Auto-open** — Optional delayed opening when Start expanded is disabled
 - **Honeypot spam protection** — Hidden form field traps bots
 - **Rate limiting** — 5 quote requests per 10 minutes per IP

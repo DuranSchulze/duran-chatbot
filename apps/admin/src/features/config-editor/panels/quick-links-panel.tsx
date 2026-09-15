@@ -104,7 +104,7 @@ export function QuickLinksPanel({ quickLinks, onChange }: QuickLinksPanelProps) 
                 <MousePointerClick className="size-5" />
               </div>
               <div className="space-y-1">
-                <h3 className="font-display text-base font-medium text-foreground">
+                <h3 className="font-display text-sm font-medium text-foreground">
                   No action buttons yet
                 </h3>
                 <p className="max-w-md text-sm leading-6 text-muted-foreground">
@@ -247,7 +247,7 @@ export function QuickLinksPanel({ quickLinks, onChange }: QuickLinksPanelProps) 
               <Plus className="size-4" />
             </div>
             <div>
-              <h3 className="font-display text-base font-medium text-foreground">
+              <h3 className="font-display text-sm font-medium text-foreground">
                 Add an action button
               </h3>
               <FieldDescription>

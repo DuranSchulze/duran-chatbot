@@ -150,6 +150,10 @@ export interface BehaviorConfig {
   openByDefault: boolean;
   /** Auto-open widget after seconds (0 = disabled) */
   autoOpenDelay: number;
+  /** Show a proactive greeting bubble beside the launcher; mutually exclusive with openByDefault */
+  enableProactiveGreeting: boolean;
+  /** Text shown in the proactive greeting bubble (supports {{companyName}} and other contact tokens) */
+  proactiveGreetingMessage: string;
   /** Show timestamp on messages */
   showTimestamps: boolean;
   /** Enable copy button on AI messages */
@@ -168,6 +172,14 @@ export interface BehaviorConfig {
   quoteStarterSubject?: string;
   /** Heading shown above the post-answer call-to-action card */
   ctaHeading?: string;
+  /** Show a data-privacy consent checkbox on the lead form */
+  privacyNoticeEnabled: boolean;
+  /** Consent sentence shown next to the checkbox; use {{link}} where the privacy link should appear */
+  privacyNoticeText: string;
+  /** Visible text of the privacy link */
+  privacyNoticeLinkLabel: string;
+  /** Destination of the privacy link; only http(s) is rendered as a link */
+  privacyNoticeUrl: string;
 }
 
 export interface ConversationEmailConfig {
@@ -298,12 +310,18 @@ export const defaultConfig: ChatbotConfig = {
     conversationEmail: { enabled: false, to: [], cc: [], subject: '' },
     openByDefault: true,
     autoOpenDelay: 0,
+    enableProactiveGreeting: false,
+    proactiveGreetingMessage: 'Hey, this is {{companyName}}. Want some assistance?',
     showTimestamps: true,
     enableCopyButton: true,
     enableQuoteRequest: false,
     quoteNotifyTo: [],
     quoteNotifyCC: [],
     quoteEmailSubject: 'New Quote Request via Chatbot',
+    privacyNoticeEnabled: false,
+    privacyNoticeText: 'I have read and agree to the {{link}}.',
+    privacyNoticeLinkLabel: 'Privacy Policy',
+    privacyNoticeUrl: '',
   },
   integrations: {
     viber: { enabled: false },
@@ -311,6 +329,11 @@ export const defaultConfig: ChatbotConfig = {
     telegram: { enabled: false },
   },
 };
+
+/** Keep stored text as-is; anything that isn't a string falls back to the shipped default. */
+function stringOrDefault(value: unknown, fallback: string): string {
+  return typeof value === 'string' ? value : fallback;
+}
 
 /** Validate partial config and merge with defaults */
 export function mergeWithDefaults(partial: Partial<ChatbotConfig>): ChatbotConfig {
@@ -325,9 +348,31 @@ export function mergeWithDefaults(partial: Partial<ChatbotConfig>): ChatbotConfi
       ...defaultConfig.behavior,
       ...partial.behavior,
       conversationEmail: normalizeConversationEmail(partial.behavior?.conversationEmail),
-      openByDefault: partial.behavior?.openByDefault === undefined
-        ? defaultConfig.behavior.openByDefault
-        : partial.behavior.openByDefault === true,
+      enableProactiveGreeting: partial.behavior?.enableProactiveGreeting === true,
+      proactiveGreetingMessage: stringOrDefault(
+        partial.behavior?.proactiveGreetingMessage,
+        defaultConfig.behavior.proactiveGreetingMessage,
+      ),
+      privacyNoticeEnabled: partial.behavior?.privacyNoticeEnabled === true,
+      privacyNoticeText: stringOrDefault(
+        partial.behavior?.privacyNoticeText,
+        defaultConfig.behavior.privacyNoticeText,
+      ),
+      privacyNoticeLinkLabel: stringOrDefault(
+        partial.behavior?.privacyNoticeLinkLabel,
+        defaultConfig.behavior.privacyNoticeLinkLabel,
+      ),
+      privacyNoticeUrl: stringOrDefault(
+        partial.behavior?.privacyNoticeUrl,
+        defaultConfig.behavior.privacyNoticeUrl,
+      ),
+      // The greeting bubble exists to invite a click, so it must never race the
+      // auto-expanded chat: enabling it always wins over openByDefault.
+      openByDefault: partial.behavior?.enableProactiveGreeting === true
+        ? false
+        : partial.behavior?.openByDefault === undefined
+          ? defaultConfig.behavior.openByDefault
+          : partial.behavior.openByDefault === true,
       quoteNotifyTo: partial.behavior?.quoteNotifyTo ?? defaultConfig.behavior.quoteNotifyTo,
       quoteNotifyCC: partial.behavior?.quoteNotifyCC ?? defaultConfig.behavior.quoteNotifyCC,
     },
@@ -383,4 +428,28 @@ export function interpolateTemplateVariables(
     return typeof value === 'string' ? value : '';
   });
 }
+
+// ─── Privacy notice ─────────────────────────────────────────────────────────
+
+const PRIVACY_NOTICE_LINK_PATTERN = /\{\{\s*link\s*\}\}/g;
+
+/**
+ * Split a privacy-notice sentence on its {{link}} token so callers can render the
+ * privacy link inline. The token is dropped, so the returned parts are the text
+ * before, between, and after it — a single part when the token is absent.
+ */
+export function splitPrivacyNoticeText(text: string): string[] {
+  return (text ?? '').split(PRIVACY_NOTICE_LINK_PATTERN);
+}
+
+/**
+ * Only http(s) destinations may become links. Anything else (javascript:, data:,
+ * a bare domain, …) fails closed and renders as plain text. Shared by the widget
+ * and the admin preview so both agree on what is linkable.
+ */
+export function safePrivacyLinkUrl(url: string | null | undefined): string {
+  const trimmed = (url ?? '').trim();
+  return /^https?:\/\/\S+$/i.test(trimmed) ? trimmed : '';
+}
+
 export { formatRichMessage } from './format-message.js';

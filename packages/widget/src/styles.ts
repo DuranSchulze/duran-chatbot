@@ -95,6 +95,99 @@ export const styles = `
   transform: rotate(0) scale(1);
 }
 
+/* Proactive greeting bubble */
+.cb-teaser {
+  position: fixed;
+  bottom: 92px;
+  right: 20px;
+  max-width: min(260px, calc(100vw - 40px));
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--cb-card);
+  color: var(--cb-text);
+  border: 1px solid var(--cb-border);
+  border-radius: var(--cb-radius);
+  box-shadow: none;
+  z-index: 10000;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px) scale(0.96);
+  transform-origin: bottom right;
+  transition: opacity 0.28s ease, transform 0.28s ease, visibility 0.28s;
+  pointer-events: none;
+}
+
+.cb-teaser.cb-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+/* Tail pointing down at the launcher */
+.cb-teaser::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  right: 24px;
+  width: 12px;
+  height: 12px;
+  background: var(--cb-card);
+  border-right: 1px solid var(--cb-border);
+  border-bottom: 1px solid var(--cb-border);
+  transform: rotate(45deg);
+}
+
+.cb-teaser-open {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cb-teaser-text {
+  display: block;
+  white-space: pre-line;
+  line-height: 1.45;
+}
+
+.cb-teaser-dismiss {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--cb-muted);
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.cb-teaser-dismiss:hover {
+  color: var(--cb-text);
+  background: var(--cb-secondary);
+}
+
+.cb-teaser-dismiss svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* The greeting has done its job once the chat is open. */
+.cb-widget-container.cb-open .cb-teaser {
+  display: none;
+}
+
 /* Chat Window */
 .cb-chat-window {
   position: fixed;
@@ -130,6 +223,17 @@ export const styles = `
   .cb-widget-container[data-position="bottom-left"] .cb-chat-window {
     right: auto;
     left: 20px;
+  }
+
+  .cb-widget-container[data-position="bottom-left"] .cb-teaser {
+    right: auto;
+    left: 20px;
+    transform-origin: bottom left;
+  }
+
+  .cb-widget-container[data-position="bottom-left"] .cb-teaser::after {
+    right: auto;
+    left: 24px;
   }
 }
 
@@ -427,6 +531,40 @@ export const styles = `
   box-shadow: none;
 }
 
+/* Privacy consent checkbox */
+.cb-lead-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--cb-muted);
+  font-size: 11px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.cb-lead-consent-input {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  margin: 1px 0 0;
+  accent-color: var(--cb-primary);
+  cursor: pointer;
+}
+
+.cb-lead-consent-text {
+  min-width: 0;
+}
+
+.cb-lead-consent-text a {
+  color: var(--cb-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cb-lead-consent-text a:hover {
+  opacity: 0.85;
+}
+
 .cb-lead-error {
   min-height: 18px;
   margin: 0;
@@ -707,6 +845,7 @@ export const styles = `
 @media (prefers-reduced-motion: reduce) {
   .cb-toggle-btn,
   .cb-chat-window,
+  .cb-teaser,
   .cb-message,
   .cb-lead-form,
   .cb-action-menu,

@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-control border border-transparent text-base font-normal whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex shrink-0 items-center justify-center gap-2 rounded-control border border-transparent text-sm font-normal whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -21,14 +21,14 @@ const buttonVariants = cva(
         link: "text-muted-foreground underline-offset-4 hover:underline border-transparent",
       },
       size: {
-        default: "h-10 px-4",
+        default: "h-9 px-3.5",
         xs: "h-7 rounded-control px-2.5 text-xs",
-        sm: "h-8 rounded-control px-3 text-sm",
-        lg: "h-11 px-5 text-sm",
-        icon: "size-10",
+        sm: "h-8 rounded-control px-3 text-xs",
+        lg: "h-10 px-4 text-sm",
+        icon: "size-9",
         "icon-xs": "size-7 rounded-control",
         "icon-sm": "size-8 rounded-control",
-        "icon-lg": "size-11",
+        "icon-lg": "size-10",
       },
     },
     defaultVariants: {

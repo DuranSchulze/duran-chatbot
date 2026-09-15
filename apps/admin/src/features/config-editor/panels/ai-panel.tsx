@@ -13,6 +13,7 @@ import { PromptTextarea } from "@/components/ui/prompt-textarea";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Select } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { ModelTestCard } from "./model-test-card";
 
 type AIPanelProps = {
   ai: AIConfig;
@@ -112,6 +113,8 @@ export function AIPanel({ ai, onChange }: AIPanelProps) {
           />
         </Field>
       </FieldGrid>
+
+      <ModelTestCard model={ai.model} />
 
       <Field>
         <div className="flex items-center justify-between gap-4">

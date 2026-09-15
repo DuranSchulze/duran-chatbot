@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { sendNotification, notificationReadiness, enabledChannels, NotificationError, validateChatLog } from '../packages/database/dist/index.js';
-import { mergeWithDefaults } from '../packages/config/dist/index.js';
+import { mergeWithDefaults, interpolateTemplateVariables, safePrivacyLinkUrl, splitPrivacyNoticeText } from '../packages/config/dist/index.js';
 import jwt from 'jsonwebtoken';
 import configHandler from '../api/config.js';
 import profilesHandler from '../api/profiles.js';
@@ -23,6 +23,55 @@ test('integration flags default off and reject truthy strings and unexpected sec
   const merged = mergeWithDefaults({ integrations: { telegram: { enabled: 'true', token: 'secret' }, viber: { enabled: true } } });
   assert.deepEqual(merged.integrations.telegram, { enabled: false });
   assert.deepEqual(enabledChannels(merged.integrations), ['viber']);
+});
+test('proactive greeting defaults off, keeps a custom message, and forces the chat closed', () => {
+  const defaults = mergeWithDefaults({});
+  assert.equal(defaults.behavior.enableProactiveGreeting, false);
+  assert.equal(defaults.behavior.proactiveGreetingMessage, 'Hey, this is {{companyName}}. Want some assistance?');
+  assert.equal(interpolateTemplateVariables(defaults.behavior.proactiveGreetingMessage, { companyName: 'Acme' }), 'Hey, this is Acme. Want some assistance?');
+
+  const custom = mergeWithDefaults({ behavior: { enableProactiveGreeting: true, proactiveGreetingMessage: 'Hi from {{companyName}}!' } });
+  assert.equal(custom.behavior.proactiveGreetingMessage, 'Hi from {{companyName}}!');
+
+  // The greeting bubble and the auto-expanded chat are mutually exclusive, so enabling the bubble wins.
+  assert.equal(custom.behavior.openByDefault, false);
+  assert.equal(mergeWithDefaults({ behavior: { enableProactiveGreeting: true, openByDefault: true } }).behavior.openByDefault, false);
+
+  // Invalid or absent messages fall back to the shipped default instead of leaking through.
+  assert.equal(mergeWithDefaults({ behavior: { proactiveGreetingMessage: 42 } }).behavior.proactiveGreetingMessage, defaults.behavior.proactiveGreetingMessage);
+
+  // With the bubble off, openByDefault still defaults to true.
+  assert.equal(mergeWithDefaults({ behavior: { enableProactiveGreeting: false } }).behavior.openByDefault, true);
+});
+test('privacy notice defaults off, keeps custom copy, and tolerates non-string values', () => {
+  const defaults = mergeWithDefaults({});
+  assert.equal(defaults.behavior.privacyNoticeEnabled, false);
+  assert.equal(defaults.behavior.privacyNoticeText, 'I have read and agree to the {{link}}.');
+  assert.equal(defaults.behavior.privacyNoticeLinkLabel, 'Privacy Policy');
+  assert.equal(defaults.behavior.privacyNoticeUrl, '');
+
+  const custom = mergeWithDefaults({ behavior: { privacyNoticeEnabled: true, privacyNoticeText: 'I accept the {{link}}', privacyNoticeLinkLabel: 'Terms', privacyNoticeUrl: 'https://example.test/terms' } });
+  assert.equal(custom.behavior.privacyNoticeEnabled, true);
+  assert.equal(custom.behavior.privacyNoticeText, 'I accept the {{link}}');
+  assert.equal(custom.behavior.privacyNoticeLinkLabel, 'Terms');
+  assert.equal(custom.behavior.privacyNoticeUrl, 'https://example.test/terms');
+
+  // Strict flags and non-string copy fall back instead of leaking through.
+  assert.equal(mergeWithDefaults({ behavior: { privacyNoticeEnabled: 'true' } }).behavior.privacyNoticeEnabled, false);
+  assert.equal(mergeWithDefaults({ behavior: { privacyNoticeText: 42 } }).behavior.privacyNoticeText, defaults.behavior.privacyNoticeText);
+  assert.equal(mergeWithDefaults({ behavior: { privacyNoticeUrl: null } }).behavior.privacyNoticeUrl, '');
+});
+test('privacy links stay http(s)-only and the sentence splits on its link token', () => {
+  assert.equal(safePrivacyLinkUrl('https://example.test/privacy'), 'https://example.test/privacy');
+  assert.equal(safePrivacyLinkUrl('  http://example.test/p  '), 'http://example.test/p');
+  for (const unsafe of ['javascript:alert(1)', 'data:text/html,x', 'example.test/privacy', 'ftp://example.test/p', '', null, undefined]) {
+    assert.equal(safePrivacyLinkUrl(unsafe), '');
+  }
+
+  assert.deepEqual(splitPrivacyNoticeText('I agree to the {{link}}.'), ['I agree to the ', '.']);
+  assert.deepEqual(splitPrivacyNoticeText('I agree to the {{  link  }}.'), ['I agree to the ', '.']);
+  assert.deepEqual(splitPrivacyNoticeText('No token here.'), ['No token here.']);
+  assert.deepEqual(splitPrivacyNoticeText('{{link}} and {{link}}'), ['', ' and ', '']);
 });
 test('credentials are bound to a profile and readiness never exposes their values', () => {
   assert.equal(notificationReadiness('example', env).telegram.configured, true);

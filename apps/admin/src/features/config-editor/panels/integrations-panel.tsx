@@ -220,7 +220,7 @@ export function IntegrationsPanel({ profileSlug, integrations, onChange }: Integ
 
       <Card className="border-dashed bg-background shadow-none">
         <CardContent className="space-y-2 pt-5">
-          <h3 className="font-display text-base font-medium text-foreground">
+          <h3 className="font-display text-sm font-medium text-foreground">
             How credentials work
           </h3>
           <p className="text-sm leading-6 text-muted-foreground">
@@ -268,7 +268,7 @@ export function IntegrationsPanel({ profileSlug, integrations, onChange }: Integ
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-display text-base font-medium text-foreground">
+                        <h3 className="font-display text-sm font-medium text-foreground">
                           {channel.name}
                         </h3>
                         <Badge variant={enabled ? "success" : "secondary"}>
@@ -341,7 +341,7 @@ export function IntegrationsPanel({ profileSlug, integrations, onChange }: Integ
                   <GuideIcon className="size-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <DialogTitle className="text-lg font-medium text-foreground">
+                  <DialogTitle className="text-base font-medium text-foreground">
                     Set up {selectedGuide.name}
                   </DialogTitle>
                   <DialogDescription className="mt-1 text-sm leading-5 text-muted-foreground">

@@ -53,8 +53,12 @@ export function WidgetPreviewPage() {
 
     const widget = new ChatbotWidget(config);
     widgetRef.current = widget;
-    // Start with the chat window open so the open state is what renders first.
-    widget.open();
+    // With the proactive greeting on the widget starts closed, so the greeting
+    // bubble is the first thing rendered. Otherwise open the chat window so the
+    // open state is what renders first.
+    if (!config.behavior.enableProactiveGreeting) {
+      widget.open();
+    }
 
     return () => {
       widgetRef.current = null;
@@ -97,8 +101,7 @@ export function WidgetPreviewPage() {
               </h1>
               <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
                 This page mounts the real widget so you can review the chat window with your current config.
-                The chat opens automatically on load — use the launcher (or the buttons above) to check the
-                closed state too.
+                Use the launcher or the buttons above to check the open, closed, and proactive greeting states.
               </p>
             </div>
 
@@ -135,9 +138,8 @@ export function WidgetPreviewPage() {
                   Preview the floating experience
                 </h2>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  The widget is mounted on this page with your current config. The chat window is open so you
-                  can review the layout and welcome message right away; hit Close chat to inspect the floating
-                  launcher state.
+                  The widget is mounted on this page with your current config. Hit Close chat to inspect the
+                  floating launcher, or enable the proactive greeting to see the bubble invite visitors in.
                 </p>
               </div>
             </div>
@@ -148,7 +150,7 @@ export function WidgetPreviewPage() {
               <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
                 Current state
               </p>
-              <h2 className="font-display mt-2 text-lg font-medium text-foreground">
+              <h2 className="font-display mt-2 text-base font-medium text-foreground">
                 {loading ? "Loading preview…" : config?.appearance.companyName ?? "Preview"}
               </h2>
             </div>

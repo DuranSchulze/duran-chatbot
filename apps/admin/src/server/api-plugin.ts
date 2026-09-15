@@ -13,6 +13,7 @@ import prisma, {
 } from "@duran-chatbot/database";
 import { Prisma } from "@prisma/client";
 import jwt from "jsonwebtoken";
+import modelTestHandler from "../../../../api/model-test.js";
 
 function isAdminRequest(req: IncomingMessage): boolean {
   const auth = req.headers.authorization || "";
@@ -762,6 +763,8 @@ export function apiPlugin(): PluginOption {
       );
 
       // ── /api/models ───────────────────────────────────────────────
+      server.middlewares.use("/api/model-test", modelTestHandler);
+
       server.middlewares.use(
         "/api/models",
         async (_req: IncomingMessage, res: ServerResponse) => {

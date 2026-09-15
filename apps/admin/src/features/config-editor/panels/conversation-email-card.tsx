@@ -61,7 +61,7 @@ export function ConversationEmailCard({ profileSlug, settings, onChange }: {
       <CardContent className="space-y-5 pt-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 id="conversation-email-title" className="font-display flex items-center gap-2 text-base font-medium text-foreground"><Mail className="size-4 text-muted-foreground" />Conversation email alerts</h3>
+            <h3 id="conversation-email-title" className="font-display flex items-center gap-2 text-sm font-medium text-foreground"><Mail className="size-4 text-muted-foreground" />Conversation email alerts</h3>
             <p className="mt-1 text-sm text-muted-foreground">Notify your internal team whenever a visitor sends a message. Separate from quote-request emails.</p>
           </div>
           <Switch aria-labelledby="conversation-email-title" checked={settings.enabled} onCheckedChange={enabled => onChange({ ...settings, enabled })} />
@@ -90,7 +90,7 @@ export function ConversationEmailCard({ profileSlug, settings, onChange }: {
             <Badge variant={status?.readiness.enabled && status.readiness.configured ? "success" : "secondary"}>{!status ? "Loading…" : !status.readiness.enabled ? "Off" : status.readiness.configured ? "Ready" : "Setup needed"}</Badge>
           </div>
           {status && !status.readiness.configured && <p className="text-sm text-muted-foreground">Setup needed: {status.readiness.missing.join("; ")}. Ask your developer to set ADMIN_APP_URL to this dashboard’s origin if it is missing.</p>}
-          {status && <dl className="grid grid-cols-3 gap-3 sm:grid-cols-6">{["pending", "sending", "accepted", "failed", "cancelled"].map(name => <div key={name}><dt className="text-xs capitalize text-muted-foreground">{name}</dt><dd className="text-lg font-medium tabular-nums text-foreground">{count(name)}</dd></div>)}</dl>}
+          {status && <dl className="grid grid-cols-3 gap-3 sm:grid-cols-6">{["pending", "sending", "accepted", "failed", "cancelled"].map(name => <div key={name}><dt className="text-xs capitalize text-muted-foreground">{name}</dt><dd className="text-base font-medium tabular-nums text-foreground">{count(name)}</dd></div>)}</dl>}
           <p className="text-xs text-muted-foreground">Accepted means Resend accepted the email, not confirmed inbox delivery. Status refreshes every 30 seconds.</p>
           {status?.lastFailure && <p className="text-sm text-muted-foreground">Last failure: {status.lastFailure.lastError} · {new Date(status.lastFailure.updatedAt).toLocaleString()}</p>}
           {error && <p role="alert" className="text-sm text-muted-foreground">{error}</p>}

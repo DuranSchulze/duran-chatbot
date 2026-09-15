@@ -232,7 +232,7 @@ export function EmailPanel({ profileSlug, behavior, onBehaviorChange }: EmailPan
         <CardContent className="space-y-5 pt-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h3 className="font-display flex items-center gap-2 text-base font-medium text-foreground">
+              <h3 className="font-display flex items-center gap-2 text-sm font-medium text-foreground">
                 <BellRing className="size-4 text-muted-foreground" />
                 Quote request notifications
               </h3>
@@ -310,7 +310,7 @@ export function EmailPanel({ profileSlug, behavior, onBehaviorChange }: EmailPan
 
       <Card className="border-dashed bg-background shadow-none">
         <CardContent className="space-y-3 pt-5">
-          <h3 className="font-display text-base font-medium text-foreground">
+          <h3 className="font-display text-sm font-medium text-foreground">
             Send a test email
           </h3>
           <FieldDescription>

@@ -1,5 +1,5 @@
 import type { AppearanceConfig } from '@duran-chatbot/config'
-import { formatRichMessage } from '@duran-chatbot/config'
+import { formatRichMessage, safePrivacyLinkUrl, splitPrivacyNoticeText } from '@duran-chatbot/config'
 import type { QuickLink } from '@duran-chatbot/config'
 
 interface VisitorProfile {
@@ -115,8 +115,89 @@ export function getCtaCardHTML(buttons: QuickLink[], heading: string): string {
   `
 }
 
-export function getWidgetHTML(companyName: string, welcomeMessage: string, quickLinks: QuickLink[]): string {
+/**
+ * The proactive greeting bubble: a small chat-shaped bubble that appears beside
+ * the launcher before the chat is opened. Clicking it opens the chat; the small
+ * dismiss button hides it for the rest of the page visit.
+ */
+function getProactiveGreetingHTML(message: string): string {
+  if (!message) return ''
   return `
+    <div class="cb-teaser" role="status">
+      <button type="button" class="cb-teaser-open" aria-label="Open chat">
+        <span class="cb-teaser-text">${escapeHtml(message)}</span>
+      </button>
+      <button type="button" class="cb-teaser-dismiss" aria-label="Dismiss greeting">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        </svg>
+      </button>
+    </div>
+  `
+}
+
+/** Consent checkbox shown under the lead form's name and email fields. */
+export interface PrivacyNoticeOptions {
+  /** Consent sentence; the {{link}} token is replaced by the privacy link */
+  text: string
+  /** Visible text of the privacy link */
+  linkLabel: string
+  /** Destination of the privacy link */
+  url: string
+}
+
+/** Only http(s) destinations become anchors; anything else renders as plain text. */
+function getPrivacyNoticeHTML(notice: PrivacyNoticeOptions | null): string {
+  if (!notice) return ''
+
+  const label = notice.linkLabel.trim()
+  const url = safePrivacyLinkUrl(notice.url)
+  const link = label && url
+    ? `<a href="${escapeAttribute(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`
+    : escapeHtml(label)
+
+  // Escape each part, then stitch the anchor in — so the sentence stays inert
+  // and only our anchor markup survives.
+  const text = notice.text.trim()
+  const parts = splitPrivacyNoticeText(text)
+  const body = text
+    ? parts
+        .map((part, index) =>
+          index < parts.length - 1 ? `${escapeHtml(part)}${link}` : escapeHtml(part),
+        )
+        .join('')
+    : link
+
+  if (!body) return ''
+
+  return `
+    <label class="cb-lead-consent">
+      <input type="checkbox" class="cb-lead-consent-input" />
+      <span class="cb-lead-consent-text">${body}</span>
+    </label>
+  `
+}
+
+export interface WidgetHTMLOptions {
+  companyName: string
+  welcomeMessage: string
+  quickLinks: QuickLink[]
+  /** Proactive greeting bubble copy; empty string disables it */
+  proactiveGreeting?: string
+  /** Consent checkbox for the lead form; null disables it */
+  privacyNotice?: PrivacyNoticeOptions | null
+}
+
+export function getWidgetHTML({
+  companyName,
+  welcomeMessage,
+  quickLinks,
+  proactiveGreeting = '',
+  privacyNotice = null,
+}: WidgetHTMLOptions): string {
+  return `
+    ${getProactiveGreetingHTML(proactiveGreeting)}
+
     <button class="cb-toggle-btn" aria-label="Open chat">
       <svg class="cb-icon-message" viewBox="0 0 24 24" fill="currentColor">
         <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
@@ -162,6 +243,7 @@ export function getWidgetHTML(companyName: string, welcomeMessage: string, quick
               autocomplete="email"
             />
           </div>
+          ${getPrivacyNoticeHTML(privacyNotice)}
           <p class="cb-lead-error" aria-live="polite"></p>
           <button type="submit" class="cb-lead-submit">Start chat</button>
         </form>
@@ -252,6 +334,8 @@ export function getLeadFormElements(root: ParentNode) {
     leadForm: root.querySelector<HTMLFormElement>('.cb-lead-form'),
     nameInput: root.querySelector<HTMLInputElement>('.cb-lead-name'),
     emailInput: root.querySelector<HTMLInputElement>('.cb-lead-email'),
+    // Present only when the privacy notice is enabled in the config.
+    consentInput: root.querySelector<HTMLInputElement>('.cb-lead-consent-input'),
     inputForm: root.querySelector<HTMLFormElement>('.cb-input-form'),
     messageInput: root.querySelector<HTMLInputElement>('.cb-input'),
   }

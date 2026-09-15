@@ -70,7 +70,7 @@
 }
 @layer base {
   *, *::before, *::after { box-sizing: border-box; }
-  body { margin: 0; min-width: 320px; background: var(--color-background); color: var(--color-foreground); font-family: var(--font-sans); font-size: 16px; font-weight: 400; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  body { margin: 0; min-width: 320px; background: var(--color-background); color: var(--color-foreground); font-family: var(--font-sans); font-size: 14px; font-weight: 400; line-height: 1.5; -webkit-font-smoothing: antialiased; }
   #root { min-height: 100dvh; }
   h1, h2, h3, h4, h5, h6 { font-family: var(--font-display); font-weight: 480; line-height: 1.2; letter-spacing: .015em; }
   button, input, textarea, select { font-family: inherit; }
@@ -85,15 +85,15 @@
 @layer components {
   .page-container { width: 100%; max-width: var(--page-max-width); margin-inline: auto; padding: 72px 32px; }
   .graphite-card { background: var(--color-card); border: 0; border-radius: 12px; padding: 32px; }
-  .page-heading { font-size: 42px; line-height: 1.15; letter-spacing: .01em; }
-  .section-heading { font-size: 28px; line-height: 1.2; }
+  .page-heading { font-size: 28px; line-height: 1.15; letter-spacing: .01em; }
+  .section-heading { font-size: 20px; line-height: 1.2; }
   .top-navigation { background: color-mix(in srgb, var(--color-background) 90%, transparent); backdrop-filter: blur(20px); }
   .nav-link { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 8px 20px; border-radius: 40px; font-size: 14px; color: var(--color-foreground); }
   .nav-link:hover { background: var(--color-secondary); }
-  .chat-rich-text { font-size: 16px; line-height: 1.5; }
+  .chat-rich-text { font-size: 14px; line-height: 1.5; }
   @media (max-width: 640px) {
     .page-container { padding: 40px 16px; }
-    .page-heading { font-size: 32px; }
+    .page-heading { font-size: 24px; }
   }
 }
 @media (prefers-reduced-motion: reduce) {

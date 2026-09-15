@@ -63,7 +63,7 @@ export function LoginPage() {
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-base text-foreground placeholder:text-muted-foreground outline-none focus:border-border focus:ring-1 focus:ring-foreground transition-colors"
+              className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-border focus:ring-1 focus:ring-foreground transition-colors"
               placeholder="Username"
             />
           </div>
@@ -83,7 +83,7 @@ export function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-border bg-card py-2.5 pl-3.5 pr-12 text-base text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-border focus:ring-1 focus:ring-foreground"
+                className="w-full rounded-xl border border-border bg-card py-2.5 pl-3.5 pr-12 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-border focus:ring-1 focus:ring-foreground"
                 placeholder="Password"
               />
               <button
@@ -126,7 +126,7 @@ export function LoginPage() {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full h-12 text-base"
+            className="w-full h-10"
           >
             {loading ? "Signing in…" : "Sign in"}
           </Button>

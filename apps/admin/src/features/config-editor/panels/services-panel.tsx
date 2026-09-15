@@ -107,7 +107,7 @@ export function ServicesPanel({ services, onChange }: ServicesPanelProps) {
                 <BriefcaseBusiness className="size-5" />
               </div>
               <div className="space-y-1">
-                <h3 className="font-display text-base font-medium text-foreground">
+                <h3 className="font-display text-sm font-medium text-foreground">
                   No services yet — that's okay
                 </h3>
                 <p className="max-w-md text-sm leading-6 text-muted-foreground">
@@ -127,7 +127,7 @@ export function ServicesPanel({ services, onChange }: ServicesPanelProps) {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-display text-base font-medium text-foreground">
+                    <h3 className="font-display text-sm font-medium text-foreground">
                       {service.name}
                     </h3>
                     <Badge variant="secondary">{service.price}</Badge>
@@ -182,7 +182,7 @@ export function ServicesPanel({ services, onChange }: ServicesPanelProps) {
               <Plus className="size-4" />
             </div>
             <div>
-              <h3 className="font-display text-base font-medium text-foreground">
+              <h3 className="font-display text-sm font-medium text-foreground">
                 Add service
               </h3>
               <FieldDescription>

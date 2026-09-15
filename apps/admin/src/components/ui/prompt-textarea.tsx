@@ -167,7 +167,7 @@ export function PromptTextarea({
         <dialog ref={dialogRef} aria-labelledby={titleId} onCancel={() => setExpanded(false)} onClose={() => setExpanded(false)} onClick={(event) => { if (event.target === event.currentTarget) setExpanded(false); }} className="fixed inset-0 m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto border border-border bg-card p-0 text-foreground  backdrop:bg-black/60 backdrop:backdrop-blur-sm">
           <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4 sm:px-6">
             <div className="min-w-0">
-              <h2 id={titleId} className="font-display text-base font-medium">{label}</h2>
+              <h2 id={titleId} className="font-display text-sm font-medium">{label}</h2>
               <p className="mt-1 text-xs text-muted-foreground">Edit in a larger workspace. Close this editor, then save your settings to apply changes.</p>
             </div>
             <button type="button" onClick={() => setExpanded(false)} aria-label="Close expanded editor" className="flex size-9 shrink-0 items-center justify-center text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground"><X className="size-4" /></button>

@@ -35,7 +35,7 @@ function EdgeArrow({ direction, onScroll, label }: {
   );
 }
 
-/** Configuration sections live in the top navigation on every screen size. */
+/** Configuration sections live in a left sidebar on large screens and a horizontal scroll strip on small ones. */
 export function SidebarNav({ items, activeId, onSelect, dirty }: {
   items: SidebarItem[];
   activeId: string;
@@ -94,9 +94,11 @@ export function SidebarNav({ items, activeId, onSelect, dirty }: {
     });
   };
 
+  // Sticky/scroll behaviour lives on the AdminShell column that also holds the
+  // snapshot and embed cards, so this renders as a plain block.
   return (
-    <div className="mx-auto max-w-[1200px] px-4 pb-4 sm:px-8">
-      <div className="flex items-center justify-between gap-4 py-3 text-xs text-muted-foreground">
+    <div className="min-w-0">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 pb-3 text-xs text-muted-foreground">
         <span>Profile configuration</span>
         <span role="status">{dirty ? "Unsaved changes" : "All changes saved"}</span>
       </div>
@@ -107,12 +109,12 @@ export function SidebarNav({ items, activeId, onSelect, dirty }: {
         <nav
           ref={scrollerRef}
           aria-label="Configuration sections"
-          className="flex gap-2 overflow-x-auto scroll-px-12 pb-1"
+          className="flex gap-2 overflow-x-auto scroll-px-12 pb-1 lg:flex-col lg:gap-1.5 lg:overflow-x-visible lg:pb-0"
         >
           {items.map(({ id, icon: Icon, label }) => (
             <button key={id} type="button" onClick={() => onSelect(id)} aria-current={id === activeId ? "page" : undefined}
-              className={cn("nav-link shrink-0 border", id === activeId ? "border-foreground bg-secondary" : "border-transparent text-muted-foreground")}>
-              <Icon className="size-4" /><span>{label}</span>
+              className={cn("nav-link shrink-0 border lg:w-full lg:justify-start", id === activeId ? "border-foreground bg-secondary" : "border-transparent text-muted-foreground")}>
+              <Icon className="size-4 shrink-0" /><span>{label}</span>
             </button>
           ))}
         </nav>

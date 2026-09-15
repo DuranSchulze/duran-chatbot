@@ -1,15 +1,13 @@
 import { useCallback, useMemo, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import type { ChatbotConfig } from "@duran-chatbot/config";
-import { getEmbedCode } from "@/lib/embed";
 import { AdminShell } from "@/components/layout/admin-shell";
-import { ConfigSummaryCard } from "@/components/cards/config-summary-card";
-import { EmbedCodeCard } from "@/components/cards/embed-code-card";
 import { StatusBanner } from "@/components/cards/status-banner";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { TopBar } from "@/components/layout/top-bar";
 import { getConfigSections } from "@/features/config-editor/sections";
-import type { ConfigSectionId } from "@/features/config-editor/types";
+import type { ConfigSectionDefinition, ConfigSectionId } from "@/features/config-editor/types";
+import { OverviewPanel } from "@/features/config-editor/panels/overview-panel";
 import { useConfig } from "@/hooks/useConfig";
 import { useProfiles } from "@/hooks/useProfiles";
 import { savePreviewConfig } from "@/lib/preview";
@@ -22,7 +20,7 @@ import { AnnouncementsPage } from "@/pages/AnnouncementsPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toaster";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Code2 } from "lucide-react";
 
 function ConfigEditor() {
   const { toast } = useToast();
@@ -94,10 +92,10 @@ function ConfigEditor() {
     [currentConfig, handleConfigChange],
   );
 
-  const sections = useMemo(
+  const sections = useMemo<ConfigSectionDefinition[]>(
     () =>
       currentConfig
-        ? getConfigSections({
+        ? [...getConfigSections({
             profileSlug: activeProfileSlug ?? "",
             appearance: currentConfig.appearance,
             ai: currentConfig.ai,
@@ -118,7 +116,18 @@ function ConfigEditor() {
             onBehaviorChange: (behavior) => updateSection("behavior", behavior),
             onIntegrationsChange: (integrations) =>
               updateSection("integrations", integrations),
-          })
+          }), {
+            id: "overview",
+            label: "Overview & embed",
+            description: "Editing workflow, configuration snapshot, and embed snippet.",
+            icon: Code2,
+            render: () => (
+              <OverviewPanel
+                config={currentConfig}
+                profileSlug={activeProfileSlug ?? ""}
+              />
+            ),
+          }]
         : [],
     [currentConfig, updateSection, activeProfileSlug],
   );
@@ -224,22 +233,7 @@ function ConfigEditor() {
           <div className="min-w-0">{currentPanel.render()}</div>
         </div>
       }
-      aside={
-        <>
-          {error ? (
-            <StatusBanner tone="error" title="Save issue" description={error} />
-          ) : (
-            <StatusBanner
-              title="Editing workflow"
-              description="Adjust any section, review and save when ready."
-            />
-          )}
-          <ConfigSummaryCard config={currentConfig} />
-          <EmbedCodeCard
-            code={getEmbedCode(currentConfig, activeProfileSlug ?? undefined)}
-          />
-        </>
-      }
+      aside={null}
     />
   );
 }
