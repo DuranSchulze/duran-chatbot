@@ -11,7 +11,7 @@
     }
   ],
   "functions": {
-    "api/model-test.js": {
+    "api/models.js": {
       "maxDuration": 30
     },
     "api/auth.js": {

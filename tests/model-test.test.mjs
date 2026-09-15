@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import jwt from "jsonwebtoken";
-import handler from "../api/model-test.js";
+import handler from "../api/_lib/model-test.js";
 
 test("admin model test validates access and reports actual model responses", async (t) => {
   const previousSecret = process.env.AUTH_JWT_SECRET;
@@ -41,4 +41,45 @@ test("admin model test validates access and reports actual model responses", asy
   assert.match((await call({ model: "gemini-test" })).body.error, /no text/);
   fetchMock.mock.mockImplementation(async () => { throw new DOMException("timeout", "TimeoutError"); });
   assert.equal((await call({ model: "gemini-test" })).statusCode, 504);
+});
+
+test("models route keeps GET listing and protects POST tests", async (t) => {
+  const { default: modelsHandler } = await import("../api/models.js");
+  const previousKey = process.env.GEMINI_API_KEY;
+  process.env.GEMINI_API_KEY = "test-key";
+  t.after(() => {
+    if (previousKey === undefined) delete process.env.GEMINI_API_KEY;
+    else process.env.GEMINI_API_KEY = previousKey;
+  });
+  const fetchMock = t.mock.method(globalThis, "fetch", async () => Response.json({
+    models: [{ name: "models/gemini-test", displayName: "Test model", supportedGenerationMethods: ["generateContent"] }],
+  }));
+  const call = async (method) => {
+    const res = {
+      headers: {},
+      setHeader(name, value) { this.headers[name] = value; },
+      status(value) { this.statusCode = value; return this; },
+      json(value) { this.body = value; },
+      end(value) { if (value) this.body = JSON.parse(value); },
+    };
+    await modelsHandler({ method, headers: {}, body: { model: "gemini-test" } }, res);
+    return res;
+  };
+  const list = await call("GET");
+  assert.equal(list.statusCode, 200);
+  assert.deepEqual(list.body.models, [{ id: "gemini-test", label: "Test model" }]);
+  assert.equal((await call("POST")).statusCode, 401);
+  assert.equal(fetchMock.mock.callCount(), 1);
+  const options = await call("OPTIONS");
+  assert.equal(options.statusCode, 204);
+  assert.match(options.headers["Access-Control-Allow-Methods"], /POST/);
+});
+
+test("API entrypoints stay within the Hobby function limit", async () => {
+  const { readdir } = await import("node:fs/promises");
+  const entries = await readdir(new URL("../api/", import.meta.url), { recursive: true });
+  const functions = entries.filter((entry) =>
+    !entry.split(/[\\/]/).some((part) => part.startsWith("_")) &&
+    /\.(js|ts|mjs)$/.test(entry) && !entry.endsWith(".d.ts"));
+  assert.ok(functions.length <= 12, `Found ${functions.length} API functions`);
 });

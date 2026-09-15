@@ -20,7 +20,7 @@ export function ModelTestCard({ model }: { model: string }) {
     setResult(null);
     const timeout = window.setTimeout(() => controller.abort(), 25000);
     try {
-      const response = await fetch("/api/model-test", {
+      const response = await fetch("/api/models", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({ model }),

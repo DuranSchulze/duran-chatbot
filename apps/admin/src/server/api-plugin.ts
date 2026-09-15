@@ -13,7 +13,7 @@ import prisma, {
 } from "@duran-chatbot/database";
 import { Prisma } from "@prisma/client";
 import jwt from "jsonwebtoken";
-import modelTestHandler from "../../../../api/model-test.js";
+import modelTestHandler from "../../../../api/_lib/model-test.js";
 
 function isAdminRequest(req: IncomingMessage): boolean {
   const auth = req.headers.authorization || "";
@@ -763,18 +763,21 @@ export function apiPlugin(): PluginOption {
       );
 
       // ── /api/models ───────────────────────────────────────────────
-      server.middlewares.use("/api/model-test", modelTestHandler);
-
       server.middlewares.use(
         "/api/models",
         async (_req: IncomingMessage, res: ServerResponse) => {
           res.setHeader("Access-Control-Allow-Origin", "*");
-          res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-          res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+          res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+          res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
           if (_req.method === "OPTIONS") {
             res.statusCode = 204;
             res.end();
+            return;
+          }
+
+          if (_req.method === "POST") {
+            await modelTestHandler(_req, res);
             return;
           }
 

@@ -1,3 +1,5 @@
+import modelTestHandler from "./_lib/model-test.js";
+
 const GEMINI_MODELS_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 
 function normalizeModels(payload) {
@@ -21,13 +23,15 @@ function normalizeModels(payload) {
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (req.method === "OPTIONS") {
     res.status(204).end();
     return;
   }
+
+  if (req.method === "POST") return modelTestHandler(req, res);
 
   const apiKey = process.env.GEMINI_API_KEY;
 
