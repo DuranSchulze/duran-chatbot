@@ -12,11 +12,14 @@ import {
   LogOut,
   Send,
   AlertCircle,
+  Check,
+  Copy,
   Headset,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toaster";
 import { formatMessage } from "@/lib/format-message";
+import { copyFormattedMessage } from "@/lib/copy-message";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
@@ -215,6 +218,8 @@ export function ConversationsPage() {
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
   const [replyError, setReplyError] = useState("");
+  // Index of the message whose copy button is showing its "copied" check.
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Fetch only the originating profile's lightweight metadata.
@@ -332,7 +337,22 @@ export function ConversationsPage() {
     }
   }, [selected, activeProfile, logout, navigate]);
 
-  useEffect(() => { setReplyText(""); setReplyError(""); }, [requestedConversation]);
+  useEffect(() => { setReplyText(""); setReplyError(""); setCopiedIndex(null); }, [requestedConversation]);
+
+  /** Copy a message as rich text + plain text, matching the internal chat's export format. */
+  async function handleCopy(content: string, index: number) {
+    try {
+      await copyFormattedMessage(content);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch {
+      toast({
+        title: "Failed to copy message",
+        description: "Your browser blocked clipboard access — select the text and copy manually.",
+        tone: "error",
+      });
+    }
+  }
 
   async function handleSendReply() {
     if (!selected) return;
@@ -581,7 +601,7 @@ export function ConversationsPage() {
                 <div
                   key={i}
                   className={cn(
-                    "flex items-start gap-2",
+                    "group flex items-start gap-2",
                     msg.role === "user" ? "justify-start" : "justify-end",
                   )}
                 >
@@ -613,16 +633,35 @@ export function ConversationsPage() {
                       </p>
                     )}
                     <div className="chat-rich-text min-w-0 break-words" dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }} />
-                    <time
-                      className={cn(
-                        "mt-1 block text-[10px]",
-                        msg.role === "user"
-                          ? "text-muted-foreground"
-                          : "text-muted-foreground",
-                      )}
-                    >
-                      {formatDate(msg.timestamp)}
-                    </time>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <time className="text-[10px] text-muted-foreground">
+                        {formatDate(msg.timestamp)}
+                      </time>
+                      <button
+                        type="button"
+                        onClick={() => void handleCopy(msg.content, i)}
+                        title="Copy message"
+                        aria-label={
+                          msg.role === "user"
+                            ? "Copy visitor message"
+                            : msg.role === "admin"
+                              ? "Copy your reply"
+                              : "Copy assistant response"
+                        }
+                        className={cn(
+                          "flex size-6 items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100",
+                          copiedIndex === i
+                            ? "text-foreground"
+                            : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        {copiedIndex === i ? (
+                          <Check className="size-3" />
+                        ) : (
+                          <Copy className="size-3" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
