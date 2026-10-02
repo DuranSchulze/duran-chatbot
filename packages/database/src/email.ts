@@ -175,6 +175,8 @@ export async function sendProfileEmail(
 
   const res = await fetch(RESEND_API_URL, {
     method: "POST",
+    redirect: "error",
+    signal: AbortSignal.timeout(10000),
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
@@ -192,6 +194,11 @@ export async function sendProfileEmail(
     }
     throw new Error(detail);
   }
+  const data = await res.json().catch(() => null);
+  if (typeof data?.id !== "string" || !data.id || data.id.length > 200) {
+    throw new Error("Resend returned an invalid email acceptance response");
+  }
+  return data.id;
 }
 
 /** Bounded outbox transport; quotes retain their existing behavior. */

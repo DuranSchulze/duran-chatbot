@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import jwt from 'jsonwebtoken';
-import prisma, { formatConversationEmail, conversationAdminUrl, sendResendNotification, NotificationError, getNotificationStatus, retryFailedNotifications, dispatchNotifications, conversationEmailReadiness } from '../packages/database/dist/index.js';
+import prisma, { formatConversationEmail, conversationAdminUrl, sendResendNotification, NotificationError, getNotificationStatus, retryFailedNotifications, dispatchNotifications, conversationEmailReadiness, sendProfileEmail } from '../packages/database/dist/index.js';
 import { normalizeConversationEmail, conversationEmailRecipientError, mergeWithDefaults, publicWidgetConfig } from '../packages/config/dist/index.js';
 import { safeReturnTo } from '../apps/admin/src/lib/return-to.ts';
 import configHandler from '../api/config.js';
 import profilesHandler from '../api/profiles.js';
 import statusHandler from '../api/notification-status.js';
 import conversationsHandler from '../api/conversations.js';
+import quoteHandler from '../api/quote-request.js';
 
 const settings = normalizeConversationEmail({ enabled: true, to: ['staff@example.com'], cc: ['manager@example.com'] });
 const conversation = { id: 'db-id', userName: '<Client>', userEmail: 'visitor@example.com', firstSeen: '2026-09-11T01:00:00Z', lastActive: '2026-09-11T02:00:00Z' };
@@ -159,4 +160,32 @@ test('email worker sends only user query, captures provider ID, and cancels disa
   await dispatchNotifications('event'); assert.equal(finished.status, 'failed'); assert.equal(finished.lastError, 'email_http_401');
   row.attempts = 5;
   await dispatchNotifications('event'); assert.equal(finished.lastError, 'attempt_limit');
+});
+
+
+test('request emails include submitted details in the visitor/team thread and require provider acceptance', async t => {
+  env(t, 'RESEND_API_KEY', 'test-key'); env(t, 'RESEND_FROM_EMAIL', 'sender@example.com');
+  mock(t, prisma.emailIntegration, 'findUnique', async () => null);
+  mock(t, prisma.config, 'findUnique', async () => ({ behavior: { quoteNotifyTo: ['staff@example.com'], quoteNotifyCC: ['manager@example.com'] }, appearance: { companyName: 'Test firm' } }));
+  mock(t, prisma.profile, 'upsert', async () => ({}));
+  let persisted = 0;
+  mock(t, prisma.quoteRequest, 'create', async () => { persisted++; return {}; });
+  let payload;
+  mock(t, globalThis, 'fetch', async (_url, options) => {
+    assert.ok(options.signal instanceof AbortSignal);
+    assert.equal(options.redirect, 'error');
+    payload = JSON.parse(options.body);
+    return reply({ id: 'request-email-id' });
+  });
+  const req = { method: 'POST', headers: { 'x-real-ip': 'test-request' }, body: { name: 'Client', email: 'client@example.com', message: 'Please discuss <tax> obligations.', service: 'Consultation', profile: 'test', emailVisitor: true } };
+  const res = response(); await quoteHandler(req, res);
+  assert.equal(res.code, 200); assert.equal(persisted, 1);
+  assert.deepEqual(payload.to, ['client@example.com']);
+  assert.deepEqual(payload.cc, ['staff@example.com', 'manager@example.com']);
+  assert.ok(payload.text.includes(req.body.message));
+  assert.ok(payload.html.includes('Please discuss &lt;tax&gt; obligations.'));
+  assert.equal(await sendProfileEmail('test', { to: 'staff@example.com', subject: 'Test', text: 'Test' }), 'request-email-id');
+  mock(t, globalThis, 'fetch', async () => reply({}));
+  const failed = response(); await quoteHandler(req, failed);
+  assert.equal(failed.code, 500); assert.equal(persisted, 1);
 });

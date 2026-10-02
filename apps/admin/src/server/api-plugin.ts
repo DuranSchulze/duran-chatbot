@@ -249,11 +249,13 @@ function buildEmailHtml({
 // shares one thread and can reply-all to follow up.
 function buildStarterEmailHtml({
   name,
+  message,
   service,
   companyName,
   timestamp,
 }: {
   name: string;
+  message: string;
   service: string;
   companyName: string;
   timestamp: string;
@@ -283,6 +285,8 @@ function buildStarterEmailHtml({
             <p style="margin:0 0 16px;font-size:14px;color:#374151;line-height:1.6">Thanks for reaching out to ${safe(companyName)}. We've received your request and a member of our team (cc'd here) will follow up shortly. Feel free to reply to this email with any extra details.</p>
             ${service ? `<p style="margin:0 0 8px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#6b7280">What you asked about</p>
             <p style="margin:0 0 16px;font-size:14px;color:#111827;line-height:1.6;white-space:pre-wrap">${safe(service)}</p>` : ""}
+            <p style="margin:0 0 8px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#6b7280">Your request</p>
+            <p style="margin:0 0 16px;font-size:14px;color:#111827;line-height:1.6;white-space:pre-wrap">${safe(message)}</p>
             <p style="margin:24px 0 0;font-size:13px;color:#6b7280">Sent: ${safe(timestamp)}</p>
           </td>
         </tr>
@@ -1399,20 +1403,6 @@ export function apiPlugin(): PluginOption {
               | { companyName?: string }
               | undefined;
             companyName = appearance?.companyName?.trim() || companyName;
-
-            if (recipients.length === 0) {
-              // Fallback: try default profile
-              const defaultConfig = await prisma.config.findUnique({
-                where: { profileId: DEFAULT_SLUG },
-              });
-              if (defaultConfig?.behavior) {
-                const behavior = defaultConfig.behavior as {
-                  quoteNotifyTo?: string[];
-                };
-                recipients =
-                  behavior.quoteNotifyTo?.filter(Boolean) ?? [];
-              }
-            }
           } catch {
             /* DB unavailable — recipients stay empty */
           }
@@ -1443,9 +1433,10 @@ export function apiPlugin(): PluginOption {
                 replyTo: recipients[0] || undefined,
                 subject:
                   starterSubject || `Your request to ${companyName}`,
-                text: `Hi ${body.name!.trim() || "there"},\n\nThanks for reaching out to ${companyName}. We've received your request and a member of our team (cc'd here) will follow up shortly.\n${body.service ? `\nWhat you asked about:\n${body.service}\n` : ""}\nSent: ${timestamp}`,
+                text: `Hi ${body.name!.trim() || "there"},\n\nThanks for reaching out to ${companyName}. We've received your request and a member of our team (cc'd here) will follow up shortly.\n${body.service ? `\nWhat you asked about:\n${body.service}\n` : ""}\nYour request:\n${body.message!.trim()}\n\nSent: ${timestamp}`,
                 html: buildStarterEmailHtml({
                   name: body.name!.trim(),
+                  message: body.message!.trim(),
                   service: body.service?.trim() ?? "",
                   companyName,
                   timestamp,
